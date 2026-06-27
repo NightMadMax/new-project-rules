@@ -1,0 +1,54 @@
+# Global Agent Instructions
+
+## New Project Default
+
+- For any new project, use this default layout: the project folder itself is
+  the Obsidian vault, and that same folder is also the git repository root.
+- Only use separate repository and Obsidian copies when the user or
+  project-local instructions explicitly require it.
+- Create a separate GitHub repository for each new project unless the user
+  explicitly requests a monorepo or another structure.
+
+## Markdown Default
+
+- Edit Markdown files directly in the project folder. They are simultaneously
+  repository files and Obsidian notes.
+- Do not use an Obsidian REST API, helper script, synchronization step, or
+  duplicate Markdown copy in the default single-folder layout.
+- Never store tokens, passwords, private keys, or real credentials in the
+  repository, documentation, scripts, or committed shell history.
+
+## Project Documentation Baseline
+
+- Use a two-level model: create a small required core, then add conditional
+  artifact sets only when the project needs them.
+- Required core: `README.md`, `AGENTS.md`, `INDEX.md`, and `PROJECT.md`.
+- Add `CHANGELOG.md` for projects with user-visible changes or releases.
+- Keep durable documentation under `docs/` instead of accumulating reports in
+  the repository root.
+- Store current architecture in `docs/architecture/ARCHITECTURE.md` and one
+  decision per file in `docs/architecture/decisions/ADR-<number>-<slug>.md`.
+- Store one investigation per file in `docs/research/` and one code review per
+  file in `docs/reviews/`.
+- For operated projects, use `docs/operations/ENVIRONMENTS.md`, `runbooks/`,
+  and `incidents/`. For executable code, use `docs/quality/TESTING.md`.
+- Add API, data, security, integrations, and supply-chain documentation only
+  when relevant.
+- Use `ACTIONS.md` only for consequential actions outside git. Use GitHub
+  Issues or the project tracker for ordinary development tasks.
+- Treat API specifications, lock files, generated SBOM files, and
+  `.github/CODEOWNERS` as authoritative. Markdown should explain and link to
+  them, not duplicate them.
+- Do not create empty placeholder documents without a current purpose.
+- Prefer frontmatter with `type`, `status`, `owner`, `last_verified`,
+  `source_of_truth`, and `related` when useful.
+- Keep `INDEX.md` updated when files are added, removed, moved, renamed, or
+  repurposed.
+- Keep every project artifact inside the project root.
+
+## Operating Rule
+
+- Work directly with Markdown files in the project folder because that folder
+  is already the Obsidian vault.
+- Do not mirror files to another vault path unless the project explicitly
+  documents a split-layout exception.
