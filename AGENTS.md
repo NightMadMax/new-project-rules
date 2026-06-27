@@ -4,6 +4,7 @@
 
 - Project: `Правила для нового проекта`
 - This folder is both the Obsidian vault and git repository root.
+- Project navigation: [[README]], [[INDEX]], [[PROJECT]], and [[TEMPLATES]].
 
 ## Markdown Workflow
 
@@ -12,6 +13,8 @@
   duplicate Markdown copy.
 - Keep `INDEX.md` updated when a file is added, removed, moved, renamed, or
   repurposed.
+- Use wikilinks for relationships between Markdown notes; code-formatted paths
+  do not create Obsidian graph connections.
 
 ## Repository Workflow
 
@@ -33,6 +36,9 @@
 - Treat machine-readable API specifications, lock files, generated SBOM files,
   and `.github/CODEOWNERS` as authoritative.
 - Never commit secrets, tokens, private keys, passwords, or real credentials.
+- When these reusable conventions change, update `GLOBAL_AGENT_INSTRUCTIONS.md`,
+  the bootstrap documentation, affected templates, and the active global
+  `~/.codex/AGENTS.md` in the same task.
 
 ## Verification
 

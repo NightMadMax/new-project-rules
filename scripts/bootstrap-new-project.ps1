@@ -58,7 +58,8 @@ Install-Template "PROJECT.template.md" "PROJECT.md"
 
 function Add-IndexEntry {
     param([string]$Path, [string]$Purpose)
-    Add-Content -Encoding utf8 (Join-Path $Destination "INDEX.md") "| ``$Path`` | $Purpose |"
+    $LinkPath = $Path -replace '\.md$', ''
+    Add-Content -Encoding utf8 (Join-Path $Destination "INDEX.md") "| [[$LinkPath|$Path]] | $Purpose |"
 }
 
 if ($Profile -ne "minimal") {

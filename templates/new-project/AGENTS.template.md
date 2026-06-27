@@ -4,6 +4,7 @@
 
 - Project: `<PROJECT_NAME>`
 - This folder is both the Obsidian vault and git repository root.
+- Project navigation: [[README]], [[INDEX]], and [[PROJECT]].
 
 ## Markdown Workflow
 
@@ -11,6 +12,8 @@
 - Do not use an Obsidian REST API, helper script, synchronization step, or
   duplicate Markdown copy.
 - Keep `INDEX.md` current when files change purpose or location.
+- Use wikilinks for relationships between Markdown notes; code-formatted paths
+  do not create Obsidian graph connections.
 
 ## Repository Workflow
 

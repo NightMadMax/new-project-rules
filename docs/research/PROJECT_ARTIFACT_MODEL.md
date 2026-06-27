@@ -4,23 +4,28 @@ status: accepted
 owner: project
 last_verified: 2026-06-27
 source_of_truth: repository
+related:
+  - "[[PROJECT]]"
+  - "[[INDEX]]"
+  - "[[docs/architecture/ARCHITECTURE|ARCHITECTURE]]"
+  - "[[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]]"
 ---
 
 # Модель артефактов проекта
 
 | Условие | Артефакт |
 |---|---|
-| Любой проект | `README.md`, `AGENTS.md`, `INDEX.md`, `PROJECT.md` |
-| Есть релизы | `CHANGELOG.md` |
-| Есть значимые технические решения | `docs/architecture/decisions/` |
-| Есть исполняемый код | `docs/architecture/`, `docs/quality/TESTING.md` |
-| Есть внешние операции | `ACTIONS.md` |
+| Любой проект | [[README]], [[AGENTS]], [[INDEX]], [[PROJECT]] |
+| Есть релизы | [[CHANGELOG]] |
+| Есть значимые технические решения | [[templates/new-project/ADR.template|ADR template]] |
+| Есть исполняемый код | [[docs/architecture/ARCHITECTURE|ARCHITECTURE]], [[templates/new-project/TESTING.template|TESTING template]] |
+| Есть внешние операции | [[templates/new-project/ACTIONS.template|ACTIONS template]] |
 | Есть production/устройства | `docs/operations/` |
-| Есть API | `docs/api/INTERFACES.md` и API-spec |
+| Есть API | [[templates/new-project/INTERFACES.template|INTERFACES template]] и API-spec |
 | Есть постоянные данные | `docs/data/` |
-| Есть чувствительные активы | `SECURITY.md`, `docs/security/` |
-| Есть внешние сервисы | `INTEGRATIONS.md` |
-| Есть необычные инструменты | `TOOLS.md` |
+| Есть чувствительные активы | [[templates/new-project/SECURITY.template|SECURITY template]], `docs/security/` |
+| Есть внешние сервисы | [[templates/new-project/INTEGRATIONS.template|INTEGRATIONS template]] |
+| Есть необычные инструменты | [[templates/new-project/TOOLS.template|TOOLS template]] |
 
 Разделение строится не по формату, а по жизненному циклу информации:
 

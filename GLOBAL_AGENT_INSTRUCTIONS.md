@@ -17,6 +17,9 @@
   duplicate Markdown copy in the default single-folder layout.
 - Never store tokens, passwords, private keys, or real credentials in the
   repository, documentation, scripts, or committed shell history.
+- Use Obsidian wikilinks for relationships between Markdown notes. Filenames
+  written only as inline code do not create graph connections.
+- Make `INDEX.md` a connected navigation hub with wikilinks to project notes.
 
 ## Project Documentation Baseline
 
@@ -52,3 +55,6 @@
   is already the Obsidian vault.
 - Do not mirror files to another vault path unless the project explicitly
   documents a split-layout exception.
+- When a reusable new-project convention changes, update the global Codex
+  instructions, this portable copy, bootstrap documentation, and affected
+  templates in the same task.

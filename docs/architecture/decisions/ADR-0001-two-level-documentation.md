@@ -4,6 +4,10 @@ status: accepted
 owner: project
 last_verified: 2026-06-27
 source_of_truth: repository
+related:
+  - "[[docs/architecture/ARCHITECTURE|ARCHITECTURE]]"
+  - "[[PROJECT]]"
+  - "[[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL]]"
 ---
 
 # ADR-0001: Двухуровневая документация
@@ -15,7 +19,7 @@ source_of_truth: repository
 
 ## Решение
 
-Всегда создавать только `README.md`, `AGENTS.md`, `INDEX.md` и `PROJECT.md`.
+Всегда создавать только [[README]], [[AGENTS]], [[INDEX]] и [[PROJECT]].
 Архитектуру, исследования, ревью, эксплуатацию, API, данные и безопасность
 добавлять по признакам проекта.
 
@@ -24,4 +28,4 @@ source_of_truth: repository
 - минимальный проект остаётся компактным;
 - сложный проект получает предсказуемую структуру;
 - bootstrap должен поддерживать несколько профилей;
-- `INDEX.md` становится обязательной картой фактически созданных файлов.
+- [[INDEX]] становится обязательной картой фактически созданных файлов.

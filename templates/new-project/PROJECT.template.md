@@ -4,6 +4,10 @@ status: active
 owner: project
 last_verified: <YYYY-MM-DD>
 source_of_truth: repository
+related:
+  - "[[INDEX]]"
+  - "[[README]]"
+  - "[[AGENTS]]"
 ---
 
 # <PROJECT_NAME>

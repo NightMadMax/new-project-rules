@@ -6,6 +6,9 @@ last_verified: 2026-06-27
 source_of_truth: repository
 related:
   - "[[INDEX]]"
+  - "[[README]]"
+  - "[[docs/architecture/ARCHITECTURE|ARCHITECTURE]]"
+  - "[[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL]]"
 ---
 
 # Проект
@@ -17,8 +20,8 @@ Obsidian и GitHub.
 
 ## Scope
 
-- глобальные инструкции агента;
-- проектный шаблон `AGENTS.md`;
+- [[GLOBAL_AGENT_INSTRUCTIONS|глобальные инструкции агента]];
+- проектный шаблон [[templates/new-project/AGENTS.template|AGENTS]];
 - обязательные и условные Markdown-артефакты;
 - bootstrap-скрипты для macOS/Linux и Windows;
 - правила переносимости, секретов и источников истины.

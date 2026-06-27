@@ -4,15 +4,20 @@ status: active
 owner: project
 last_verified: 2026-06-27
 source_of_truth: repository
+related:
+  - "[[PROJECT]]"
+  - "[[INDEX]]"
+  - "[[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]]"
+  - "[[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL]]"
 ---
 
 # Архитектура
 
 Проект состоит из четырёх слоёв:
 
-1. `GLOBAL_AGENT_INSTRUCTIONS.md` задаёт поведение Codex до открытия проекта.
-2. `AGENTS.md` задаёт локальные правила конкретного репозитория.
-3. `templates/new-project/` хранит переиспользуемые артефакты.
+1. [[GLOBAL_AGENT_INSTRUCTIONS]] задаёт поведение Codex до открытия проекта.
+2. [[AGENTS]] задаёт локальные правила конкретного репозитория.
+3. [[TEMPLATES]] описывает переиспользуемые артефакты.
 4. `scripts/` создаёт новый vault/repo из выбранного профиля.
 
 Новый проект не создаёт отдельную копию Markdown для Obsidian. Одна папка и

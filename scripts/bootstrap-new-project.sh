@@ -50,7 +50,8 @@ install_template INDEX.template.md INDEX.md
 install_template PROJECT.template.md PROJECT.md
 
 append_index() {
-  printf '| `%s` | %s |\n' "$1" "$2" >> "$destination/INDEX.md"
+  link_path=${1%.md}
+  printf '| [[%s|%s]] | %s |\n' "$link_path" "$1" "$2" >> "$destination/INDEX.md"
 }
 
 if [ "$profile" != minimal ]; then
