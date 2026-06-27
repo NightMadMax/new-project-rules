@@ -30,8 +30,8 @@ if ($null -ne $item -and $item.LinkType -eq "SymbolicLink") {
     }
     $normalizedTarget = [System.IO.Path]::GetFullPath($linkTarget)
     $normalizedExpected = [System.IO.Path]::GetFullPath($CodexFile)
-    $isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-    $comparison = if ($isWindows) {
+    $runningOnWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    $comparison = if ($runningOnWindows) {
         [System.StringComparison]::OrdinalIgnoreCase
     }
     else {

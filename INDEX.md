@@ -8,6 +8,7 @@
 | [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций агента |
 | [[PROJECT|PROJECT.md]] | Цели, scope, ограничения и критерии успеха |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
+| [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |

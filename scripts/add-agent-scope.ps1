@@ -46,18 +46,17 @@ if (-not (Test-Path -LiteralPath $IndexFile -PathType Leaf)) {
 
 New-Item -ItemType Directory -Force $Directory | Out-Null
 $Directory = (Resolve-Path $Directory).Path
-$isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
-$comparison = if ($isWindows) {
+$runningOnWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+$comparison = if ($runningOnWindows) {
     [System.StringComparison]::OrdinalIgnoreCase
 }
 else {
     [System.StringComparison]::Ordinal
 }
-$RootPrefix = $ProjectRoot.TrimEnd('\', '/') + [System.IO.Path]::DirectorySeparatorChar
-if (-not $Directory.StartsWith($RootPrefix, $comparison)) {
+$RelativeDirectory = (& git -C $Directory rev-parse --show-prefix).Trim().TrimEnd('/', '\')
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($RelativeDirectory)) {
     throw "Scope directory must be below the project root: $ProjectRoot"
 }
-$RelativeDirectory = $Directory.Substring($RootPrefix.Length).Replace('\', '/')
 $Agents = Join-Path $Directory "AGENTS.md"
 $Claude = Join-Path $Directory "CLAUDE.md"
 
