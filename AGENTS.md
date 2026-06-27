@@ -15,6 +15,8 @@
   repurposed.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths
   do not create Obsidian graph connections.
+- `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains
+  `@AGENTS.md` so Claude Code reads the same file; never duplicate rules there.
 
 ## Repository Workflow
 

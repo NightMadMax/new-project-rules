@@ -56,6 +56,11 @@ Install-Template "AGENTS.template.md" "AGENTS.md"
 Install-Template "INDEX.template.md" "INDEX.md"
 Install-Template "PROJECT.template.md" "PROJECT.md"
 
+# CLAUDE.md is a portable pointer so Claude Code reads the same AGENTS.md that
+# Codex and other AGENTS.md-aware tools read. A one-line @import avoids fragile
+# symlinks on Windows and never duplicates instruction content.
+Set-Content -Encoding utf8 (Join-Path $Destination "CLAUDE.md") "@AGENTS.md"
+
 function Add-IndexEntry {
     param([string]$Path, [string]$Purpose)
     $LinkPath = $Path -replace '\.md$', ''

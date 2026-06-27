@@ -11,6 +11,8 @@
 - Edit Markdown files directly in the project folder.
 - Do not use an Obsidian REST API, helper script, synchronization step, or
   duplicate Markdown copy.
+- `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains
+  `@AGENTS.md` so Claude Code reads the same file; keep all rules in `AGENTS.md`.
 - Keep `INDEX.md` current when files change purpose or location.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths
   do not create Obsidian graph connections.

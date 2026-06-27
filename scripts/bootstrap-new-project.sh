@@ -49,6 +49,11 @@ install_template AGENTS.template.md AGENTS.md
 install_template INDEX.template.md INDEX.md
 install_template PROJECT.template.md PROJECT.md
 
+# CLAUDE.md is a portable pointer so Claude Code reads the same AGENTS.md that
+# Codex and other AGENTS.md-aware tools read. A one-line @import avoids fragile
+# symlinks on Windows and never duplicates instruction content.
+printf '@AGENTS.md\n' > "$destination/CLAUDE.md"
+
 append_index() {
   link_path=${1%.md}
   printf '| [[%s|%s]] | %s |\n' "$link_path" "$1" "$2" >> "$destination/INDEX.md"

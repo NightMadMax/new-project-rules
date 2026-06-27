@@ -9,6 +9,17 @@
 - Create a separate GitHub repository for each new project unless the user
   explicitly requests a monorepo or another structure.
 
+## Agent Instruction Files
+
+- Keep `AGENTS.md` as the single source of agent rules so Codex and every other
+  AGENTS.md-aware tool reads it directly.
+- Make Claude Code read the same rules through a `CLAUDE.md` that contains only
+  `@AGENTS.md`. Prefer this one-line import over a symlink for cross-platform
+  portability, and never duplicate instruction content between the two files.
+- Globally, point Claude Code at the Codex instructions once per machine by
+  linking `~/.claude/CLAUDE.md` to `~/.codex/AGENTS.md` (or a one-line
+  `@~/.codex/AGENTS.md` import where symlinks are restricted).
+
 ## Markdown Default
 
 - Edit Markdown files directly in the project folder. They are simultaneously
