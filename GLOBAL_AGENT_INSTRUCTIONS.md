@@ -14,11 +14,17 @@
 - Keep `AGENTS.md` as the single source of agent rules so Codex and every other
   AGENTS.md-aware tool reads it directly.
 - Make Claude Code read the same rules through a `CLAUDE.md` that contains only
-  `@AGENTS.md`. Prefer this one-line import over a symlink for cross-platform
-  portability, and never duplicate instruction content between the two files.
-- Globally, point Claude Code at the Codex instructions once per machine by
-  linking `~/.claude/CLAUDE.md` to `~/.codex/AGENTS.md` (or a one-line
-  `@~/.codex/AGENTS.md` import where symlinks are restricted).
+  the import line `@AGENTS.md`. Use this one-line import on every OS instead of
+  a symlink: it is simpler, portable, and officially supported by Claude Code.
+  Never duplicate instruction content between the two files.
+- Globally, point Claude Code at the Codex instructions once per machine with a
+  `~/.claude/CLAUDE.md` that contains `@~/.codex/AGENTS.md`. Use
+  `scripts/setup-global-agents.sh` or `.ps1` to wire this safely and
+  idempotently without overwriting existing instructions.
+- Keep all shared rules in the root `AGENTS.md`. When a subdirectory genuinely
+  needs its own rules, add a scoped pair next to it — `services/<name>/AGENTS.md`
+  with a sibling `services/<name>/CLAUDE.md` containing `@AGENTS.md` (for example
+  via `scripts/add-agent-scope.sh` or `.ps1`). The nearest file in the tree wins.
 
 ## Markdown Default
 

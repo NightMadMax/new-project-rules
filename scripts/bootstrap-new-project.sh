@@ -29,7 +29,9 @@ fi
 mkdir -p "$destination/.obsidian"
 printf '{}\n' > "$destination/.obsidian/app.json"
 printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' '.obsidian/workspace.json' \
-  '.obsidian/workspace-mobile.json' '.obsidian/cache/' > "$destination/.gitignore"
+  '.obsidian/workspace-mobile.json' '.obsidian/cache/' \
+  'CLAUDE.local.md' '.claude/settings.local.json' '.claude/scheduled_tasks.lock' \
+  > "$destination/.gitignore"
 printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
   '*.md text eol=lf' '*.json text eol=lf' > "$destination/.gitattributes"
 

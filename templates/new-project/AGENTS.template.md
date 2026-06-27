@@ -8,13 +8,9 @@
 
 ## Commands
 
-Fill in the exact commands an agent should run; delete lines that do not apply.
-
-- Install: `<install command>`
-- Build: `<build command>`
-- Test: `<test command>` (single test: `<single-test command>`)
-- Lint/format: `<lint command>`
-- Run: `<run command>`
+Add only commands verified in this repository. When setting the project up,
+inspect its manifests and configuration to fill in the real install, build,
+test, lint, and run commands. Delete this section if the project has none.
 
 ## Markdown Workflow
 

@@ -4,3 +4,6 @@ Thumbs.db
 .obsidian/workspace.json
 .obsidian/workspace-mobile.json
 .obsidian/cache/
+CLAUDE.local.md
+.claude/settings.local.json
+.claude/scheduled_tasks.lock

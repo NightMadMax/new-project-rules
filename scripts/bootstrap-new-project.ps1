@@ -13,6 +13,27 @@ $ErrorActionPreference = "Stop"
 $RulesRoot = Split-Path -Parent $PSScriptRoot
 $Templates = Join-Path $RulesRoot "templates/new-project"
 
+# Write UTF-8 without a BOM on every PowerShell edition. Windows PowerShell 5.1
+# "-Encoding utf8" emits a BOM, which corrupts the LF-normalized Markdown and
+# shell files this repository ships, so always go through these helpers.
+$Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+function Write-Utf8NoBom {
+    param([string]$Path, $Content)
+    if ($Content -is [array]) {
+        $text = ($Content -join "`n") + "`n"
+    }
+    else {
+        $text = [string]$Content
+    }
+    [System.IO.File]::WriteAllText($Path, $text, $Utf8NoBom)
+}
+
+function Append-Utf8NoBom {
+    param([string]$Path, [string]$Line)
+    [System.IO.File]::AppendAllText($Path, $Line + "`n", $Utf8NoBom)
+}
+
 if (Test-Path $Destination) {
     $existing = Get-ChildItem -Force $Destination | Select-Object -First 1
     if ($null -ne $existing) {
@@ -21,16 +42,23 @@ if (Test-Path $Destination) {
 }
 
 New-Item -ItemType Directory -Force (Join-Path $Destination ".obsidian") | Out-Null
-Set-Content -Encoding utf8 (Join-Path $Destination ".obsidian/app.json") "{}"
-Set-Content -Encoding utf8 (Join-Path $Destination ".gitignore") @(
+# Resolve to an absolute path so [System.IO.File] calls do not depend on the
+# process current directory, which can differ from the PowerShell location.
+$Destination = (Resolve-Path $Destination).Path
+
+Write-Utf8NoBom (Join-Path $Destination ".obsidian/app.json") "{}`n"
+Write-Utf8NoBom (Join-Path $Destination ".gitignore") @(
     ".DS_Store"
     "Thumbs.db"
     ".trash/"
     ".obsidian/workspace.json"
     ".obsidian/workspace-mobile.json"
     ".obsidian/cache/"
+    "CLAUDE.local.md"
+    ".claude/settings.local.json"
+    ".claude/scheduled_tasks.lock"
 )
-Set-Content -Encoding utf8 (Join-Path $Destination ".gitattributes") @(
+Write-Utf8NoBom (Join-Path $Destination ".gitattributes") @(
     "* text=auto"
     "*.sh text eol=lf"
     "*.ps1 text eol=crlf"
@@ -48,7 +76,7 @@ function Install-Template {
     New-Item -ItemType Directory -Force $targetDirectory | Out-Null
     $content = Get-Content -Raw -Encoding utf8 (Join-Path $Templates $Source)
     $content = $content.Replace("<PROJECT_NAME>", $ProjectName).Replace("<YYYY-MM-DD>", $Today)
-    Set-Content -Encoding utf8 $targetPath $content
+    Write-Utf8NoBom $targetPath $content
 }
 
 Install-Template "README.template.md" "README.md"
@@ -59,12 +87,12 @@ Install-Template "PROJECT.template.md" "PROJECT.md"
 # CLAUDE.md is a portable pointer so Claude Code reads the same AGENTS.md that
 # Codex and other AGENTS.md-aware tools read. A one-line @import avoids fragile
 # symlinks on Windows and never duplicates instruction content.
-Set-Content -Encoding utf8 (Join-Path $Destination "CLAUDE.md") "@AGENTS.md"
+Write-Utf8NoBom (Join-Path $Destination "CLAUDE.md") "@AGENTS.md`n"
 
 function Add-IndexEntry {
     param([string]$Path, [string]$Purpose)
     $LinkPath = $Path -replace '\.md$', ''
-    Add-Content -Encoding utf8 (Join-Path $Destination "INDEX.md") "| [[$LinkPath|$Path]] | $Purpose |"
+    Append-Utf8NoBom (Join-Path $Destination "INDEX.md") "| [[$LinkPath|$Path]] | $Purpose |"
 }
 
 if ($Profile -ne "minimal") {

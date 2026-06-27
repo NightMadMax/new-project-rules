@@ -1,5 +1,29 @@
 # Журнал изменений
 
+## v1.3.0 — 2026-06-27
+
+### Добавлено
+
+- `scripts/setup-global-agents.sh` и `.ps1` — безопасная идемпотентная настройка
+  глобальных правил Codex+Claude: создают `~/.codex` и `~/.claude`, не
+  перезаписывают существующие инструкции, останавливаются при конфликте.
+- `scripts/add-agent-scope.sh` и `.ps1` — пара `AGENTS.md` + `CLAUDE.md` для
+  правил отдельного подкаталога; описано правило вложенных инструкций.
+
+### Изменено
+
+- Импорт `@AGENTS.md` стал единым механизмом на всех ОС; symlink больше не
+  основной способ (в README и глобальных инструкциях).
+- PowerShell-bootstrap пишет UTF-8 без BOM через `System.IO.File` вместо
+  `Set-Content -Encoding utf8`.
+- Секция `Commands` в шаблоне AGENTS не содержит фиктивных команд: только
+  проверенные в репозитории, иначе секция удаляется.
+- `CLAUDE.md` возвращён в граф Obsidian в обоих индексах
+  (`[[CLAUDE|CLAUDE.md]] | Imports [[AGENTS]] for Claude Code`).
+- `.gitignore` (репозиторий и bootstrap) игнорирует только локальные файлы
+  Claude: `CLAUDE.local.md`, `.claude/settings.local.json`,
+  `.claude/scheduled_tasks.lock`; общие `.claude/` ресурсы коммитятся.
+
 ## v1.2.1 — 2026-06-27
 
 ### Добавлено

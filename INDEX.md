@@ -4,7 +4,7 @@
 |---|---|
 | [[README|README.md]] | Использование набора на новом компьютере |
 | [[AGENTS|AGENTS.md]] | Правила агента для этого проекта |
-| `CLAUDE.md` | Указатель `@AGENTS.md`, чтобы Claude Code читал те же правила |
+| [[CLAUDE|CLAUDE.md]] | Imports [[AGENTS]] for Claude Code |
 | [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций агента |
 | [[PROJECT|PROJECT.md]] | Цели, scope, ограничения и критерии успеха |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
@@ -14,4 +14,8 @@
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |
 | `scripts/bootstrap-new-project.ps1` | Создание проекта в Windows PowerShell |
+| `scripts/setup-global-agents.sh` | Глобальная настройка Codex+Claude (macOS/Linux) |
+| `scripts/setup-global-agents.ps1` | Глобальная настройка Codex+Claude (Windows) |
+| `scripts/add-agent-scope.sh` | Правила для подкаталога (macOS/Linux) |
+| `scripts/add-agent-scope.ps1` | Правила для подкаталога (Windows) |
 | `.obsidian/` | Минимальная конфигурация, делающая папку vault |
