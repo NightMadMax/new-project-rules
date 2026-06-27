@@ -6,12 +6,61 @@ set -eu
 # <dir>/AGENTS.md (the rules) and <dir>/CLAUDE.md (a one-line @AGENTS.md import
 # so Claude Code reads the same scoped file). Safe to re-run.
 
-[ "$#" -eq 1 ] || { echo "Usage: $0 <directory>" >&2; exit 2; }
+[ "$#" -eq 2 ] || { echo "Usage: $0 <directory> <rule>" >&2; exit 2; }
 
 dir=$1
+rule=$2
+[ -n "$rule" ] || { echo "Rule must not be empty." >&2; exit 2; }
+
+probe=$dir
+while [ ! -d "$probe" ]; do
+  parent=$(dirname -- "$probe")
+  [ "$parent" != "$probe" ] || { echo "Cannot locate an existing parent for $dir." >&2; exit 1; }
+  probe=$parent
+done
+
+project_root=$(git -C "$probe" rev-parse --show-toplevel 2>/dev/null) || {
+  echo "Directory must be inside a git project." >&2
+  exit 1
+}
+index_file="$project_root/INDEX.md"
+[ -f "$index_file" ] || { echo "Project index not found: $index_file" >&2; exit 1; }
+
 mkdir -p "$dir"
+dir=$(CDPATH= cd -- "$dir" && pwd -P)
+project_root=$(CDPATH= cd -- "$project_root" && pwd -P)
+case "$dir" in
+  "$project_root"/*) relative_dir=${dir#"$project_root"/} ;;
+  *) echo "Scope directory must be below the project root: $project_root" >&2; exit 1 ;;
+esac
+
 agents="$dir/AGENTS.md"
 claude="$dir/CLAUDE.md"
+
+# Validate the Claude bridge before creating or changing any project files.
+if [ -L "$claude" ]; then
+  link_target=$(readlink "$claude")
+  case "$link_target" in
+    /*) resolved_target=$link_target ;;
+    *) resolved_target="$dir/$link_target" ;;
+  esac
+  target_dir=$(CDPATH= cd -- "$(dirname -- "$resolved_target")" 2>/dev/null && pwd -P) || target_dir=
+  normalized_target="$target_dir/$(basename -- "$resolved_target")"
+  if [ -z "$target_dir" ] || [ "$normalized_target" != "$agents" ]; then
+    echo "Conflict: $claude is a symlink to '$link_target', not $agents." >&2
+    echo "Nothing was changed." >&2
+    exit 1
+  fi
+  claude_action=migrate
+elif [ ! -e "$claude" ]; then
+  claude_action=create
+elif [ "$(cat "$claude")" = '@AGENTS.md' ]; then
+  claude_action=keep
+else
+  echo "Conflict: $claude is not the exact one-line import '@AGENTS.md'." >&2
+  echo "Nothing was changed." >&2
+  exit 1
+fi
 
 if [ ! -e "$agents" ]; then
   cat > "$agents" <<'EOF'
@@ -20,23 +69,33 @@ if [ ! -e "$agents" ]; then
 Scope-specific rules for this directory. Shared rules stay in the root
 `AGENTS.md`; add here only what differs for this part of the project.
 
--
 EOF
+  printf -- '- %s\n' "$rule" >> "$agents"
   echo "Created $agents"
 else
   echo "Kept existing $agents (not overwritten)."
 fi
 
-if [ -L "$claude" ]; then
-  rm "$claude"
-  printf '@AGENTS.md\n' > "$claude"
-  echo "Replaced symlink $claude with an @import."
-elif [ ! -e "$claude" ]; then
-  printf '@AGENTS.md\n' > "$claude"
-  echo "Wrote $claude (@AGENTS.md)."
-elif grep -qF '@AGENTS.md' "$claude"; then
-  echo "Already configured: $claude imports AGENTS.md."
-else
-  echo "Conflict: $claude exists without '@AGENTS.md'. Merge manually." >&2
-  exit 1
-fi
+case "$claude_action" in
+  migrate)
+    rm "$claude"
+    printf '@AGENTS.md\n' > "$claude"
+    echo "Replaced the scoped AGENTS symlink with an @import."
+    ;;
+  create)
+    printf '@AGENTS.md\n' > "$claude"
+    echo "Wrote $claude (@AGENTS.md)."
+    ;;
+  keep)
+    echo "Already configured: $claude imports AGENTS.md."
+    ;;
+esac
+
+agents_link="[[$relative_dir/AGENTS|$relative_dir/AGENTS.md]]"
+claude_link="[[$relative_dir/CLAUDE|$relative_dir/CLAUDE.md]]"
+grep -qF "$agents_link" "$index_file" || \
+  printf '| %s | Scoped agent rules |\n' "$agents_link" >> "$index_file"
+grep -qF "$claude_link" "$index_file" || \
+  printf '| %s | Imports scoped AGENTS for Claude Code |\n' "$claude_link" >> "$index_file"
+
+echo "Updated $index_file with scoped instruction links."

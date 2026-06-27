@@ -21,7 +21,42 @@ $ImportLine = "@~/.codex/AGENTS.md"
 New-Item -ItemType Directory -Force $CodexDir | Out-Null
 New-Item -ItemType Directory -Force $ClaudeDir | Out-Null
 
-# 1. Ensure the canonical Codex global instructions exist; never overwrite.
+# 1. Validate the Claude bridge before creating or changing any files.
+$item = Get-Item -LiteralPath $ClaudeFile -ErrorAction SilentlyContinue
+if ($null -ne $item -and $item.LinkType -eq "SymbolicLink") {
+    $linkTarget = [string]$item.Target
+    if (-not [System.IO.Path]::IsPathRooted($linkTarget)) {
+        $linkTarget = Join-Path $ClaudeDir $linkTarget
+    }
+    $normalizedTarget = [System.IO.Path]::GetFullPath($linkTarget)
+    $normalizedExpected = [System.IO.Path]::GetFullPath($CodexFile)
+    $isWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
+    $comparison = if ($isWindows) {
+        [System.StringComparison]::OrdinalIgnoreCase
+    }
+    else {
+        [System.StringComparison]::Ordinal
+    }
+    if (-not $normalizedTarget.Equals($normalizedExpected, $comparison)) {
+        throw "$ClaudeFile is a symlink to '$($item.Target)', not $CodexFile. Nothing was changed."
+    }
+    $ClaudeAction = "migrate"
+}
+elseif (-not (Test-Path $ClaudeFile)) {
+    $ClaudeAction = "create"
+}
+else {
+    $content = Get-Content -Raw $ClaudeFile
+    $normalizedContent = $content -replace "(\r?\n)+$", ""
+    if ($normalizedContent -ceq $ImportLine) {
+        $ClaudeAction = "keep"
+    }
+    else {
+        throw "$ClaudeFile is not the exact one-line import '$ImportLine'. Nothing was changed."
+    }
+}
+
+# 2. Ensure the canonical Codex global instructions exist; never overwrite.
 if (-not (Test-Path $CodexFile)) {
     if (Test-Path $GlobalSrc) {
         $content = Get-Content -Raw -Encoding utf8 $GlobalSrc
@@ -29,31 +64,27 @@ if (-not (Test-Path $CodexFile)) {
         Write-Host "Created $CodexFile from GLOBAL_AGENT_INSTRUCTIONS.md"
     }
     else {
-        Write-Warning "$CodexFile is missing and GLOBAL_AGENT_INSTRUCTIONS.md was not found. Add your global rules there."
+        throw "$CodexFile is missing and GLOBAL_AGENT_INSTRUCTIONS.md was not found. Add your global rules there."
     }
 }
 else {
     Write-Host "Kept existing $CodexFile (not overwritten)."
 }
 
-# 2. Point Claude Code at the same file via a one-line import.
-$item = Get-Item -LiteralPath $ClaudeFile -ErrorAction SilentlyContinue
-if ($null -ne $item -and $item.LinkType -eq "SymbolicLink") {
-    Remove-Item -LiteralPath $ClaudeFile
-    Write-Utf8NoBom $ClaudeFile "$ImportLine`n"
-    Write-Host "Replaced symlink $ClaudeFile with an @import."
-}
-elseif (-not (Test-Path $ClaudeFile)) {
-    Write-Utf8NoBom $ClaudeFile "$ImportLine`n"
-    Write-Host "Created $ClaudeFile importing ~/.codex/AGENTS.md."
-}
-elseif ((Get-Content -Raw $ClaudeFile).Contains($ImportLine)) {
-    Write-Host "Already configured: $ClaudeFile imports ~/.codex/AGENTS.md."
-}
-else {
-    Write-Warning "Conflict: $ClaudeFile exists without '$ImportLine'."
-    Write-Warning "Keep your existing rules and add this line to $ClaudeFile manually: $ImportLine"
-    exit 1
+# 3. Point Claude Code at the same file via a one-line import.
+switch ($ClaudeAction) {
+    "migrate" {
+        Remove-Item -LiteralPath $ClaudeFile
+        Write-Utf8NoBom $ClaudeFile "$ImportLine`n"
+        Write-Host "Replaced the canonical Codex symlink with an @import."
+    }
+    "create" {
+        Write-Utf8NoBom $ClaudeFile "$ImportLine`n"
+        Write-Host "Created $ClaudeFile importing ~/.codex/AGENTS.md."
+    }
+    "keep" {
+        Write-Host "Already configured: $ClaudeFile imports ~/.codex/AGENTS.md."
+    }
 }
 
 Write-Host "Global agent setup complete."

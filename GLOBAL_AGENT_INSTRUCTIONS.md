@@ -24,7 +24,34 @@
 - Keep all shared rules in the root `AGENTS.md`. When a subdirectory genuinely
   needs its own rules, add a scoped pair next to it — `services/<name>/AGENTS.md`
   with a sibling `services/<name>/CLAUDE.md` containing `@AGENTS.md` (for example
-  via `scripts/add-agent-scope.sh` or `.ps1`). The nearest file in the tree wins.
+  via `scripts/add-agent-scope.sh` or `.ps1`). Nested rules must specialize the
+  root rules without contradicting them. Both agents combine instruction layers;
+  a nearer file is loaded later but does not erase broader instructions.
+
+## Tool Selection
+
+- Use the project's existing language, package manager, and toolchain before
+  introducing another runtime.
+- Prefer standard tools already available on every target machine and avoid
+  new third-party dependencies unless the user approves them.
+- For non-trivial reusable automation that must behave consistently on macOS
+  and Windows, prefer Python 3 with the standard library when Python is known
+  to be available on all target machines. Document the minimum Python version.
+- For simple local file, process, and git operations, prefer the smallest
+  suitable native tool such as `git`, `rg`, POSIX shell, or PowerShell rather
+  than adding a Python script.
+- Keep POSIX shell and Windows PowerShell wrappers when a clean target machine
+  cannot be assumed to have Python.
+- If a clearly better-suited tool is missing and using an available substitute
+  would materially reduce correctness, reproducibility, maintainability, or
+  verification quality, do not silently use the weaker workaround. Explain
+  what tool is needed, why it is preferable, what will be installed, and ask
+  the user for permission before installation.
+- Do not request or perform an installation for a marginal convenience when an
+  available standard tool provides equivalent quality.
+- After approval, install through the platform or project package manager,
+  verify the installed version, and document project-specific tooling in
+  `TOOLS.md` or the appropriate manifest without recording secrets.
 
 ## Markdown Default
 
@@ -73,6 +100,6 @@
 - Do not mirror files to another vault path unless the project explicitly
   documents a split-layout exception.
 - When a reusable new-project convention changes, update the global agent
-  instructions (`~/.codex/AGENTS.md`, mirrored to `~/.claude/CLAUDE.md`), this
+  instructions (`~/.codex/AGENTS.md`, imported by `~/.claude/CLAUDE.md`), this
   portable copy, bootstrap documentation, and affected templates in the same
   task.

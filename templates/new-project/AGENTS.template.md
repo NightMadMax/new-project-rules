@@ -19,6 +19,9 @@ test, lint, and run commands. Delete this section if the project has none.
   duplicate Markdown copy.
 - `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains
   `@AGENTS.md` so Claude Code reads the same file; keep all rules in `AGENTS.md`.
+- If a subdirectory needs scoped instructions, create an adjacent
+  `AGENTS.md`/`CLAUDE.md` pair. Scoped rules must specialize broader rules
+  without contradicting them.
 - Keep `INDEX.md` current when files change purpose or location.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths
   do not create Obsidian graph connections.
@@ -30,6 +33,22 @@ test, lint, and run commands. Delete this section if the project has none.
 - Ask before pull requests, releases, issues, remote changes, or destructive
   history operations.
 - Keep paths relative and account for macOS and Windows differences.
+
+## Tool Selection
+
+- Use the project's existing language and toolchain first.
+- Prefer standard tools already available on all target machines; ask before
+  adding third-party dependencies.
+- Prefer Python 3 standard-library code for non-trivial reusable
+  cross-platform automation when Python is available everywhere it must run.
+- Prefer `git`, `rg`, POSIX shell, or PowerShell for simple native operations.
+- Keep shell and PowerShell wrappers when Python cannot be assumed on a clean
+  target machine.
+- If a missing tool is materially better than available substitutes, explain
+  what is needed and why, then ask the user for permission before installing
+  it instead of silently using a lower-quality workaround.
+- After approval, install through the normal package manager, verify the
+  version, and document project-specific tooling in `TOOLS.md` or its manifest.
 
 ## Documentation
 

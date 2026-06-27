@@ -17,6 +17,9 @@
   do not create Obsidian graph connections.
 - `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains
   `@AGENTS.md` so Claude Code reads the same file; never duplicate rules there.
+- For scoped subdirectory instructions, create an adjacent
+  `AGENTS.md`/`CLAUDE.md` pair. Scoped rules must specialize broader rules
+  without contradicting them.
 
 ## Repository Workflow
 
@@ -26,6 +29,21 @@
 - Ask before creating pull requests, releases, issues, changing remotes, or
   performing destructive history operations.
 - Keep paths relative and scripts portable across macOS and Windows.
+
+## Tool Selection
+
+- Use the existing project toolchain first and avoid new dependencies unless
+  the user approves them.
+- Prefer Python 3 standard-library code for non-trivial reusable
+  cross-platform automation when Python is available on every target machine.
+- Prefer `git`, `rg`, POSIX shell, or PowerShell for simple native operations.
+- Retain shell and PowerShell entry points when Python cannot be assumed on a
+  clean target machine.
+- If a missing tool is materially better than available substitutes, explain
+  the benefit and installation scope and ask the user for permission before
+  installing it. Do not silently choose a lower-quality workaround.
+- After approval, install through the normal package manager, verify the
+  version, and document project-specific tooling in `TOOLS.md` or its manifest.
 
 ## Documentation Model
 
