@@ -3,6 +3,7 @@
 | Путь | Назначение |
 |---|---|
 | [[README|README.md]] | Использование набора на новом компьютере |
+| [[OVERVIEW|OVERVIEW.md]] | Краткое описание набора для коллег |
 | [[AGENTS|AGENTS.md]] | Правила агента для этого проекта |
 | [[CLAUDE|CLAUDE.md]] | Imports [[AGENTS]] for Claude Code |
 | [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций агента |
