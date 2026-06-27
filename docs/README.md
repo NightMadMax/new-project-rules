@@ -24,6 +24,7 @@ related:
 ## Исследования
 
 - [[docs/research/PROJECT_ARTIFACT_MODEL|Модель артефактов проекта]]
+- [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|Обязательная база инструментов проекта в 2026 году]]
 
 ## Стандартная структура нового проекта
 
