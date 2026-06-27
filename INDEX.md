@@ -9,6 +9,9 @@
 | [[PROJECT|PROJECT.md]] | Цели, scope, ограничения и критерии успеха |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
+| [[docs/README|docs/README.md]] | Индекс отдельной папки документации |
+| [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT.md]] | Создание проекта вручную или по запросу агенту |
+| [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER.md]] | Настройка нового macOS/Windows-компьютера |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |

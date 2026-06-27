@@ -96,9 +96,11 @@ function Add-IndexEntry {
 }
 
 if ($Profile -ne "minimal") {
+    Install-Template "DOCS_INDEX.template.md" "docs/README.md"
     Install-Template "CHANGELOG.template.md" "CHANGELOG.md"
     Install-Template "ARCHITECTURE.template.md" "docs/architecture/ARCHITECTURE.md"
     Install-Template "TESTING.template.md" "docs/quality/TESTING.md"
+    Add-IndexEntry "docs/README.md" "Documentation directory index"
     Add-IndexEntry "CHANGELOG.md" "User-visible changes and releases"
     Add-IndexEntry "docs/architecture/ARCHITECTURE.md" "Current system architecture"
     Add-IndexEntry "docs/quality/TESTING.md" "Testing strategy and acceptance criteria"

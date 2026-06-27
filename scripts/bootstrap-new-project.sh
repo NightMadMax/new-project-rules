@@ -62,9 +62,11 @@ append_index() {
 }
 
 if [ "$profile" != minimal ]; then
+  install_template DOCS_INDEX.template.md docs/README.md
   install_template CHANGELOG.template.md CHANGELOG.md
   install_template ARCHITECTURE.template.md docs/architecture/ARCHITECTURE.md
   install_template TESTING.template.md docs/quality/TESTING.md
+  append_index docs/README.md "Documentation directory index"
   append_index CHANGELOG.md "User-visible changes and releases"
   append_index docs/architecture/ARCHITECTURE.md "Current system architecture"
   append_index docs/quality/TESTING.md "Testing strategy and acceptance criteria"

@@ -6,6 +6,7 @@
 - [[templates/new-project/AGENTS.template|AGENTS]] — локальные правила агента.
 - [[templates/new-project/INDEX.template|INDEX]] — карта заметок и файлов.
 - [[templates/new-project/PROJECT.template|PROJECT]] — цели и границы проекта.
+- [[templates/new-project/DOCS_INDEX.template|DOCS INDEX]] — индекс папки документации.
 - [[templates/new-project/CHANGELOG.template|CHANGELOG]] — изменения и релизы.
 - [[templates/new-project/ARCHITECTURE.template|ARCHITECTURE]] — текущее устройство системы.
 - [[templates/new-project/ADR.template|ADR]] — отдельное значимое решение.

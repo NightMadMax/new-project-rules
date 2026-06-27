@@ -50,6 +50,7 @@
 - Required core: `README.md`, `AGENTS.md`, `INDEX.md`, and `PROJECT.md`.
 - Keep durable artifacts under `docs/` and reusable files under
   `templates/new-project/`.
+- Keep `docs/README.md` as the index of the documentation directory.
 - Store one decision per ADR, one investigation per research file, and one code
   review per review file.
 - Do not create empty project documents without a current purpose.

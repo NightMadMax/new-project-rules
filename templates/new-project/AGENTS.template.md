@@ -54,6 +54,7 @@ test, lint, and run commands. Delete this section if the project has none.
 
 - Required core: `README.md`, `AGENTS.md`, `INDEX.md`, and `PROJECT.md`.
 - Keep durable artifacts under `docs/`.
+- When `docs/` exists, keep `docs/README.md` as its connected index.
 - Store one decision per ADR, one investigation per research file, and one code
   review per review file.
 - Use `ACTIONS.md` only for consequential actions outside git.

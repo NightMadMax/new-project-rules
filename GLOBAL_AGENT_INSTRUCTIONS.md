@@ -73,6 +73,8 @@
 - Add `CHANGELOG.md` for projects with user-visible changes or releases.
 - Keep durable documentation under `docs/` instead of accumulating reports in
   the repository root.
+- When `docs/` exists, maintain `docs/README.md` as its connected documentation
+  index.
 - Store current architecture in `docs/architecture/ARCHITECTURE.md` and one
   decision per file in `docs/architecture/decisions/ADR-<number>-<slug>.md`.
 - Store one investigation per file in `docs/research/` and one code review per
