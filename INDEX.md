@@ -5,7 +5,7 @@
 | [[README|README.md]] | Использование набора на новом компьютере |
 | [[AGENTS|AGENTS.md]] | Правила агента для этого проекта |
 | `CLAUDE.md` | Указатель `@AGENTS.md`, чтобы Claude Code читал те же правила |
-| [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций Codex |
+| [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций агента |
 | [[PROJECT|PROJECT.md]] | Цели, scope, ограничения и критерии успеха |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |

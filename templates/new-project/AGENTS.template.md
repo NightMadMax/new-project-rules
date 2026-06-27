@@ -6,6 +6,16 @@
 - This folder is both the Obsidian vault and git repository root.
 - Project navigation: [[README]], [[INDEX]], and [[PROJECT]].
 
+## Commands
+
+Fill in the exact commands an agent should run; delete lines that do not apply.
+
+- Install: `<install command>`
+- Build: `<build command>`
+- Test: `<test command>` (single test: `<single-test command>`)
+- Lint/format: `<lint command>`
+- Run: `<run command>`
+
 ## Markdown Workflow
 
 - Edit Markdown files directly in the project folder.

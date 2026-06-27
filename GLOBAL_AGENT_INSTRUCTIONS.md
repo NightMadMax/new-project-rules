@@ -66,6 +66,7 @@
   is already the Obsidian vault.
 - Do not mirror files to another vault path unless the project explicitly
   documents a split-layout exception.
-- When a reusable new-project convention changes, update the global Codex
-  instructions, this portable copy, bootstrap documentation, and affected
-  templates in the same task.
+- When a reusable new-project convention changes, update the global agent
+  instructions (`~/.codex/AGENTS.md`, mirrored to `~/.claude/CLAUDE.md`), this
+  portable copy, bootstrap documentation, and affected templates in the same
+  task.
