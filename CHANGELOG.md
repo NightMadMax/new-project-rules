@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Добавлено
+
+- Универсальные Agent Skills `setup-new-computer` и `create-new-project` для
+  Codex и Claude Code с единым каноническим workflow.
+- [[docs/quality/DEFECTS|Реестр дефектов]] для обязательной фиксации найденных
+  проблем и истории их исправления.
+- `requirements-dev.txt` с `PyYAML` для официальных генератора и validator
+  Agent Skills.
+
 ### Изменено
 
 - Общая рабочая папка теперь является единым Obsidian vault, а каждый проект —

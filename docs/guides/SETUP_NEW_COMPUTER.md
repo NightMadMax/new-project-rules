@@ -16,6 +16,9 @@ related:
 и Claude Code используют общие глобальные правила, а проекты синхронизируются
 через GitHub.
 
+После клонирования набора workflow можно запустить явно: `$setup-new-computer`
+в Codex или `/setup-new-computer` в Claude Code.
+
 ## 1. Подготовить программы
 
 Нужны:

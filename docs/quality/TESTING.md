@@ -30,12 +30,14 @@ GNU-специфичных флагов в shell-скриптах.
 for file in scripts/*.sh; do sh -n "$file"; done
 sh scripts/test-bootstrap.sh
 sh scripts/test-agent-setup.sh
+sh scripts/test-skills.sh
 ```
 
 ```powershell
 .\scripts\test-powershell-syntax.ps1
 .\scripts\test-bootstrap.ps1
 .\scripts\test-agent-setup.ps1
+.\scripts\test-skills.ps1
 ```
 
 PowerShell-проверки следует выполнять в Windows PowerShell 5.1 и PowerShell 7.
@@ -45,6 +47,7 @@ Parser-check обязан возвращать ненулевой код, есл
 ## Проверяемые сценарии
 
 - создание всех bootstrap-профилей и точный состав файлов;
+- валидность Agent Skills, совпадение Claude-мостов и канонических metadata;
 - начальный commit при настроенной Git-идентичности;
 - staged-состояние без commit при отсутствующей идентичности;
 - корректный отказ при ошибке `git init`, `git add`, `git status` или commit;
@@ -52,4 +55,3 @@ Parser-check обязан возвращать ненулевой код, есл
 - создание, повторный запуск и конфликт global/scoped agent setup;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;
 - UTF-8 без BOM, отсутствие шаблонных плейсхолдеров и чистое git-дерево.
-

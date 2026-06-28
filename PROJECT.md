@@ -24,6 +24,7 @@ related:
 - проектный шаблон [[templates/new-project/AGENTS.template|AGENTS]];
 - обязательные и условные Markdown-артефакты;
 - bootstrap-скрипты для macOS/Linux и Windows;
+- универсальные Agent Skills для настройки компьютера и создания проекта;
 - правила переносимости, секретов и источников истины.
 
 ## Non-goals

@@ -29,6 +29,7 @@ related:
 ## Качество и ревью
 
 - [[docs/quality/TESTING|Проверка скриптов]]
+- [[docs/quality/DEFECTS|Реестр дефектов]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
 
 ## Стандартная структура нового проекта

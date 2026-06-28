@@ -1,0 +1,4 @@
+interface:
+  display_name: "Setup New Computer"
+  short_description: "Configure a computer from shared project rules"
+  default_prompt: "Use $setup-new-computer to configure this computer using the shared project rules."

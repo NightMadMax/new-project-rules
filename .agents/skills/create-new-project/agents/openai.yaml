@@ -1,0 +1,4 @@
+interface:
+  display_name: "Create New Project"
+  short_description: "Bootstrap and publish a repository-backed project"
+  default_prompt: "Use $create-new-project to create and publish a new project from the shared templates."

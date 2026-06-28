@@ -1,5 +1,14 @@
 # Tools
 
+## Python development dependencies
+
+- Install: `python -m pip install -r requirements-dev.txt`.
+- `PyYAML 6.0.3`: required by the official `skill-creator` metadata generator
+  and validator used to maintain Agent Skills.
+- Verify: `python -c "import yaml; print(yaml.__version__)"`.
+- On Windows, set `$env:PYTHONUTF8='1'` for these helpers because their
+  `Path.read_text()` calls otherwise use the active legacy code page.
+
 ## PowerShell
 
 - Purpose: parse and runtime verification of the portable `.ps1` bootstrap,
