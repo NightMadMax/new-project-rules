@@ -67,8 +67,9 @@
   and `.github/CODEOWNERS` as authoritative.
 - Never commit secrets, tokens, private keys, passwords, or real credentials.
 - When these reusable conventions change, update `GLOBAL_AGENT_INSTRUCTIONS.md`,
-  the bootstrap documentation, affected templates, and the active global
-  `~/.codex/AGENTS.md` in the same task.
+  the bootstrap documentation, affected templates, related skills, and the active
+  global `~/.codex/AGENTS.md` in the same task. Never update rules without
+  updating the skills that implement them.
 
 ## Defect Tracking
 
