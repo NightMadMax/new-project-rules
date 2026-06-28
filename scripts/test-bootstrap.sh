@@ -54,6 +54,7 @@ for profile in minimal software operated all; do
   assert_no_placeholder "$dir" "$profile"
   assert_no_bom "$dir/AGENTS.md" "$profile"
   assert_grep "$dir/AGENTS.md" "Test $profile" "$profile"
+  assert_grep "$dir/AGENTS.md" "Always answer the user in Russian" "$profile"
   assert_grep "$dir/.gitignore" "CLAUDE.local.md" "$profile"
   assert_clean_tree "$dir" "$profile"
 done

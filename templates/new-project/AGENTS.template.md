@@ -1,5 +1,13 @@
 # Agent Instructions
 
+## Communication Language
+
+- Always answer the user in Russian, including research, reviews, plans,
+  progress updates, and final reports.
+- Preserve commands, paths, identifiers, API names, and original error messages
+  when translating them would reduce technical accuracy.
+- Use another language only when the user explicitly requests it.
+
 ## Project Identity
 
 - Project: `<PROJECT_NAME>`
