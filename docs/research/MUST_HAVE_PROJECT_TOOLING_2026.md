@@ -34,8 +34,8 @@ related:
 
 **В каждом репозитории обязательны:** Git-репозиторий с GitHub remote,
 `README.md`, `AGENTS.md`, импортирующий его `CLAUDE.md`, `PROJECT.md`, `INDEX.md`,
-`.gitignore` и `.gitattributes`. Для этого стандарта папка проекта одновременно
-является git-root и Obsidian vault.
+`.gitignore` и `.gitattributes`. Для этого стандарта папка проекта является
+git-root и находится внутри общего родительского Obsidian vault.
 
 Python 3, PowerShell 7, standalone `ripgrep`, EditorConfig, CI, Dependabot,
 Docker, Git LFS, pre-commit и языковые линтеры полезны, но не являются

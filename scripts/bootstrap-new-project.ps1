@@ -41,19 +41,15 @@ if (Test-Path $Destination) {
     }
 }
 
-New-Item -ItemType Directory -Force (Join-Path $Destination ".obsidian") | Out-Null
+New-Item -ItemType Directory -Force $Destination | Out-Null
 # Resolve to an absolute path so [System.IO.File] calls do not depend on the
 # process current directory, which can differ from the PowerShell location.
 $Destination = (Resolve-Path $Destination).Path
 
-Write-Utf8NoBom (Join-Path $Destination ".obsidian/app.json") "{}`n"
 Write-Utf8NoBom (Join-Path $Destination ".gitignore") @(
     ".DS_Store"
     "Thumbs.db"
     ".trash/"
-    ".obsidian/workspace.json"
-    ".obsidian/workspace-mobile.json"
-    ".obsidian/cache/"
     "CLAUDE.local.md"
     ".claude/settings.local.json"
     ".claude/scheduled_tasks.lock"
@@ -213,5 +209,5 @@ else {
 }
 
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."
-Write-Host "Open this folder as an Obsidian vault, review INDEX.md, then create its GitHub repository."
+Write-Host "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."
 exit 0

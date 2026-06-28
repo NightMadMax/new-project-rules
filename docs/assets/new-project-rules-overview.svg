@@ -1,6 +1,6 @@
 <svg width="680" height="372" viewBox="0 0 680 372" xmlns="http://www.w3.org/2000/svg" role="img" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
 <title>Структура набора New Project Rules</title>
-<desc>Одна папка проекта одновременно является Obsidian vault, git-репозиторием и GitHub-репозиторием. Правила хранятся в одном файле AGENTS.md; CLAUDE.md импортирует его, поэтому Codex и Claude Code читают одни и те же правила.</desc>
+<desc>Один родительский Obsidian vault содержит несколько проектов, каждый из которых является отдельным git- и GitHub-репозиторием. Правила хранятся в одном файле AGENTS.md; CLAUDE.md импортирует его.</desc>
 <defs>
 <marker id="ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
 <path d="M0,0 L10,5 L0,10 z" fill="#9CA3AF"/>
@@ -15,27 +15,27 @@
 
 <rect x="0" y="0" width="680" height="372" rx="14" fill="#FFFFFF"/>
 
-<text x="340" y="26" text-anchor="middle" class="hd">Одна папка — три роли сразу</text>
+<text x="340" y="26" text-anchor="middle" class="hd">Один vault — несколько отдельных проектов</text>
 
 <rect x="210" y="40" width="260" height="50" rx="8" fill="#E8F0FE" stroke="#C2D7FB"/>
-<text x="340" y="62" text-anchor="middle" class="th" fill="#1A4480">Папка проекта</text>
-<text x="340" y="80" text-anchor="middle" class="ts" fill="#3B6BB0">vault + git + github</text>
+<text x="340" y="62" text-anchor="middle" class="th" fill="#1A4480">Родительский Obsidian vault</text>
+<text x="340" y="80" text-anchor="middle" class="ts" fill="#3B6BB0">общий граф и рабочая папка</text>
 
 <line x1="340" y1="90" x2="150" y2="132" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
 <line x1="340" y1="90" x2="340" y2="132" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
 <line x1="340" y1="90" x2="530" y2="132" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ah)"/>
 
 <rect x="65" y="134" width="170" height="52" rx="8" fill="#F0EAFB" stroke="#DCCDF3"/>
-<text x="150" y="160" text-anchor="middle" class="th" fill="#5B3FA6">Obsidian vault</text>
-<text x="150" y="177" text-anchor="middle" class="ts" fill="#7A5EBD">заметки и граф</text>
+<text x="150" y="160" text-anchor="middle" class="th" fill="#5B3FA6">Project A</text>
+<text x="150" y="177" text-anchor="middle" class="ts" fill="#7A5EBD">git + GitHub repo</text>
 
 <rect x="255" y="134" width="170" height="52" rx="8" fill="#E3F5F2" stroke="#C2E8E1"/>
-<text x="340" y="160" text-anchor="middle" class="th" fill="#1C6B5E">Git-репозиторий</text>
-<text x="340" y="177" text-anchor="middle" class="ts" fill="#3C8C7E">история и ветки</text>
+<text x="340" y="160" text-anchor="middle" class="th" fill="#1C6B5E">Project B</text>
+<text x="340" y="177" text-anchor="middle" class="ts" fill="#3C8C7E">git + GitHub repo</text>
 
 <rect x="445" y="134" width="170" height="52" rx="8" fill="#E7F4EA" stroke="#C7E6CF"/>
-<text x="530" y="160" text-anchor="middle" class="th" fill="#256B3A">GitHub</text>
-<text x="530" y="177" text-anchor="middle" class="ts" fill="#458759">общий доступ</text>
+<text x="530" y="160" text-anchor="middle" class="th" fill="#256B3A">Project N</text>
+<text x="530" y="177" text-anchor="middle" class="ts" fill="#458759">git + GitHub repo</text>
 
 <line x1="40" y1="214" x2="640" y2="214" stroke="#E5E7EB" stroke-width="1"/>
 <text x="340" y="240" text-anchor="middle" class="hd">Единый источник правил для двух агентов</text>

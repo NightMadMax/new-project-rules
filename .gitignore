@@ -1,9 +1,6 @@
 .DS_Store
 Thumbs.db
 .trash/
-.obsidian/workspace.json
-.obsidian/workspace-mobile.json
-.obsidian/cache/
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/scheduled_tasks.lock

@@ -59,10 +59,8 @@ if [ -d "$destination" ] && ! directory_is_empty "$destination"; then
   exit 1
 fi
 
-mkdir -p "$destination/.obsidian"
-printf '{}\n' > "$destination/.obsidian/app.json"
-printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' '.obsidian/workspace.json' \
-  '.obsidian/workspace-mobile.json' '.obsidian/cache/' \
+mkdir -p "$destination"
+printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' \
   'CLAUDE.local.md' '.claude/settings.local.json' '.claude/scheduled_tasks.lock' \
   > "$destination/.gitignore"
 printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
@@ -184,4 +182,4 @@ else
 fi
 
 echo "Created '$project_name' at $destination using profile '$profile'."
-echo "Open this folder as an Obsidian vault, review INDEX.md, then create its GitHub repository."
+echo "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."

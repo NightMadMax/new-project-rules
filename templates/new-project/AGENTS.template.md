@@ -11,7 +11,8 @@
 ## Project Identity
 
 - Project: `<PROJECT_NAME>`
-- This folder is both the Obsidian vault and git repository root.
+- This folder is the git repository root and a project folder inside the parent
+  Obsidian vault.
 - Project navigation: [[README]], [[INDEX]], and [[PROJECT]].
 
 ## Commands

@@ -53,9 +53,10 @@ gh auth status
 Используйте тот же GitHub-аккаунт, которому доступны приватные репозитории
 `NightMadMax`.
 
-## 3. Клонировать набор правил
+## 3. Подготовить общий Obsidian vault и клонировать набор правил
 
 ```sh
+cd "/path/to/AiProject"
 gh repo clone NightMadMax/new-project-rules
 cd new-project-rules
 ```
@@ -63,10 +64,12 @@ cd new-project-rules
 Локальную папку можно назвать `Правила для нового проекта`; имя GitHub-
 репозитория при этом остаётся `new-project-rules`.
 
-## 4. Открыть набор правил как Obsidian vault
+## 4. Открыть общую рабочую папку как Obsidian vault
 
-В Obsidian выберите **Open folder as vault** и укажите клонированную папку.
-Markdown редактируется напрямую в ней; отдельная копия и REST API не нужны.
+В Obsidian выберите **Open folder as vault** и укажите родительскую рабочую
+папку, содержащую `new-project-rules` и остальные проекты. Вложенные папки
+проектов не нужно открывать как отдельные vault. Markdown редактируется прямо
+в репозиториях; отдельная копия и REST API не нужны.
 
 ## 5. Подключить глобальные инструкции агентов
 
@@ -116,9 +119,10 @@ codex --ask-for-approval never "Summarize the current global and project instruc
 ## 7. Подключить существующий проект
 
 Для уже существующего проекта bootstrap запускать нельзя. Нужно только
-клонировать его и открыть клонированную папку как vault:
+клонировать его внутрь общего vault:
 
 ```sh
+cd "/path/to/AiProject"
 gh repo clone NightMadMax/project-repository
 cd project-repository
 git status

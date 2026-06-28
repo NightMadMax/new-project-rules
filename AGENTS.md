@@ -11,7 +11,8 @@
 ## Project Identity
 
 - Project: `Правила для нового проекта`
-- This folder is both the Obsidian vault and git repository root.
+- This folder is the git repository root and a project folder inside the parent
+  Obsidian vault.
 - Project navigation: [[README]], [[INDEX]], [[PROJECT]], and [[TEMPLATES]].
 
 ## Markdown Workflow

@@ -10,10 +10,13 @@
 
 ## New Project Default
 
-- For any new project, use this default layout: the project folder itself is
-  the Obsidian vault, and that same folder is also the git repository root.
-- Only use separate repository and Obsidian copies when the user or
-  project-local instructions explicitly require it.
+- Use one shared Obsidian workspace folder as the vault. Create each new
+  project as a child folder inside that vault; the project folder is the git
+  repository root, but not a separate Obsidian vault.
+- Keep Markdown in the project folder so the parent vault indexes it directly.
+  Do not create a second Obsidian copy or synchronization layer.
+- Put a project outside the shared vault only when the user or project-local
+  instructions explicitly require it.
 - Create a separate GitHub repository for each new project unless the user
   explicitly requests a monorepo or another structure.
 
@@ -66,7 +69,7 @@
 - Edit Markdown files directly in the project folder. They are simultaneously
   repository files and Obsidian notes.
 - Do not use an Obsidian REST API, helper script, synchronization step, or
-  duplicate Markdown copy in the default single-folder layout.
+  duplicate Markdown copy in the default parent-vault layout.
 - Never store tokens, passwords, private keys, or real credentials in the
   repository, documentation, scripts, or committed shell history.
 - Use Obsidian wikilinks for relationships between Markdown notes. Filenames
@@ -105,10 +108,10 @@
 
 ## Operating Rule
 
-- Work directly with Markdown files in the project folder because that folder
-  is already the Obsidian vault.
-- Do not mirror files to another vault path unless the project explicitly
-  documents a split-layout exception.
+- Work directly with Markdown files in the project folder; the parent Obsidian
+  vault indexes those same files.
+- Do not turn each project into a separate vault and do not mirror files to a
+  second vault path.
 - When a reusable new-project convention changes, update the global agent
   instructions (`~/.codex/AGENTS.md`, imported by `~/.claude/CLAUDE.md`), this
   portable copy, bootstrap documentation, and affected templates in the same

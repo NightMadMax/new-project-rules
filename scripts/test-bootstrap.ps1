@@ -145,9 +145,10 @@ try {
         $result = Invoke-Bootstrap $dir "Test $p" $p
         if (-not $result.Success) { Fail "${p}: bootstrap failed: $($result.Output)"; continue }
         foreach ($f in @("README.md", "AGENTS.md", "CLAUDE.md", "INDEX.md", "PROJECT.md",
-                ".editorconfig", ".gitignore", ".gitattributes", ".obsidian/app.json")) {
+                ".editorconfig", ".gitignore", ".gitattributes")) {
             Assert-File $dir $f $p
         }
+        Assert-Absent $dir ".obsidian" $p
         if ((Get-Content -Raw (Join-Path $dir "CLAUDE.md")).Trim() -eq "@AGENTS.md") { Pass }
         else { Fail "${p}: CLAUDE.md is not exactly '@AGENTS.md'" }
         $placeholders = Get-ChildItem -Recurse -Filter *.md $dir | Select-String -Pattern '<PROJECT_NAME>|<YYYY-MM-DD>'

@@ -131,9 +131,10 @@ for profile in minimal software operated all; do
     continue
   fi
   for f in README.md AGENTS.md CLAUDE.md INDEX.md PROJECT.md \
-    .editorconfig .gitignore .gitattributes .obsidian/app.json; do
+    .editorconfig .gitignore .gitattributes; do
     assert_file "$dir" "$f" "$profile"
   done
+  assert_absent "$dir" ".obsidian" "$profile"
   if [ "$(cat "$dir/CLAUDE.md" 2>/dev/null)" = "@AGENTS.md" ]; then ok
   else bad "$profile: CLAUDE.md is not exactly '@AGENTS.md'"; fi
   assert_no_placeholder "$dir" "$profile"

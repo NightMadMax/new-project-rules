@@ -34,4 +34,3 @@
 | `scripts/test-agent-setup.ps1` | Smoke-тест global/scoped agent setup (Windows) |
 | `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
 | `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |
-| `.obsidian/` | Минимальная конфигурация, делающая папку vault |
