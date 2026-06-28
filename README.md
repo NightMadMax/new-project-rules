@@ -56,10 +56,19 @@ Windows PowerShell:
 
 Профили:
 
-- `minimal` — обязательное ядро документации;
-- `software` — ядро, архитектура, ADR, исследования, ревью и тестирование;
-- `operated` — software плюс окружения, runbook, инциденты и внешние действия;
-- `all` — все доступные шаблоны, включая API, данные и безопасность.
+- `minimal` — обязательное ядро (`README`, `AGENTS`, `CLAUDE`, `INDEX`,
+  `PROJECT`) плюс `.editorconfig`, `.gitignore` и `.gitattributes`;
+- `software` — ядро плюс индекс `docs/`, `CHANGELOG`, `ARCHITECTURE` и
+  `TESTING`;
+- `operated` — `software` плюс `ACTIONS`, `TOOLS`, `INTEGRATIONS` и
+  `ENVIRONMENTS`;
+- `all` — `operated` плюс `INTERFACES`, `DATA_MODEL`, `SECURITY` и
+  `THREAT_MODEL`.
+
+Шаблоны «по одному файлу на экземпляр» — ADR, исследования, ревью, runbook и
+postmortem — профиль намеренно не создаёт, чтобы не плодить пустые документы.
+Они остаются в `templates/new-project/` и копируются вручную по мере
+необходимости.
 
 Bootstrap создаёт в каждом проекте `CLAUDE.md` из одной строки `@AGENTS.md`,
 поэтому Codex (через `AGENTS.md`) и Claude Code (через `CLAUDE.md`) читают одни

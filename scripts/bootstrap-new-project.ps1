@@ -158,6 +158,14 @@ if ($Profile -eq "all") {
 $git = Get-Command git -ErrorAction SilentlyContinue
 if ($null -ne $git) {
     & $git.Source -C $Destination init -b main | Out-Null
+    & $git.Source -C $Destination add -A | Out-Null
+    & $git.Source -C $Destination commit -q -m "Bootstrap project with new-project-rules" 2>$null | Out-Null
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host "Initialized git repository with an initial commit."
+    }
+    else {
+        Write-Host "Initialized git repository; set git user.name/user.email, then commit the initial state."
+    }
 }
 
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."

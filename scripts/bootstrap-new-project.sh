@@ -124,6 +124,12 @@ fi
 
 if command -v git >/dev/null 2>&1; then
   git -C "$destination" init -b main >/dev/null
+  git -C "$destination" add -A
+  if git -C "$destination" commit -q -m "Bootstrap project with new-project-rules" 2>/dev/null; then
+    echo "Initialized git repository with an initial commit."
+  else
+    echo "Initialized git repository; set git user.name/user.email, then commit the initial state." >&2
+  fi
 fi
 
 echo "Created '$project_name' at $destination using profile '$profile'."
