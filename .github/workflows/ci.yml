@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  shell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure git identity
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI"
+      - name: Lint shell scripts
+        run: |
+          for f in scripts/*.sh; do
+            echo "sh -n $f"
+            sh -n "$f"
+          done
+      - name: Bootstrap regression test
+        run: sh scripts/test-bootstrap.sh
+
+  powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure git identity
+        shell: pwsh
+        run: |
+          git config --global user.email "ci@example.com"
+          git config --global user.name "CI"
+      - name: Parse-check PowerShell scripts
+        shell: pwsh
+        run: |
+          Get-ChildItem scripts/*.ps1 | ForEach-Object {
+            $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$null)
+            Write-Host "parse OK $($_.Name)"
+          }
+      - name: Bootstrap regression test
+        shell: pwsh
+        run: pwsh -NoProfile -File scripts/test-bootstrap.ps1

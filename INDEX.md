@@ -26,4 +26,7 @@
 | `scripts/add-agent-scope.ps1` | Правила для подкаталога (Windows) |
 | `scripts/check-environment.sh` | Проверка обязательной базы инструментов (macOS/Linux) |
 | `scripts/check-environment.ps1` | Проверка обязательной базы инструментов (Windows) |
+| `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
+| `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |
+| `.github/workflows/ci.yml` | CI: lint, parse-check и тест bootstrap на каждый push |
 | `.obsidian/` | Минимальная конфигурация, делающая папку vault |
