@@ -163,8 +163,17 @@ if ($null -ne $git) {
             [string[]]$Arguments
         )
 
-        $output = @(& $git.Source -C $Destination @Arguments 2>&1)
-        $exitCode = $LASTEXITCODE
+        $previousErrorActionPreference = $ErrorActionPreference
+        try {
+            # Windows PowerShell 5.1 converts native stderr into ErrorRecord
+            # objects. Decide success from LASTEXITCODE and retain stderr text.
+            $ErrorActionPreference = "Continue"
+            $output = @(& $git.Source -C $Destination @Arguments 2>&1)
+            $exitCode = $LASTEXITCODE
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+        }
         if ($exitCode -ne 0) {
             $details = ($output | ForEach-Object { $_.ToString() }) -join "`n"
             if ([string]::IsNullOrWhiteSpace($details)) {
@@ -174,14 +183,21 @@ if ($null -ne $git) {
         }
     }
 
-    Invoke-GitRequired "git init" @("init")
+    Invoke-GitRequired "git init" @("init", "-q")
     Invoke-GitRequired "git symbolic-ref" @("symbolic-ref", "HEAD", "refs/heads/main")
     Invoke-GitRequired "git add" @("add", "-A")
 
-    & $git.Source -C $Destination var GIT_AUTHOR_IDENT 2>$null | Out-Null
-    $hasAuthorIdentity = $LASTEXITCODE -eq 0
-    & $git.Source -C $Destination var GIT_COMMITTER_IDENT 2>$null | Out-Null
-    $hasCommitterIdentity = $LASTEXITCODE -eq 0
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        & $git.Source -C $Destination var GIT_AUTHOR_IDENT 2>$null | Out-Null
+        $hasAuthorIdentity = $LASTEXITCODE -eq 0
+        & $git.Source -C $Destination var GIT_COMMITTER_IDENT 2>$null | Out-Null
+        $hasCommitterIdentity = $LASTEXITCODE -eq 0
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
 
     if (-not ($hasAuthorIdentity -and $hasCommitterIdentity)) {
         Write-Host "Initialized git repository and staged the initial state."

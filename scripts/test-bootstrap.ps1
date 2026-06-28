@@ -30,9 +30,29 @@ function Assert-NoBom {
 }
 function Get-GitTreeState {
     param($Dir)
-    $status = & git -C $Dir status --porcelain 2>&1
-    $exitCode = $LASTEXITCODE
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $status = & git -C $Dir status --porcelain 2>&1
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
     [pscustomobject]@{ ExitCode = $exitCode; Status = ($status -join "`n") }
+}
+function Invoke-GitProbe {
+    param([string]$GitPath, [string[]]$Arguments)
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $output = @(& $GitPath @Arguments 2>&1)
+        $exitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    [pscustomobject]@{ ExitCode = $exitCode; Output = (($output | ForEach-Object { $_.ToString() }) -join "`n") }
 }
 function Assert-CleanTree {
     param($Dir, $Tag)
@@ -162,10 +182,10 @@ try {
     $result = Invoke-Bootstrap $noIdentityDir "No Identity" "minimal"
     if ($result.Success) { Pass } else { Fail "no identity: bootstrap failed: $($result.Output)" }
     if ($result.Output.Contains("Git identity is not configured")) { Pass } else { Fail "no identity: guidance missing" }
-    & $realGit -C $noIdentityDir rev-parse --verify HEAD *> $null
-    if ($LASTEXITCODE -ne 0) { Pass } else { Fail "no identity: initial commit unexpectedly exists" }
-    & $realGit -C $noIdentityDir diff --cached --quiet
-    if ($LASTEXITCODE -eq 1) { Pass } else { Fail "no identity: generated files are not staged" }
+    $probe = Invoke-GitProbe $realGit @("-C", $noIdentityDir, "rev-parse", "--verify", "HEAD")
+    if ($probe.ExitCode -ne 0) { Pass } else { Fail "no identity: initial commit unexpectedly exists" }
+    $probe = Invoke-GitProbe $realGit @("-C", $noIdentityDir, "diff", "--cached", "--quiet")
+    if ($probe.ExitCode -eq 1) { Pass } else { Fail "no identity: generated files are not staged" }
 
     Set-TestIdentity
     $wrapperDir = Join-Path $Tmp "mock-bin"

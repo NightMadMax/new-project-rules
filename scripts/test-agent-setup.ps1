@@ -69,8 +69,16 @@ try {
     $project = Join-Path $Tmp "project"
     New-Item -ItemType Directory -Force $project | Out-Null
     [System.IO.File]::WriteAllText((Join-Path $project "INDEX.md"), "# Index`n", (New-Object System.Text.UTF8Encoding($false)))
-    & git -C $project init *> $null
-    if ($LASTEXITCODE -ne 0) { throw "Could not initialize temporary git repository." }
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        & git -C $project init -q *> $null
+        $gitInitExitCode = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($gitInitExitCode -ne 0) { throw "Could not initialize temporary git repository." }
     $scope = Join-Path $project "src/component"
     $result = Invoke-ScriptChecked { & $AddScope -Directory $scope -Rule "Use component conventions." }
     if ($result.Success) { Pass } else { Fail "scope create failed: $($result.Output)" }
