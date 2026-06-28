@@ -68,7 +68,7 @@ Write-Utf8NoBom (Join-Path $Destination ".gitattributes") @(
 # EditorConfig is the one language-agnostic, zero-dependency formatting baseline
 # every editor honours, so it belongs in the required core of every project.
 Write-Utf8NoBom (Join-Path $Destination ".editorconfig") @(
-    "# EditorConfig — https://editorconfig.org"
+    "# EditorConfig - https://editorconfig.org"
     "root = true"
     ""
     "[*]"
