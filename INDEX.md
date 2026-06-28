@@ -17,6 +17,8 @@
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |
 | [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|MUST_HAVE_PROJECT_TOOLING_2026.md]] | Исследование обязательной базы инструментов в 2026 году |
+| [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
+| [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |
 | `scripts/bootstrap-new-project.ps1` | Создание проекта в Windows PowerShell |
@@ -28,5 +30,8 @@
 | `scripts/check-environment.ps1` | Проверка обязательной базы инструментов (Windows) |
 | `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |
-| `.github/workflows/ci.yml` | CI: lint, parse-check и тест bootstrap на каждый push |
+| `scripts/test-agent-setup.sh` | Smoke-тест global/scoped agent setup (macOS/Linux) |
+| `scripts/test-agent-setup.ps1` | Smoke-тест global/scoped agent setup (Windows) |
+| `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
+| `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |
 | `.obsidian/` | Минимальная конфигурация, делающая папку vault |

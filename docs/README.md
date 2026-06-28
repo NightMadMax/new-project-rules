@@ -2,7 +2,7 @@
 type: documentation-index
 status: active
 owner: project
-last_verified: 2026-06-27
+last_verified: 2026-06-28
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -25,6 +25,11 @@ related:
 
 - [[docs/research/PROJECT_ARTIFACT_MODEL|Модель артефактов проекта]]
 - [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|Обязательная база инструментов проекта в 2026 году]]
+
+## Качество и ревью
+
+- [[docs/quality/TESTING|Проверка скриптов]]
+- [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
 
 ## Стандартная структура нового проекта
 

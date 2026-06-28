@@ -4,15 +4,18 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   shell:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Configure git identity
-        run: |
-          git config --global user.email "ci@example.com"
-          git config --global user.name "CI"
       - name: Lint shell scripts
         run: |
           for f in scripts/*.sh; do
@@ -21,23 +24,28 @@ jobs:
           done
       - name: Bootstrap regression test
         run: sh scripts/test-bootstrap.sh
+      - name: Agent setup smoke test
+        run: sh scripts/test-agent-setup.sh
 
   powershell:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
-      - name: Configure git identity
+      - name: Parse-check PowerShell scripts with Windows PowerShell 5.1
+        shell: powershell
+        run: .\scripts\test-powershell-syntax.ps1
+      - name: Parse-check PowerShell scripts with PowerShell 7
         shell: pwsh
-        run: |
-          git config --global user.email "ci@example.com"
-          git config --global user.name "CI"
-      - name: Parse-check PowerShell scripts
+        run: .\scripts\test-powershell-syntax.ps1
+      - name: Bootstrap regression test with Windows PowerShell 5.1
+        shell: powershell
+        run: .\scripts\test-bootstrap.ps1
+      - name: Agent setup smoke test with Windows PowerShell 5.1
+        shell: powershell
+        run: .\scripts\test-agent-setup.ps1
+      - name: Bootstrap regression test with PowerShell 7
         shell: pwsh
-        run: |
-          Get-ChildItem scripts/*.ps1 | ForEach-Object {
-            $null = [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$null, [ref]$null)
-            Write-Host "parse OK $($_.Name)"
-          }
-      - name: Bootstrap regression test
+        run: .\scripts\test-bootstrap.ps1
+      - name: Agent setup smoke test with PowerShell 7
         shell: pwsh
-        run: pwsh -NoProfile -File scripts/test-bootstrap.ps1
+        run: .\scripts\test-agent-setup.ps1

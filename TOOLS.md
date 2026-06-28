@@ -8,13 +8,11 @@
 - Installed version: PowerShell `7.6.3`.
 - Installed dependency: .NET `10.0.301`.
 - Version check: `pwsh --version`.
-- Parser check: use
-  `[System.Management.Automation.Language.Parser]::ParseFile()` for every
-  script in `scripts/`.
-- Runtime coverage: macOS ARM64 with PowerShell 7.6.3.
-- Remaining coverage gap: Windows PowerShell 5.1 has not been executed on the
-  current machine; scripts retain UTF-8-without-BOM helpers compatible with
-  that environment.
+- Parser check: `pwsh -NoProfile -File scripts/test-powershell-syntax.ps1`.
+- Runtime coverage: macOS ARM64 with PowerShell 7.6.3; GitHub Actions additionally
+  runs parser and runtime tests with Windows PowerShell 5.1 and PowerShell 7.
+- Test commands and the supported environment matrix are maintained in
+  [[docs/quality/TESTING|TESTING]].
 
 Project automation should continue to use dependency-free shell and PowerShell
 entry points for clean-machine compatibility. Python 3 standard-library code is

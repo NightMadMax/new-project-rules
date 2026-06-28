@@ -6,6 +6,39 @@ usage() {
   exit 2
 }
 
+resolve_script_dir() {
+  case $0 in
+    */*) script_path=$0 ;;
+    *) script_path=$(command -v "$0") || {
+      echo "Cannot resolve script path: $0" >&2
+      exit 1
+    } ;;
+  esac
+
+  while [ -L "$script_path" ]; do
+    link_dir=$(CDPATH= cd -P "$(dirname "$script_path")" && pwd) || exit 1
+    link_target=$(readlink "$script_path") || {
+      echo "Cannot read script symlink: $script_path" >&2
+      exit 1
+    }
+    case $link_target in
+      /*) script_path=$link_target ;;
+      *) script_path=$link_dir/$link_target ;;
+    esac
+  done
+
+  CDPATH= cd -P "$(dirname "$script_path")" && pwd
+}
+
+directory_is_empty() {
+  for entry in "$1"/* "$1"/.[!.]* "$1"/..?*; do
+    if [ -e "$entry" ] || [ -L "$entry" ]; then
+      return 1
+    fi
+  done
+  return 0
+}
+
 [ "$#" -ge 2 ] && [ "$#" -le 3 ] || usage
 
 destination=$1
@@ -17,11 +50,11 @@ case "$profile" in
   *) usage ;;
 esac
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+script_dir=$(resolve_script_dir)
 project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
 
-if [ -d "$destination" ] && [ -n "$(ls -A "$destination" 2>/dev/null)" ]; then
+if [ -d "$destination" ] && ! directory_is_empty "$destination"; then
   echo "Destination is not empty: $destination" >&2
   exit 1
 fi
@@ -123,13 +156,31 @@ if [ "$profile" = all ]; then
 fi
 
 if command -v git >/dev/null 2>&1; then
-  git -C "$destination" init -b main >/dev/null
-  git -C "$destination" add -A
-  if git -C "$destination" commit -q -m "Bootstrap project with new-project-rules" 2>/dev/null; then
+  if ! git_output=$(git -C "$destination" init 2>&1); then
+    printf 'Git initialization failed:\n%s\n' "$git_output" >&2
+    exit 1
+  fi
+  if ! git_output=$(git -C "$destination" symbolic-ref HEAD refs/heads/main 2>&1); then
+    printf 'Setting the initial git branch to main failed:\n%s\n' "$git_output" >&2
+    exit 1
+  fi
+  if ! git_output=$(git -C "$destination" add -A 2>&1); then
+    printf 'Staging the initial project files failed:\n%s\n' "$git_output" >&2
+    exit 1
+  fi
+
+  if git -C "$destination" var GIT_AUTHOR_IDENT >/dev/null 2>&1 && \
+     git -C "$destination" var GIT_COMMITTER_IDENT >/dev/null 2>&1; then
+    if ! git_output=$(git -C "$destination" commit -q -m "Bootstrap project with new-project-rules" 2>&1); then
+      printf 'Creating the initial git commit failed:\n%s\n' "$git_output" >&2
+      exit 1
+    fi
     echo "Initialized git repository with an initial commit."
   else
-    echo "Initialized git repository; set git user.name/user.email, then commit the initial state." >&2
+    echo "Initialized git repository with staged files; set git user.name and git user.email, then commit the initial state." >&2
   fi
+else
+  echo "Git was not found; project files were created, but the repository was not initialized." >&2
 fi
 
 echo "Created '$project_name' at $destination using profile '$profile'."

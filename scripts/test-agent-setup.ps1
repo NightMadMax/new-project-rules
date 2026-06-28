@@ -5,6 +5,7 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = $PSScriptRoot
 $SetupGlobal = Join-Path $ScriptDir "setup-global-agents.ps1"
 $AddScope = Join-Path $ScriptDir "add-agent-scope.ps1"
+$CheckEnvironment = Join-Path $ScriptDir "check-environment.ps1"
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("agenttest-" + [System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 New-Item -ItemType Directory -Force $Tmp | Out-Null
 
@@ -102,6 +103,26 @@ try {
     else { Fail "scope conflict was not rejected" }
     if (-not (Test-Path (Join-Path $conflictScope "AGENTS.md"))) { Pass } else { Fail "scope conflict created AGENTS.md" }
     if ((Get-Content -Raw (Join-Path $project "INDEX.md")) -ceq $indexBefore) { Pass } else { Fail "scope conflict changed INDEX.md" }
+
+    Write-Host "Environment check without Git..."
+    $emptyPath = Join-Path $Tmp "empty-path"
+    New-Item -ItemType Directory -Force $emptyPath | Out-Null
+    $engineName = if ($PSVersionTable.PSEdition -eq "Desktop") { "powershell.exe" } else { "pwsh" }
+    $engine = Join-Path $PSHOME $engineName
+    $savedPath = $env:PATH
+    try {
+        $env:PATH = $emptyPath
+        $environmentOutput = @(& $engine -NoProfile -File $CheckEnvironment 2>&1)
+        $environmentExitCode = $LASTEXITCODE
+    }
+    finally {
+        $env:PATH = $savedPath
+    }
+    $environmentText = ($environmentOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ($environmentExitCode -eq 1) { Pass } else { Fail "environment check returned $environmentExitCode instead of 1" }
+    if ((Count-Literal $environmentText "[MISS] git") -eq 1) { Pass } else { Fail "environment check did not report missing Git exactly once" }
+    if ($environmentText.Contains("credential helper not checked because git is unavailable")) { Pass }
+    else { Fail "environment check did not skip the Git credential helper safely" }
 
     Write-Host ""
     $total = $script:Pass + $script:Fail

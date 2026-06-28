@@ -14,7 +14,7 @@ rule=$2
 
 probe=$dir
 while [ ! -d "$probe" ]; do
-  parent=$(dirname -- "$probe")
+  parent=$(dirname "$probe")
   [ "$parent" != "$probe" ] || { echo "Cannot locate an existing parent for $dir." >&2; exit 1; }
   probe=$parent
 done
@@ -27,8 +27,8 @@ index_file="$project_root/INDEX.md"
 [ -f "$index_file" ] || { echo "Project index not found: $index_file" >&2; exit 1; }
 
 mkdir -p "$dir"
-dir=$(CDPATH= cd -- "$dir" && pwd -P)
-project_root=$(CDPATH= cd -- "$project_root" && pwd -P)
+dir=$(CDPATH= cd "$dir" && pwd -P)
+project_root=$(CDPATH= cd "$project_root" && pwd -P)
 case "$dir" in
   "$project_root"/*) relative_dir=${dir#"$project_root"/} ;;
   *) echo "Scope directory must be below the project root: $project_root" >&2; exit 1 ;;
@@ -44,8 +44,8 @@ if [ -L "$claude" ]; then
     /*) resolved_target=$link_target ;;
     *) resolved_target="$dir/$link_target" ;;
   esac
-  target_dir=$(CDPATH= cd -- "$(dirname -- "$resolved_target")" 2>/dev/null && pwd -P) || target_dir=
-  normalized_target="$target_dir/$(basename -- "$resolved_target")"
+  target_dir=$(CDPATH= cd "$(dirname "$resolved_target")" 2>/dev/null && pwd -P) || target_dir=
+  normalized_target="$target_dir/$(basename "$resolved_target")"
   if [ -z "$target_dir" ] || [ "$normalized_target" != "$agents" ]; then
     echo "Conflict: $claude is a symlink to '$link_target', not $agents." >&2
     echo "Nothing was changed." >&2
@@ -93,9 +93,23 @@ esac
 
 agents_link="[[$relative_dir/AGENTS|$relative_dir/AGENTS.md]]"
 claude_link="[[$relative_dir/CLAUDE|$relative_dir/CLAUDE.md]]"
-grep -qF "$agents_link" "$index_file" || \
-  printf '| %s | Scoped agent rules |\n' "$agents_link" >> "$index_file"
-grep -qF "$claude_link" "$index_file" || \
-  printf '| %s | Imports scoped AGENTS for Claude Code |\n' "$claude_link" >> "$index_file"
+
+append_index_link() {
+  link=$1
+  description=$2
+  if grep -qF "$link" "$index_file"; then
+    return 0
+  else
+    grep_status=$?
+  fi
+  if [ "$grep_status" -ne 1 ]; then
+    echo "Error: could not read $index_file while checking for '$link'." >&2
+    exit 1
+  fi
+  printf '| %s | %s |\n' "$link" "$description" >> "$index_file"
+}
+
+append_index_link "$agents_link" "Scoped agent rules"
+append_index_link "$claude_link" "Imports scoped AGENTS for Claude Code"
 
 echo "Updated $index_file with scoped instruction links."

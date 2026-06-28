@@ -33,13 +33,15 @@ if has gh; then
     missing=$((missing + 1))
   fi
 fi
-helper=$(git config --get credential.helper 2>/dev/null)
-case "$helper" in
-  "") echo "  [MISS] no git credential helper — configure Keychain or Git Credential Manager"
-      missing=$((missing + 1)) ;;
-  store) echo "  [WARN] credential.helper=store saves tokens UNENCRYPTED; prefer Keychain/GCM" ;;
-  *) printf '  [ ok ] credential.helper=%s\n' "$helper" ;;
-esac
+if has git; then
+  helper=$(git config --get credential.helper 2>/dev/null || true)
+  case "$helper" in
+    "") echo "  [MISS] no git credential helper — configure Keychain or Git Credential Manager"
+        missing=$((missing + 1)) ;;
+    store) echo "  [WARN] credential.helper=store saves tokens UNENCRYPTED; prefer Keychain/GCM" ;;
+    *) printf '  [ ok ] credential.helper=%s\n' "$helper" ;;
+  esac
+fi
 if [ -f "$HOME/.claude/CLAUDE.md" ]; then
   echo "  [ ok ] ~/.claude/CLAUDE.md present"
 else
