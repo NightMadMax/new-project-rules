@@ -17,15 +17,15 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 1 | Mojibake в UI-метаданных skill | 2026-06-28 | `skill-creator/init_skill.py` | Передача кириллических `--interface` через native Windows PowerShell создала повреждённый `agents/openai.yaml`. Root cause: несовпадение кодировки аргументов процесса; исправление в проекте — ASCII UI-метаданные. |
-| 2 | Skill helpers требуют отсутствующий PyYAML | 2026-06-28 | `skill-creator/scripts` | `generate_openai_yaml.py` и `quick_validate.py` завершаются `ModuleNotFoundError: No module named 'yaml'`. Внешние helpers не обеспечивают runtime-зависимость; проект использует проверенный UTF-8 YAML и dependency-free smoke-тесты без установки нового пакета. |
-| 3 | Skill helpers читают UTF-8 как cp1251 | 2026-06-28 | `skill-creator/scripts` | На Windows `generate_openai_yaml.py` завершился `UnicodeDecodeError`, потому что `Path.read_text()` использовал системную encoding. Workaround: запускать helpers с `PYTHONUTF8=1`. |
+| — | | | | |
 
 ## Fixed
 
 | # | Title | Discovered | Fixed | Commit | Root Cause |
 |---|---|---|---|---|---|
-| — | | | | | |
+| 1 | Mojibake в UI-метаданных skill | 2026-06-28 | 2026-06-28 | `a999788` | Native Windows исказил кириллические `--interface`; UI metadata переведены в ASCII. |
+| 2 | Skill helpers требуют отсутствующий PyYAML | 2026-06-28 | 2026-06-28 | `a999788` | Runtime не содержал `PyYAML`; добавлен `requirements-dev.txt`, установлен и проверен `PyYAML 6.0.3`. |
+| 3 | Skill helpers читают UTF-8 как cp1251 | 2026-06-28 | 2026-06-28 | `a999788` | `Path.read_text()` выбрал legacy code page; helpers запускаются с `PYTHONUTF8=1`, workaround записан в [[TOOLS]]. |
 
 ## Won't Fix
 
