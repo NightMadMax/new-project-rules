@@ -214,3 +214,4 @@ else {
 
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."
 Write-Host "Open this folder as an Obsidian vault, review INDEX.md, then create its GitHub repository."
+exit 0

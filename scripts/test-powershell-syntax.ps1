@@ -31,3 +31,4 @@ if ($failed) {
 }
 
 Write-Host "PowerShell syntax check passed for $($Path.Count) file(s)."
+exit 0
