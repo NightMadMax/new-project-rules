@@ -24,4 +24,6 @@
 | `scripts/setup-global-agents.ps1` | Глобальная настройка Codex+Claude (Windows) |
 | `scripts/add-agent-scope.sh` | Правила для подкаталога (macOS/Linux) |
 | `scripts/add-agent-scope.ps1` | Правила для подкаталога (Windows) |
+| `scripts/check-environment.sh` | Проверка обязательной базы инструментов (macOS/Linux) |
+| `scripts/check-environment.ps1` | Проверка обязательной базы инструментов (Windows) |
 | `.obsidian/` | Минимальная конфигурация, делающая папку vault |

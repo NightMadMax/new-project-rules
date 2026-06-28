@@ -1,5 +1,22 @@
 # Журнал изменений
 
+## v1.6.0 — 2026-06-28
+
+### Добавлено
+
+- `.editorconfig` включён в обязательное ядро: создаётся bootstrap во всех
+  профилях и добавлен в сам набор. Это единственный языко-нейтральный
+  formatting-baseline без зависимостей (UTF-8, LF, финальный перевод строки,
+  trim trailing whitespace; исключения для `*.md`, `*.ps1`, Makefile, `*.go`).
+- `scripts/check-environment.sh` и `.ps1` — read-only проверка обязательной
+  базы (`git`, `gh`, Codex, Claude Code, `gh auth`, credential helper) с
+  отдельным выводом рекомендуемого (Python, `pwsh`, `rg`, Homebrew/WinGet).
+
+### Обоснование
+
+- Реализованы пункты 1–2 рекомендаций
+  [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|исследования базы инструментов]].
+
 ## v1.5.0 — 2026-06-27
 
 ### Добавлено

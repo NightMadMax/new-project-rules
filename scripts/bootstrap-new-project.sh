@@ -35,6 +35,34 @@ printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' '.obsidian/workspace.json' \
 printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
   '*.md text eol=lf' '*.json text eol=lf' > "$destination/.gitattributes"
 
+# EditorConfig is the one language-agnostic, zero-dependency formatting baseline
+# every editor honours, so it belongs in the required core of every project.
+cat > "$destination/.editorconfig" <<'EDITORCONFIG'
+# EditorConfig — https://editorconfig.org
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.ps1]
+end_of_line = crlf
+indent_size = 4
+
+[Makefile]
+indent_style = tab
+
+[*.go]
+indent_style = tab
+EDITORCONFIG
+
 today=$(date +%Y-%m-%d)
 escaped_name=$(printf '%s' "$project_name" | sed 's/[&|\\]/\\&/g')
 
