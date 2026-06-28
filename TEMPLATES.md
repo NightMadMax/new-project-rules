@@ -23,6 +23,7 @@
 - [[templates/new-project/THREAT_MODEL.template|THREAT MODEL]] — угрозы и меры.
 - [[templates/new-project/INTEGRATIONS.template|INTEGRATIONS]] — внешние системы.
 - [[templates/new-project/TOOLS.template|TOOLS]] — нестандартные инструменты.
+- [[templates/new-project/DEFECTS.template|DEFECTS]] — журнал дефектов и известных проблем.
 
 Основные правила выбора артефактов описаны в
 [[docs/research/PROJECT_ARTIFACT_MODEL|модели артефактов]].

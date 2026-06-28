@@ -70,6 +70,21 @@
   the bootstrap documentation, affected templates, and the active global
   `~/.codex/AGENTS.md` in the same task.
 
+## Defect Tracking
+
+- Every discovered defect, bug, or known issue must be recorded in
+  `docs/quality/DEFECTS.md` immediately upon discovery — never leave it only in
+  conversation context, commit messages, or memory.
+- Each entry must include: a short title, current status (`open` / `fixed` /
+  `wontfix`), the date discovered, a brief description, and the root cause when
+  known.
+- When a defect is fixed, update its status and add the fix date and commit
+  reference; do not delete the entry.
+- Before starting work on a component, check `DEFECTS.md` for open issues in
+  that area to avoid re-introducing or duplicating known problems.
+- If `docs/quality/DEFECTS.md` does not exist when a defect is found, create it
+  using the project defect template.
+
 ## Verification
 
 - Validate shell scripts with `sh -n`.
