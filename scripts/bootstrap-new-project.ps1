@@ -155,17 +155,45 @@ if ($Profile -eq "all") {
     Add-IndexEntry "docs/security/THREAT_MODEL.md" "Threats, mitigations, and residual risks"
 }
 
-$git = Get-Command git -ErrorAction SilentlyContinue
+$git = Get-Command git -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($null -ne $git) {
-    & $git.Source -C $Destination init -b main | Out-Null
-    & $git.Source -C $Destination add -A | Out-Null
-    & $git.Source -C $Destination commit -q -m "Bootstrap project with new-project-rules" 2>$null | Out-Null
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "Initialized git repository with an initial commit."
+    function Invoke-GitRequired {
+        param(
+            [string]$Step,
+            [string[]]$Arguments
+        )
+
+        $output = @(& $git.Source -C $Destination @Arguments 2>&1)
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0) {
+            $details = ($output | ForEach-Object { $_.ToString() }) -join "`n"
+            if ([string]::IsNullOrWhiteSpace($details)) {
+                $details = "git exited with code $exitCode"
+            }
+            throw "$Step failed:`n$details"
+        }
+    }
+
+    Invoke-GitRequired "git init" @("init")
+    Invoke-GitRequired "git symbolic-ref" @("symbolic-ref", "HEAD", "refs/heads/main")
+    Invoke-GitRequired "git add" @("add", "-A")
+
+    & $git.Source -C $Destination var GIT_AUTHOR_IDENT 2>$null | Out-Null
+    $hasAuthorIdentity = $LASTEXITCODE -eq 0
+    & $git.Source -C $Destination var GIT_COMMITTER_IDENT 2>$null | Out-Null
+    $hasCommitterIdentity = $LASTEXITCODE -eq 0
+
+    if (-not ($hasAuthorIdentity -and $hasCommitterIdentity)) {
+        Write-Host "Initialized git repository and staged the initial state."
+        Write-Host "Git identity is not configured; set user.name and user.email, then run: git commit -m 'Bootstrap project with new-project-rules'"
     }
     else {
-        Write-Host "Initialized git repository; set git user.name/user.email, then commit the initial state."
+        Invoke-GitRequired "git commit" @("commit", "-m", "Bootstrap project with new-project-rules")
+        Write-Host "Initialized git repository with an initial commit."
     }
+}
+else {
+    Write-Host "Git was not found; project files were created, but the repository was not initialized."
 }
 
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."

@@ -28,6 +28,7 @@ Test-Required "git" "version control"
 Test-Required "gh" "GitHub CLI for repos, pull requests, releases"
 Test-Required "codex" "OpenAI Codex agent"
 Test-Required "claude" "Anthropic Claude Code agent"
+$hasGit = Test-Has "git"
 
 Write-Host ""
 Write-Host "Authentication and credentials:"
@@ -36,16 +37,21 @@ if (Test-Has "gh") {
     if ($LASTEXITCODE -eq 0) { Write-Host "  [ ok ] gh is authenticated" }
     else { Write-Host "  [MISS] gh is not authenticated - run: gh auth login"; $script:Missing++ }
 }
-$helper = (& git config --get credential.helper 2>$null)
-if ([string]::IsNullOrWhiteSpace($helper)) {
-    Write-Host "  [MISS] no git credential helper - configure Git Credential Manager"
-    $script:Missing++
-}
-elseif ($helper -eq "store") {
-    Write-Host "  [WARN] credential.helper=store saves tokens UNENCRYPTED; prefer Git Credential Manager"
+if ($hasGit) {
+    $helper = (& git config --get credential.helper 2>$null)
+    if ([string]::IsNullOrWhiteSpace($helper)) {
+        Write-Host "  [MISS] no git credential helper - configure Git Credential Manager"
+        $script:Missing++
+    }
+    elseif ($helper -eq "store") {
+        Write-Host "  [WARN] credential.helper=store saves tokens UNENCRYPTED; prefer Git Credential Manager"
+    }
+    else {
+        Write-Host "  [ ok ] credential.helper=$helper"
+    }
 }
 else {
-    Write-Host "  [ ok ] credential.helper=$helper"
+    Write-Host "  [ -- ] git credential helper not checked because git is unavailable"
 }
 $claudeFile = Join-Path $HOME ".claude/CLAUDE.md"
 if (Test-Path $claudeFile) { Write-Host "  [ ok ] ~/.claude/CLAUDE.md present" }

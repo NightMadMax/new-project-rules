@@ -1,3 +1,7 @@
+param(
+    [string]$HomeDirectory = $HOME
+)
+
 $ErrorActionPreference = "Stop"
 
 # Wire global agent instructions for both Codex and Claude Code without
@@ -12,8 +16,12 @@ function Write-Utf8NoBom {
 
 $RulesRoot = Split-Path -Parent $PSScriptRoot
 $GlobalSrc = Join-Path $RulesRoot "GLOBAL_AGENT_INSTRUCTIONS.md"
-$CodexDir = Join-Path $HOME ".codex"
-$ClaudeDir = Join-Path $HOME ".claude"
+if ([string]::IsNullOrWhiteSpace($HomeDirectory)) {
+    throw "HomeDirectory must not be empty."
+}
+$HomeDirectory = [System.IO.Path]::GetFullPath($HomeDirectory)
+$CodexDir = Join-Path $HomeDirectory ".codex"
+$ClaudeDir = Join-Path $HomeDirectory ".claude"
 $CodexFile = Join-Path $CodexDir "AGENTS.md"
 $ClaudeFile = Join-Path $ClaudeDir "CLAUDE.md"
 $ImportLine = "@~/.codex/AGENTS.md"
