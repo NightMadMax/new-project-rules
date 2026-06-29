@@ -4,6 +4,8 @@
 
 ### Добавлено
 
+- [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план]] перехода к
+  versioned contract, validator, global sync и безопасным migrations.
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Политика переноса знаний]] и skill
   `promote-project-knowledge`: локальные memory отделены от проверенных общих
   правил, а promotion требует источника, области применения и проверки.

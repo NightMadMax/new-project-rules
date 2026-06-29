@@ -26,6 +26,7 @@ related:
 
 - [[docs/research/PROJECT_ARTIFACT_MODEL|Модель артефактов проекта]]
 - [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|Обязательная база инструментов проекта в 2026 году]]
+- [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план развития policy-системы]]
 
 ## Качество и ревью
 
