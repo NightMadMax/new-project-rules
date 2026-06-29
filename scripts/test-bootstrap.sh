@@ -251,7 +251,7 @@ else bad "PATH symlink: test-bootstrap resolver failed"; fi
 
 no_git_bin="$tmp/no-git-bin"
 mkdir -p "$no_git_bin"
-for command_name in cat date dirname mkdir sed; do
+for command_name in cat date dirname grep mkdir sed; do
   command_path=$(command -v "$command_name")
   ln -s "$command_path" "$no_git_bin/$command_name"
 done
