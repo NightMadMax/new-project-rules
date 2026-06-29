@@ -34,7 +34,7 @@ related:
 | 8 | Claude одновременно optional и required | 2026-06-29 | 2026-06-29 | `114788c` | Environment check не различал agent mode и всегда требовал оба CLI. |
 | 9 | Scoped setup создаёт внешний каталог до проверки | 2026-06-29 | 2026-06-29 | `114788c` | Scope path окончательно проверялся только после `mkdir` / `New-Item`. |
 | 10 | Bootstrap не откатывает частично созданный проект | 2026-06-29 | 2026-06-29 | `114788c` | Генерация выполнялась прямо в destination без failure cleanup. |
-| 13 | Shell no-git fixture не предоставляет grep | 2026-06-29 | 2026-06-29 | pending | После manifest-driven refactor bootstrap использует standard `grep` для index relationships, но изолированный PATH теста содержал старый неполный список команд. |
+| 13 | Shell no-git fixture не предоставляет grep | 2026-06-29 | 2026-06-29 | `9a6b445` | После manifest-driven refactor bootstrap использует standard `grep` для index relationships, но изолированный PATH теста содержал старый неполный список команд. |
 
 ## Won't Fix
 
