@@ -170,11 +170,15 @@ try {
     Assert-File $Tmp "operated/ACTIONS.md" "operated"
     Assert-File $Tmp "operated/TOOLS.md" "operated"
     Assert-File $Tmp "operated/docs/operations/ENVIRONMENTS.md" "operated"
+    Assert-Grep (Join-Path $Tmp "operated/docs/README.md") "[[docs/operations/ENVIRONMENTS|Environments]]" "operated docs index"
     Assert-Absent $Tmp "operated/SECURITY.md" "operated"
     Assert-File $Tmp "all/docs/api/INTERFACES.md" "all"
     Assert-File $Tmp "all/docs/data/DATA_MODEL.md" "all"
     Assert-File $Tmp "all/SECURITY.md" "all"
     Assert-File $Tmp "all/docs/security/THREAT_MODEL.md" "all"
+    Assert-Grep (Join-Path $Tmp "all/docs/README.md") "[[docs/api/INTERFACES|Interfaces]]" "all docs index"
+    Assert-Grep (Join-Path $Tmp "all/docs/README.md") "[[docs/data/DATA_MODEL|Data model]]" "all docs index"
+    Assert-Grep (Join-Path $Tmp "all/docs/README.md") "[[docs/security/THREAT_MODEL|Threat model]]" "all docs index"
     Assert-Absent $Tmp "all/docs/architecture/decisions" "all (no auto ADR dir)"
 
     Write-Host "Git identity and failure handling..."
@@ -201,7 +205,18 @@ try {
         else { Fail "mock ${failedCommand}: precise Git diagnostic missing: $($result.Output)" }
         if (-not $result.Output.Contains("Initialized git repository with an initial commit")) { Pass }
         else { Fail "mock ${failedCommand}: false success message emitted" }
+        if (-not (Test-Path -LiteralPath $failureDir)) { Pass }
+        else { Fail "mock ${failedCommand}: partial destination was not rolled back" }
     }
+
+    $env:MOCK_GIT_FAIL_COMMAND = "init"
+    $existingEmptyDir = Join-Path $Tmp "fail-existing-empty"
+    New-Item -ItemType Directory -Force $existingEmptyDir | Out-Null
+    $result = Invoke-Bootstrap $existingEmptyDir "Fail Existing" "minimal"
+    if (-not $result.Success) { Pass } else { Fail "rollback existing empty: bootstrap unexpectedly succeeded" }
+    $remaining = Get-ChildItem -Force $existingEmptyDir | Select-Object -First 1
+    if ((Test-Path -LiteralPath $existingEmptyDir -PathType Container) -and $null -eq $remaining) { Pass }
+    else { Fail "rollback existing empty: original empty directory was not restored" }
     Remove-Item Env:MOCK_GIT_FAIL_COMMAND -ErrorAction SilentlyContinue
 
     Write-Host "git status failure detection..."

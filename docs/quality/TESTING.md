@@ -47,13 +47,17 @@ Parser-check обязан возвращать ненулевой код, есл
 ## Проверяемые сценарии
 
 - создание всех bootstrap-профилей и точный состав файлов;
+- полнота `docs/README.md` для расширенных профилей;
 - валидность Agent Skills, совпадение Claude-мостов и канонических metadata;
 - наличие обязательных Knowledge Promotion и Defect Tracking в переносимых
   global/project rules;
 - начальный commit при настроенной Git-идентичности;
 - staged-состояние без commit при отсутствующей идентичности;
 - корректный отказ при ошибке `git init`, `git add`, `git status` или commit;
+- rollback отсутствующего или изначально пустого destination при ошибке;
 - shell-запуск напрямую, через `PATH` и символическую ссылку;
 - создание, повторный запуск и конфликт global/scoped agent setup;
+- отказ от scope path traversal до создания каталога;
+- режимы environment check `codex`, `claude` и `both`;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;
 - UTF-8 без BOM, отсутствие шаблонных плейсхолдеров и чистое git-дерево.

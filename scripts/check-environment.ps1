@@ -3,6 +3,11 @@
 # workflow on Windows. Changes nothing; exits non-zero if a required tool or
 # credential is missing. See docs/research/MUST_HAVE_PROJECT_TOOLING_2026.md.
 
+param(
+    [ValidateSet("codex", "claude", "both")]
+    [string]$AgentMode = "both"
+)
+
 $ErrorActionPreference = "Stop"
 $script:Missing = 0
 
@@ -23,11 +28,15 @@ function Test-Recommended {
     else { Write-Host "  [ -- ] $Name - $Note" }
 }
 
-Write-Host "Required on this machine:"
+Write-Host "Required on this machine (agent mode: $AgentMode):"
 Test-Required "git" "version control"
 Test-Required "gh" "GitHub CLI for repos, pull requests, releases"
-Test-Required "codex" "OpenAI Codex agent"
-Test-Required "claude" "Anthropic Claude Code agent"
+if ($AgentMode -in @("codex", "both")) {
+    Test-Required "codex" "OpenAI Codex agent"
+}
+if ($AgentMode -in @("claude", "both")) {
+    Test-Required "claude" "Anthropic Claude Code agent"
+}
 $hasGit = Test-Has "git"
 
 Write-Host ""
@@ -53,9 +62,11 @@ if ($hasGit) {
 else {
     Write-Host "  [ -- ] git credential helper not checked because git is unavailable"
 }
-$claudeFile = Join-Path $HOME ".claude/CLAUDE.md"
-if (Test-Path $claudeFile) { Write-Host "  [ ok ] ~/.claude/CLAUDE.md present" }
-else { Write-Host "  [ -- ] ~/.claude/CLAUDE.md missing - run scripts/setup-global-agents.ps1" }
+if ($AgentMode -in @("claude", "both")) {
+    $claudeFile = Join-Path $HOME ".claude/CLAUDE.md"
+    if (Test-Path $claudeFile) { Write-Host "  [ ok ] ~/.claude/CLAUDE.md present" }
+    else { Write-Host "  [ -- ] ~/.claude/CLAUDE.md missing - run scripts/setup-global-agents.ps1" }
+}
 
 Write-Host ""
 Write-Host "Recommended (not required):"

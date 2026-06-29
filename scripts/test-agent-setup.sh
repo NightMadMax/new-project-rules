@@ -128,6 +128,14 @@ assert_absent "$conflict_dir/AGENTS.md" "scope conflict"
 if cmp -s "$tmp/index-before-conflict" "$project/INDEX.md"; then ok
 else bad "scope conflict: INDEX.md changed"; fi
 
+escaped_dir="$project/services/../../escaped-scope"
+if sh "$scope" "$escaped_dir" "Must not be created." >"$tmp/scope-traversal.out" 2>&1; then
+  bad "scope traversal should fail"
+else ok; fi
+if grep -qF "must not contain '..'" "$tmp/scope-traversal.out"; then ok
+else bad "scope traversal diagnostic is missing"; fi
+assert_absent "$tmp/escaped-scope" "scope traversal"
+
 grep_error_dir="$project/services/grep-error"
 fake_bin="$tmp/fake-bin"
 mkdir -p "$fake_bin"
@@ -148,14 +156,20 @@ if grep -qF 'could not read' "$tmp/scope-grep-error.out"; then ok
 else bad "grep read error: diagnostic is missing"; fi
 
 echo "Environment check without git..."
-if PATH="$tmp/empty-path" HOME="$tmp/check-home" /bin/sh "$script_dir/check-environment.sh" \
+if PATH="$tmp/empty-path" HOME="$tmp/check-home" /bin/sh "$script_dir/check-environment.sh" codex \
   >"$tmp/check-no-git.out" 2>&1; then
   bad "environment check should report missing required tools"
 else ok; fi
 assert_count "$tmp/check-no-git.out" '[MISS] git' 1 "environment check"
+assert_count "$tmp/check-no-git.out" '[MISS] claude' 0 "codex-only environment check"
 if grep -qF 'credential.helper' "$tmp/check-no-git.out"; then
   bad "environment check queried credential helper without git"
 else ok; fi
+if PATH="$tmp/empty-path" HOME="$tmp/check-home" /bin/sh "$script_dir/check-environment.sh" both \
+  >"$tmp/check-both.out" 2>&1; then
+  bad "both-mode environment check should report missing required tools"
+else ok; fi
+assert_count "$tmp/check-both.out" '[MISS] claude' 1 "both-mode environment check"
 
 echo
 total=$((pass + fail))

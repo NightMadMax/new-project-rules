@@ -112,6 +112,14 @@ try {
     if (-not (Test-Path (Join-Path $conflictScope "AGENTS.md"))) { Pass } else { Fail "scope conflict created AGENTS.md" }
     if ((Get-Content -Raw (Join-Path $project "INDEX.md")) -ceq $indexBefore) { Pass } else { Fail "scope conflict changed INDEX.md" }
 
+    $escapedScope = Join-Path $project "src/../../escaped-scope"
+    $escapedTarget = Join-Path $Tmp "escaped-scope"
+    $result = Invoke-ScriptChecked { & $AddScope -Directory $escapedScope -Rule "Must not be created." }
+    if (-not $result.Success -and $result.Output.Contains("must not contain '..'")) { Pass }
+    else { Fail "scope traversal was not rejected before creation" }
+    if (-not (Test-Path -LiteralPath $escapedTarget)) { Pass }
+    else { Fail "scope traversal created a directory outside the project" }
+
     Write-Host "Environment check without Git..."
     $emptyPath = Join-Path $Tmp "empty-path"
     New-Item -ItemType Directory -Force $emptyPath | Out-Null
@@ -120,7 +128,7 @@ try {
     $savedPath = $env:PATH
     try {
         $env:PATH = $emptyPath
-        $environmentOutput = @(& $engine -NoProfile -File $CheckEnvironment 2>&1)
+        $environmentOutput = @(& $engine -NoProfile -File $CheckEnvironment -AgentMode codex 2>&1)
         $environmentExitCode = $LASTEXITCODE
     }
     finally {
@@ -129,8 +137,20 @@ try {
     $environmentText = ($environmentOutput | ForEach-Object { $_.ToString() }) -join "`n"
     if ($environmentExitCode -eq 1) { Pass } else { Fail "environment check returned $environmentExitCode instead of 1" }
     if ((Count-Literal $environmentText "[MISS] git") -eq 1) { Pass } else { Fail "environment check did not report missing Git exactly once" }
+    if ((Count-Literal $environmentText "[MISS] claude") -eq 0) { Pass } else { Fail "codex mode incorrectly required Claude Code" }
     if ($environmentText.Contains("credential helper not checked because git is unavailable")) { Pass }
     else { Fail "environment check did not skip the Git credential helper safely" }
+
+    $savedPath = $env:PATH
+    try {
+        $env:PATH = $emptyPath
+        $bothOutput = @(& $engine -NoProfile -File $CheckEnvironment -AgentMode both 2>&1)
+    }
+    finally {
+        $env:PATH = $savedPath
+    }
+    $bothText = ($bothOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ((Count-Literal $bothText "[MISS] claude") -eq 1) { Pass } else { Fail "both mode did not require Claude Code" }
 
     Write-Host ""
     $total = $script:Pass + $script:Fail

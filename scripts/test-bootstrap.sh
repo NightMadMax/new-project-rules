@@ -161,12 +161,16 @@ assert_absent "$tmp/software" "ACTIONS.md" "software"
 assert_file "$tmp/operated" "ACTIONS.md" "operated"
 assert_file "$tmp/operated" "TOOLS.md" "operated"
 assert_file "$tmp/operated" "docs/operations/ENVIRONMENTS.md" "operated"
+assert_grep "$tmp/operated/docs/README.md" '[[docs/operations/ENVIRONMENTS|Environments]]' "operated docs index"
 assert_absent "$tmp/operated" "SECURITY.md" "operated"
 
 assert_file "$tmp/all" "docs/api/INTERFACES.md" "all"
 assert_file "$tmp/all" "docs/data/DATA_MODEL.md" "all"
 assert_file "$tmp/all" "SECURITY.md" "all"
 assert_file "$tmp/all" "docs/security/THREAT_MODEL.md" "all"
+assert_grep "$tmp/all/docs/README.md" '[[docs/api/INTERFACES|Interfaces]]' "all docs index"
+assert_grep "$tmp/all/docs/README.md" '[[docs/data/DATA_MODEL|Data model]]' "all docs index"
+assert_grep "$tmp/all/docs/README.md" '[[docs/security/THREAT_MODEL|Threat model]]' "all docs index"
 assert_absent "$tmp/all" "docs/architecture/decisions" "all (no auto ADR dir)"
 
 echo "Git identity and failure handling..."
@@ -211,7 +215,23 @@ for operation in init add commit; do
   if grep -qF "Created 'Fail $operation'" "$tmp/fail-$operation.out"; then
     bad "git $operation failure: misleading success message was printed"
   else ok; fi
+  if [ ! -e "$failed_dir" ]; then ok
+  else bad "git $operation failure: partial destination was not rolled back"; fi
 done
+
+existing_empty="$tmp/fail-existing-empty"
+mkdir -p "$existing_empty"
+if (PATH="$mock_bin:$original_path"
+  FAKE_GIT_REAL=$real_git
+  FAKE_GIT_FAIL=init
+  export PATH FAKE_GIT_REAL FAKE_GIT_FAIL
+  run_with_identity "$tmp/home-fail-existing" sh "$bootstrap" \
+    "$existing_empty" "Fail Existing" minimal
+) >"$tmp/fail-existing.out" 2>&1; then
+  bad "rollback existing empty: bootstrap should fail"
+else ok; fi
+if [ -d "$existing_empty" ] && directory_contents=$(find "$existing_empty" -mindepth 1 -print -quit) && [ -z "$directory_contents" ]; then ok
+else bad "rollback existing empty: original empty directory was not restored"; fi
 
 echo "PATH, symlink, missing-git, and destination guards..."
 path_bin="$tmp/path-bin"

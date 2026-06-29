@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-27
+last_verified: 2026-06-29
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -26,9 +26,21 @@ related:
 - Git;
 - GitHub CLI `gh`;
 - Obsidian;
-- Codex;
+- Codex, если он будет использоваться;
 - Claude Code, если он будет использоваться;
 - PowerShell для запуска `.ps1` на Windows.
+
+Выберите режим проверки: `codex`, `claude` или `both`. По умолчанию используется
+`both`; режим `codex` не требует установленного Claude Code, а `claude` не
+требует Codex.
+
+```sh
+./scripts/check-environment.sh codex
+```
+
+```powershell
+.\scripts\check-environment.ps1 -AgentMode codex
+```
 
 Проверьте доступность команд:
 

@@ -34,13 +34,16 @@ function Append-Utf8NoBom {
     [System.IO.File]::AppendAllText($Path, $Line + "`n", $Utf8NoBom)
 }
 
-if (Test-Path $Destination) {
+$DestinationExisted = Test-Path $Destination
+if ($DestinationExisted) {
     $existing = Get-ChildItem -Force $Destination | Select-Object -First 1
     if ($null -ne $existing) {
         throw "Destination is not empty: $Destination"
     }
 }
 
+$BootstrapSucceeded = $false
+try {
 New-Item -ItemType Directory -Force $Destination | Out-Null
 # Resolve to an absolute path so [System.IO.File] calls do not depend on the
 # process current directory, which can differ from the PowerShell location.
@@ -118,6 +121,20 @@ function Add-IndexEntry {
     Append-Utf8NoBom (Join-Path $Destination "INDEX.md") "| [[$LinkPath|$Path]] | $Purpose |"
 }
 
+function Add-DocsIndexSection {
+    param(
+        [string]$Heading,
+        [string]$Path,
+        [string]$Label
+    )
+    $docsIndex = Join-Path $Destination "docs/README.md"
+    Append-Utf8NoBom $docsIndex ""
+    Append-Utf8NoBom $docsIndex "## $Heading"
+    Append-Utf8NoBom $docsIndex ""
+    $linkPath = $Path -replace '\.md$', ''
+    Append-Utf8NoBom $docsIndex "- [[$linkPath|$Label]]"
+}
+
 if ($Profile -ne "minimal") {
     Install-Template "DOCS_INDEX.template.md" "docs/README.md"
     Install-Template "CHANGELOG.template.md" "CHANGELOG.md"
@@ -138,6 +155,7 @@ if ($Profile -in @("operated", "all")) {
     Add-IndexEntry "TOOLS.md" "Non-obvious project tools and helper scripts"
     Add-IndexEntry "INTEGRATIONS.md" "External systems and integrations"
     Add-IndexEntry "docs/operations/ENVIRONMENTS.md" "Environment differences without secrets"
+    Add-DocsIndexSection "Operations" "docs/operations/ENVIRONMENTS.md" "Environments"
 }
 
 if ($Profile -eq "all") {
@@ -149,6 +167,9 @@ if ($Profile -eq "all") {
     Add-IndexEntry "docs/data/DATA_MODEL.md" "Data model and migration rules"
     Add-IndexEntry "SECURITY.md" "Vulnerability reporting policy"
     Add-IndexEntry "docs/security/THREAT_MODEL.md" "Threats, mitigations, and residual risks"
+    Add-DocsIndexSection "API" "docs/api/INTERFACES.md" "Interfaces"
+    Add-DocsIndexSection "Data" "docs/data/DATA_MODEL.md" "Data model"
+    Add-DocsIndexSection "Security" "docs/security/THREAT_MODEL.md" "Threat model"
 }
 
 $git = Get-Command git -ErrorAction SilentlyContinue | Select-Object -First 1
@@ -210,4 +231,14 @@ else {
 
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."
 Write-Host "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."
+$BootstrapSucceeded = $true
+}
+finally {
+    if (-not $BootstrapSucceeded -and (Test-Path -LiteralPath $Destination)) {
+        Remove-Item -LiteralPath $Destination -Recurse -Force -ErrorAction SilentlyContinue
+        if ($DestinationExisted) {
+            New-Item -ItemType Directory -Force $Destination | Out-Null
+        }
+    }
+}
 exit 0

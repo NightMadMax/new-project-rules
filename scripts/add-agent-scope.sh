@@ -11,6 +11,9 @@ set -eu
 dir=$1
 rule=$2
 [ -n "$rule" ] || { echo "Rule must not be empty." >&2; exit 2; }
+case "/$dir/" in
+  */../*) echo "Scope directory must not contain '..' path components." >&2; exit 1 ;;
+esac
 
 probe=$dir
 while [ ! -d "$probe" ]; do
@@ -26,9 +29,15 @@ project_root=$(git -C "$probe" rev-parse --show-toplevel 2>/dev/null) || {
 index_file="$project_root/INDEX.md"
 [ -f "$index_file" ] || { echo "Project index not found: $index_file" >&2; exit 1; }
 
+probe=$(CDPATH= cd "$probe" && pwd -P)
+project_root=$(CDPATH= cd "$project_root" && pwd -P)
+case "$probe" in
+  "$project_root"|"$project_root"/*) ;;
+  *) echo "Scope directory must be below the project root: $project_root" >&2; exit 1 ;;
+esac
+
 mkdir -p "$dir"
 dir=$(CDPATH= cd "$dir" && pwd -P)
-project_root=$(CDPATH= cd "$project_root" && pwd -P)
 case "$dir" in
   "$project_root"/*) relative_dir=${dir#"$project_root"/} ;;
   *) echo "Scope directory must be below the project root: $project_root" >&2; exit 1 ;;

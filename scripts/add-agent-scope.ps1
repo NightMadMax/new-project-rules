@@ -25,7 +25,11 @@ function Append-Utf8NoBom {
     [System.IO.File]::AppendAllText($Path, $Line + "`n", $Utf8NoBom)
 }
 
-$Probe = [System.IO.Path]::GetFullPath($Directory)
+if (($Directory -split '[\\/]' | Where-Object { $_ -eq '..' }).Count -gt 0) {
+    throw "Scope directory must not contain '..' path components."
+}
+$DirectoryFullPath = [System.IO.Path]::GetFullPath($Directory)
+$Probe = $DirectoryFullPath
 while (-not (Test-Path -LiteralPath $Probe -PathType Container)) {
     $Parent = Split-Path -Parent $Probe
     if ($Parent -eq $Probe -or [string]::IsNullOrEmpty($Parent)) {
@@ -39,13 +43,6 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($ProjectRoot)) {
     throw "Directory must be inside a git project."
 }
 $ProjectRoot = [System.IO.Path]::GetFullPath($ProjectRoot.Trim())
-$IndexFile = Join-Path $ProjectRoot "INDEX.md"
-if (-not (Test-Path -LiteralPath $IndexFile -PathType Leaf)) {
-    throw "Project index not found: $IndexFile"
-}
-
-New-Item -ItemType Directory -Force $Directory | Out-Null
-$Directory = (Resolve-Path $Directory).Path
 $runningOnWindows = [System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT
 $comparison = if ($runningOnWindows) {
     [System.StringComparison]::OrdinalIgnoreCase
@@ -53,10 +50,21 @@ $comparison = if ($runningOnWindows) {
 else {
     [System.StringComparison]::Ordinal
 }
-$RelativeDirectory = (& git -C $Directory rev-parse --show-prefix).Trim().TrimEnd('/', '\')
-if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($RelativeDirectory)) {
+$ProjectPrefix = $ProjectRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
+if (-not $DirectoryFullPath.StartsWith($ProjectPrefix, $comparison)) {
     throw "Scope directory must be below the project root: $ProjectRoot"
 }
+$RelativeDirectory = $DirectoryFullPath.Substring($ProjectPrefix.Length).Replace('\', '/').TrimEnd('/')
+if ([string]::IsNullOrWhiteSpace($RelativeDirectory)) {
+    throw "Scope directory must be below the project root: $ProjectRoot"
+}
+$IndexFile = Join-Path $ProjectRoot "INDEX.md"
+if (-not (Test-Path -LiteralPath $IndexFile -PathType Leaf)) {
+    throw "Project index not found: $IndexFile"
+}
+
+New-Item -ItemType Directory -Force $DirectoryFullPath | Out-Null
+$Directory = (Resolve-Path $DirectoryFullPath).Path
 $Agents = Join-Path $Directory "AGENTS.md"
 $Claude = Join-Path $Directory "CLAUDE.md"
 

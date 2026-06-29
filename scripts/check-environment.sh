@@ -5,6 +5,12 @@
 
 missing=0
 
+agent_mode=${1:-both}
+case "$agent_mode" in
+  codex|claude|both) ;;
+  *) echo "Usage: $0 [codex|claude|both]" >&2; exit 2 ;;
+esac
+
 has() { command -v "$1" >/dev/null 2>&1; }
 
 req() {
@@ -17,11 +23,11 @@ rec() {
   else printf '  [ -- ] %s — %s\n' "$1" "$2"; fi
 }
 
-echo "Required on this machine:"
+echo "Required on this machine (agent mode: $agent_mode):"
 req git "version control"
 req gh "GitHub CLI for repos, pull requests, releases"
-req codex "OpenAI Codex agent"
-req claude "Anthropic Claude Code agent"
+case "$agent_mode" in codex|both) req codex "OpenAI Codex agent" ;; esac
+case "$agent_mode" in claude|both) req claude "Anthropic Claude Code agent" ;; esac
 
 echo
 echo "Authentication and credentials:"
@@ -42,11 +48,15 @@ if has git; then
     *) printf '  [ ok ] credential.helper=%s\n' "$helper" ;;
   esac
 fi
-if [ -f "$HOME/.claude/CLAUDE.md" ]; then
-  echo "  [ ok ] ~/.claude/CLAUDE.md present"
-else
-  echo "  [ -- ] ~/.claude/CLAUDE.md missing — run scripts/setup-global-agents.sh"
-fi
+case "$agent_mode" in
+  claude|both)
+    if [ -f "$HOME/.claude/CLAUDE.md" ]; then
+      echo "  [ ok ] ~/.claude/CLAUDE.md present"
+    else
+      echo "  [ -- ] ~/.claude/CLAUDE.md missing — run scripts/setup-global-agents.sh"
+    fi
+    ;;
+esac
 
 echo
 echo "Recommended (not required):"

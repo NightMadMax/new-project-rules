@@ -54,10 +54,27 @@ script_dir=$(resolve_script_dir)
 project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
 
-if [ -d "$destination" ] && ! directory_is_empty "$destination"; then
+destination_existed=0
+if [ -d "$destination" ]; then
+  destination_existed=1
+fi
+if [ "$destination_existed" -eq 1 ] && ! directory_is_empty "$destination"; then
   echo "Destination is not empty: $destination" >&2
   exit 1
 fi
+
+cleanup_failed_bootstrap() {
+  status=$?
+  trap - EXIT
+  if [ "$status" -ne 0 ]; then
+    rm -rf "$destination"
+    if [ "$destination_existed" -eq 1 ]; then
+      mkdir -p "$destination"
+    fi
+  fi
+  exit "$status"
+}
+trap cleanup_failed_bootstrap EXIT
 
 mkdir -p "$destination"
 printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' \
@@ -120,6 +137,15 @@ append_index() {
   printf '| [[%s|%s]] | %s |\n' "$link_path" "$1" "$2" >> "$destination/INDEX.md"
 }
 
+append_docs_index_section() {
+  heading=$1
+  path=$2
+  label=$3
+  link_path=${path%.md}
+  printf '\n## %s\n\n- [[%s|%s]]\n' "$heading" "$link_path" "$label" \
+    >> "$destination/docs/README.md"
+}
+
 if [ "$profile" != minimal ]; then
   install_template DOCS_INDEX.template.md docs/README.md
   install_template CHANGELOG.template.md CHANGELOG.md
@@ -140,6 +166,7 @@ if [ "$profile" = operated ] || [ "$profile" = all ]; then
   append_index TOOLS.md "Non-obvious project tools and helper scripts"
   append_index INTEGRATIONS.md "External systems and integrations"
   append_index docs/operations/ENVIRONMENTS.md "Environment differences without secrets"
+  append_docs_index_section Operations docs/operations/ENVIRONMENTS.md Environments
 fi
 
 if [ "$profile" = all ]; then
@@ -151,6 +178,9 @@ if [ "$profile" = all ]; then
   append_index docs/data/DATA_MODEL.md "Data model and migration rules"
   append_index SECURITY.md "Vulnerability reporting policy"
   append_index docs/security/THREAT_MODEL.md "Threats, mitigations, and residual risks"
+  append_docs_index_section API docs/api/INTERFACES.md Interfaces
+  append_docs_index_section Data docs/data/DATA_MODEL.md "Data model"
+  append_docs_index_section Security docs/security/THREAT_MODEL.md "Threat model"
 fi
 
 if command -v git >/dev/null 2>&1; then
@@ -183,3 +213,4 @@ fi
 
 echo "Created '$project_name' at $destination using profile '$profile'."
 echo "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."
+trap - EXIT
