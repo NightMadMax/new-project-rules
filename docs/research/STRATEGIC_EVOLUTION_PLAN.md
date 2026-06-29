@@ -1,6 +1,6 @@
 ---
 type: research
-status: proposed
+status: accepted
 owner: project
 last_verified: 2026-06-29
 source_of_truth: repository
@@ -43,6 +43,17 @@ related:
 
 Стратегический этап не должен ломать этот zero-surprise workflow или требовать
 миграции всех существующих проектов одним действием.
+
+## Статус реализации
+
+| Этап | Статус | Результат |
+|---|---|---|
+| A. ADR и contract skeleton | completed | `STANDARD_VERSION=1`, TSV fixtures и parity tests |
+| B. Manifest-driven bootstrap | pending | fixtures ещё не управляют adapters |
+| C. Validator и doctor | pending | существует только текущий environment check |
+| D. Global sync | pending | managed-block model ещё не реализована |
+| E. Migration engine | pending | migration plan/apply ещё не реализованы |
+| F. Supply-chain hardening | pending | выполняется после core contract/migrations |
 
 ## Целевая архитектура
 

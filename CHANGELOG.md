@@ -4,6 +4,11 @@
 
 ### Добавлено
 
+- `STANDARD_VERSION=1`, TSV contracts профилей/policy и parity-тесты, которые
+  фиксируют текущие outputs до manifest-driven refactor.
+- [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]]
+  о versioned contract, native bootstrap adapters и hybrid Python runtime для
+  будущих validator/migrations.
 - [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план]] перехода к
   versioned contract, validator, global sync и безопасным migrations.
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Политика переноса знаний]] и skill

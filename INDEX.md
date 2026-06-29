@@ -8,6 +8,9 @@
 | [[CLAUDE|CLAUDE.md]] | Imports [[AGENTS]] for Claude Code |
 | [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций агента |
 | [[PROJECT|PROJECT.md]] | Цели, scope, ограничения и критерии успеха |
+| `STANDARD_VERSION` | Версия схемы project standard |
+| `config/profiles.tsv` | Канонический состав bootstrap-профилей и index relationships |
+| `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
 | `requirements-dev.txt` | Python-зависимости для сопровождения Agent Skills |
@@ -17,6 +20,7 @@
 | [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY.md]] | Правила promotion знаний из проектов в общий стандарт |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
+| [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]] | Решение о TSV contract и hybrid runtime |
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |
 | [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|MUST_HAVE_PROJECT_TOOLING_2026.md]] | Исследование обязательной базы инструментов в 2026 году |
 | [[docs/research/STRATEGIC_EVOLUTION_PLAN|STRATEGIC_EVOLUTION_PLAN.md]] | Proposed-план contract, validator, sync и migrations |
@@ -37,6 +41,8 @@
 | `scripts/check-environment.ps1` | Проверка обязательной базы инструментов (Windows) |
 | `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |
+| `scripts/test-contract.sh` | Parity contract и bootstrap outputs (macOS/Linux) |
+| `scripts/test-contract.ps1` | Parity contract и bootstrap outputs (Windows) |
 | `scripts/test-agent-setup.sh` | Smoke-тест global/scoped agent setup (macOS/Linux) |
 | `scripts/test-agent-setup.ps1` | Smoke-тест global/scoped agent setup (Windows) |
 | `scripts/test-skills.sh` | Проверка универсальных skills и Claude-мостов (macOS/Linux) |

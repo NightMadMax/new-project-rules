@@ -24,6 +24,8 @@ jobs:
           done
       - name: Bootstrap regression test
         run: sh scripts/test-bootstrap.sh
+      - name: Project contract parity test
+        run: sh scripts/test-contract.sh
       - name: Agent setup smoke test
         run: sh scripts/test-agent-setup.sh
       - name: Agent skill contract test
@@ -42,6 +44,9 @@ jobs:
       - name: Bootstrap regression test with Windows PowerShell 5.1
         shell: powershell
         run: .\scripts\test-bootstrap.ps1
+      - name: Project contract parity test with Windows PowerShell 5.1
+        shell: powershell
+        run: .\scripts\test-contract.ps1
       - name: Agent setup smoke test with Windows PowerShell 5.1
         shell: powershell
         run: .\scripts\test-agent-setup.ps1
@@ -51,6 +56,9 @@ jobs:
       - name: Bootstrap regression test with PowerShell 7
         shell: pwsh
         run: .\scripts\test-bootstrap.ps1
+      - name: Project contract parity test with PowerShell 7
+        shell: pwsh
+        run: .\scripts\test-contract.ps1
       - name: Agent setup smoke test with PowerShell 7
         shell: pwsh
         run: .\scripts\test-agent-setup.ps1

@@ -21,6 +21,7 @@ related:
 
 - [[docs/architecture/ARCHITECTURE|Архитектура набора правил]]
 - [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001: двухуровневая документация]]
+- [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002: версионируемый контракт проекта]]
 
 ## Исследования
 

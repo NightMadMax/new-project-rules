@@ -1,0 +1,131 @@
+#!/bin/sh
+set -u
+
+script_dir=$(CDPATH= cd -P "$(dirname "$0")" && pwd) || exit 1
+root=$(dirname "$script_dir")
+bootstrap="$script_dir/bootstrap-new-project.sh"
+manifest="$root/config/profiles.tsv"
+policy_contract="$root/config/policy-contract.tsv"
+templates="$root/templates/new-project"
+tmp=$(mktemp -d 2>/dev/null || mktemp -d -t contracttest) || exit 1
+trap 'rm -rf "$tmp"' EXIT INT TERM
+
+pass=0
+fail=0
+ok() { pass=$((pass + 1)); }
+bad() { fail=$((fail + 1)); printf '  FAIL: %s\n' "$1"; }
+
+rank() {
+  case "$1" in
+    minimal) echo 0 ;;
+    software) echo 1 ;;
+    operated) echo 2 ;;
+    all) echo 3 ;;
+    *) return 1 ;;
+  esac
+}
+
+includes_profile() {
+  minimum_rank=$(rank "$1") || return 1
+  profile_rank=$(rank "$2") || return 1
+  [ "$minimum_rank" -le "$profile_rank" ]
+}
+
+echo "Contract structure..."
+version=$(tr -d '\r\n' < "$root/STANDARD_VERSION")
+case "$version" in
+  ''|*[!0-9]*|0) bad "STANDARD_VERSION must be a positive integer" ;;
+  *) ok ;;
+esac
+
+header=$(sed -n '1p' "$manifest")
+if [ "$header" = "minimum_profile	source	destination	root_index	docs_index" ]; then ok
+else bad "unexpected profiles.tsv header"; fi
+
+destinations="$tmp/destinations"
+: > "$destinations"
+first=1
+tab=$(printf '\t')
+while IFS="$tab" read -r minimum source destination root_index docs_index; do
+  if [ "$first" -eq 1 ]; then first=0; continue; fi
+  rank "$minimum" >/dev/null 2>&1 || bad "unknown minimum_profile '$minimum'"
+  case "/$destination/" in
+    /*/../*|//* ) bad "unsafe destination '$destination'" ;;
+  esac
+  if grep -Fxq "$destination" "$destinations"; then
+    bad "duplicate destination '$destination'"
+  else
+    printf '%s\n' "$destination" >> "$destinations"
+  fi
+  if [ "$source" != @generated ] && [ ! -f "$templates/$source" ]; then
+    bad "missing template '$source'"
+  fi
+  case "$root_index:$docs_index" in
+    yes:yes|yes:no|no:yes|no:no) ;;
+    *) bad "invalid index relationship for '$destination'" ;;
+  esac
+done < "$manifest"
+
+first=1
+while IFS="$tab" read -r file literal; do
+  if [ "$first" -eq 1 ]; then first=0; continue; fi
+  if [ -f "$root/$file" ] && grep -Fq "$literal" "$root/$file"; then ok
+  else bad "policy literal '$literal' missing from '$file'"; fi
+done < "$policy_contract"
+
+echo "Bootstrap parity across profiles..."
+for profile in minimal software operated all; do
+  destination="$tmp/$profile"
+  home="$tmp/home-$profile"
+  mkdir -p "$home"
+  if HOME="$home" XDG_CONFIG_HOME="$home/.config" GIT_CONFIG_NOSYSTEM=1 \
+    GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME='Contract Test' \
+    GIT_AUTHOR_EMAIL='contract@example.invalid' GIT_COMMITTER_NAME='Contract Test' \
+    GIT_COMMITTER_EMAIL='contract@example.invalid' \
+    sh "$bootstrap" "$destination" "Contract $profile" "$profile" >/dev/null 2>&1; then
+    :
+  else
+    bad "$profile: bootstrap failed"
+    continue
+  fi
+
+  expected="$tmp/expected-$profile"
+  actual="$tmp/actual-$profile"
+  : > "$expected"
+  first=1
+  while IFS="$tab" read -r minimum source path root_index docs_index; do
+    if [ "$first" -eq 1 ]; then first=0; continue; fi
+    if includes_profile "$minimum" "$profile"; then
+      printf '%s\n' "$path" >> "$expected"
+    fi
+  done < "$manifest"
+  sort "$expected" -o "$expected"
+  find "$destination" -type f ! -path "$destination/.git/*" -print \
+    | sed "s|^$destination/||" | sort > "$actual"
+  if diff -u "$expected" "$actual" >/dev/null; then ok
+  else bad "$profile: generated files differ from config/profiles.tsv"; fi
+
+  first=1
+  while IFS="$tab" read -r minimum source path root_index docs_index; do
+    if [ "$first" -eq 1 ]; then first=0; continue; fi
+    includes_profile "$minimum" "$profile" || continue
+    link_path=${path%.md}
+    if [ "$root_index" = yes ]; then
+      if grep -Fq "[[$link_path" "$destination/INDEX.md"; then ok
+      else bad "$profile: root INDEX.md misses '$link_path'"; fi
+    fi
+    if [ "$docs_index" = yes ]; then
+      if grep -Fq "[[$link_path" "$destination/docs/README.md"; then ok
+      else bad "$profile: docs/README.md misses '$link_path'"; fi
+    fi
+  done < "$manifest"
+done
+
+echo
+total=$((pass + fail))
+if [ "$fail" -eq 0 ]; then
+  echo "All $total contract checks passed."
+  exit 0
+fi
+echo "$fail of $total contract checks FAILED."
+exit 1

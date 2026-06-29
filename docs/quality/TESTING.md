@@ -29,6 +29,7 @@ GNU-специфичных флагов в shell-скриптах.
 ```sh
 for file in scripts/*.sh; do sh -n "$file"; done
 sh scripts/test-bootstrap.sh
+sh scripts/test-contract.sh
 sh scripts/test-agent-setup.sh
 sh scripts/test-skills.sh
 ```
@@ -36,6 +37,7 @@ sh scripts/test-skills.sh
 ```powershell
 .\scripts\test-powershell-syntax.ps1
 .\scripts\test-bootstrap.ps1
+.\scripts\test-contract.ps1
 .\scripts\test-agent-setup.ps1
 .\scripts\test-skills.ps1
 ```
@@ -47,6 +49,8 @@ Parser-check обязан возвращать ненулевой код, есл
 ## Проверяемые сценарии
 
 - создание всех bootstrap-профилей и точный состав файлов;
+- parity фактических shell/PowerShell outputs с `config/profiles.tsv`;
+- валидность `STANDARD_VERSION` и обязательных policy literals;
 - полнота `docs/README.md` для расширенных профилей;
 - валидность Agent Skills, совпадение Claude-мостов и канонических metadata;
 - наличие обязательных Knowledge Promotion и Defect Tracking в переносимых

@@ -2,7 +2,7 @@
 type: project
 status: active
 owner: mx
-last_verified: 2026-06-27
+last_verified: 2026-06-29
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -26,6 +26,7 @@ related:
 - bootstrap-скрипты для macOS/Linux и Windows;
 - универсальные Agent Skills для настройки компьютера и создания проекта;
 - правила переносимости, секретов и источников истины.
+- версионируемый контракт профилей и policy invariants.
 
 ## Non-goals
 
