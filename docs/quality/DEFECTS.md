@@ -35,9 +35,9 @@ related:
 | 9 | Scoped setup создаёт внешний каталог до проверки | 2026-06-29 | 2026-06-29 | `114788c` | Scope path окончательно проверялся только после `mkdir` / `New-Item`. |
 | 10 | Bootstrap не откатывает частично созданный проект | 2026-06-29 | 2026-06-29 | `114788c` | Генерация выполнялась прямо в destination без failure cleanup. |
 | 13 | Shell no-git fixture не предоставляет grep | 2026-06-29 | 2026-06-29 | `9a6b445` | После manifest-driven refactor bootstrap использует standard `grep` для index relationships, но изолированный PATH теста содержал старый неполный список команд. |
-| 14 | Validator применяет document schema к Agent Skills | 2026-06-29 | 2026-06-29 | pending | Frontmatter validation не различала document schema `type/status` и Agent Skill schema `name/description`. |
-| 15 | В корне rules project существует пустой nested vault | 2026-06-29 | 2026-06-29 | pending | Пустой локальный `.obsidian` не отслеживался Git и оставался невидимым прежним repository checks. |
-| 16 | Shell wrapper выбирает нерабочий python3 App Alias | 2026-06-29 | 2026-06-29 | pending | Runtime выбирался по наличию команды, а не по успешному probe Python 3.9+. |
+| 14 | Validator применяет document schema к Agent Skills | 2026-06-29 | 2026-06-29 | `1f60012` | Frontmatter validation не различала document schema `type/status` и Agent Skill schema `name/description`. |
+| 15 | В корне rules project существует пустой nested vault | 2026-06-29 | 2026-06-29 | `1f60012` | Пустой локальный `.obsidian` не отслеживался Git и оставался невидимым прежним repository checks. |
+| 16 | Shell wrapper выбирает нерабочий python3 App Alias | 2026-06-29 | 2026-06-29 | `1f60012` | Runtime выбирался по наличию команды, а не по успешному probe Python 3.9+. |
 
 ## Won't Fix
 
