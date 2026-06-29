@@ -19,7 +19,7 @@ related:
 | Ubuntu, `sh` | GitHub Actions |
 | Windows PowerShell 5.1 | GitHub Actions |
 | PowerShell 7 | Локально и в GitHub Actions |
-| Python 3.9+ stdlib | Validator unit/integration tests на Windows и Ubuntu |
+| Python 3.9+ stdlib | Validator и global sync unit/integration tests на Windows и Ubuntu |
 
 Постоянный macOS runner не используется, поскольку репозиторий приватный. Риск
 различий BSD/GNU закрывается локальным прогоном на macOS и отсутствием
@@ -34,7 +34,9 @@ sh scripts/test-contract.sh
 sh scripts/test-agent-setup.sh
 sh scripts/test-skills.sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
 python3 scripts/validate-project.py --root . --kind rules --report-only
+python3 scripts/sync_global_agents.py --check --report-only
 ```
 
 ```powershell
@@ -45,7 +47,9 @@ python3 scripts/validate-project.py --root . --kind rules --report-only
 .\scripts\test-skills.ps1
 $env:PYTHONDONTWRITEBYTECODE = "1"
 python .\scripts\test-validator.py
+python .\scripts\test-agent-sync.py
 python .\scripts\validate-project.py --root . --kind rules --report-only
+python .\scripts\sync_global_agents.py --check --report-only
 ```
 
 PowerShell-проверки следует выполнять в Windows PowerShell 5.1 и PowerShell 7.
@@ -78,5 +82,9 @@ Parser-check обязан возвращать ненулевой код, есл
 - стабильные validator exit codes `0` / `1` / `2` и `report-only`;
 - doctor fallback без Python, Git/Obsidian diagnostics и secret-safe global
   policy drift detection;
+- global sync states `missing`, `legacy_exact`, `unmanaged_conflict`,
+  `managed_match`, `managed_drift`, `malformed` и `unsupported_schema`;
+- secret-safe hash/range diff, сохранение текста вне managed block и отсутствие
+  mutation во всех read-only режимах;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;
 - UTF-8 без BOM, отсутствие шаблонных плейсхолдеров и чистое git-дерево.

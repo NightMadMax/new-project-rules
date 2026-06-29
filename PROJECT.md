@@ -28,6 +28,7 @@ related:
 - правила переносимости, секретов и источников истины.
 - версионируемый контракт профилей и policy invariants.
 - read-only validator и doctor для project/environment diagnostics.
+- read-only managed-block проверка глобальной policy без изменения active file.
 
 ## Non-goals
 

@@ -29,11 +29,15 @@ jobs:
       - name: Validator regression test
         env:
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python3 scripts/test-validator.py
+        run: |
+          python3 scripts/test-validator.py
+          python3 scripts/test-agent-sync.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python3 scripts/validate-project.py --root . --kind rules --report-only
+        run: |
+          python3 scripts/validate-project.py --root . --kind rules --report-only
+          python3 scripts/sync_global_agents.py --check --report-only
       - name: Agent setup smoke test
         run: sh scripts/test-agent-setup.sh
       - name: Agent skill contract test
@@ -54,11 +58,13 @@ jobs:
         run: |
           $env:PYTHONDONTWRITEBYTECODE = "1"
           python .\scripts\test-validator.py
+          python .\scripts\test-agent-sync.py
       - name: Validator report on Windows
         shell: powershell
         run: |
           $env:PYTHONDONTWRITEBYTECODE = "1"
           python .\scripts\validate-project.py --root . --kind rules --report-only
+          python .\scripts\sync_global_agents.py --check --report-only
       - name: Bootstrap regression test with Windows PowerShell 5.1
         shell: powershell
         run: .\scripts\test-bootstrap.ps1

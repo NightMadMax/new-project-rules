@@ -14,6 +14,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
+import sync_global_agents as agent_sync
+
 
 MIN_PYTHON = (3, 9)
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
@@ -337,22 +339,40 @@ def check_global_rules(contract_root: Path, home: Optional[Path] = None) -> list
     home = home or Path.home()
     portable = contract_root / "GLOBAL_AGENT_INSTRUCTIONS.md"
     active = home / ".codex" / "AGENTS.md"
-    portable_text = read_text(portable)
-    active_text = read_text(active)
-    if active_text is None:
-        findings.append(Finding(
-            "WARN", "doctor.global_missing", "Active ~/.codex/AGENTS.md is missing.", str(active),
-            "Run setup-global-agents and review the portable policy before applying it.",
-        ))
-    elif portable_text is None:
-        findings.append(Finding("WARN", "doctor.portable_policy_missing", "Portable global policy is unavailable.", str(portable)))
-    elif active_text != portable_text:
-        findings.append(Finding(
-            "WARN", "doctor.global_drift", "Active global instructions differ from the portable policy.", str(active),
-            "Compare both files manually; automated managed-block sync belongs to Stage D.",
-        ))
-    else:
-        findings.append(Finding("INFO", "doctor.global_match", "Active global instructions match the portable policy.", str(active)))
+    try:
+        state = agent_sync.inspect_sync_state(portable, active, agent_sync.read_schema(contract_root))
+    except agent_sync.SyncConfigError as exc:
+        findings.append(Finding("ERROR", "doctor.sync_config", f"Cannot inspect global policy sync: {exc}"))
+        state = None
+    if state is not None:
+        if state.status == "managed_match":
+            findings.append(Finding("INFO", "doctor.global_match", "Managed global policy matches the portable source.", str(active)))
+        elif state.status == "legacy_exact":
+            findings.append(Finding(
+                "WARN", "doctor.global_legacy", "Global policy matches content but has no managed ownership markers.",
+                str(active), "Run sync-global-agents --diff to review the marker-only migration plan.",
+            ))
+        elif state.status == "missing":
+            findings.append(Finding(
+                "WARN", "doctor.global_missing", "Active ~/.codex/AGENTS.md is missing.", str(active),
+                "Run setup-global-agents and review the portable policy before applying it.",
+            ))
+        elif state.status == "managed_drift":
+            findings.append(Finding(
+                "WARN", "doctor.global_drift", "Managed global policy differs from the portable source.", str(active),
+                "Run sync-global-agents --diff for a secret-safe structural report.",
+            ))
+        elif state.status == "unmanaged_conflict":
+            findings.append(Finding(
+                "WARN", "doctor.global_unmanaged_conflict",
+                "Unmanaged active policy differs; ownership cannot be inferred safely.", str(active),
+                "Review the secret-safe sync diff and choose ownership before any migration.",
+            ))
+        else:
+            findings.append(Finding(
+                "ERROR", "doctor.global_markers", f"Global managed policy state is {state.status}: {state.detail}",
+                str(active), "Repair markers through a reviewed migration; do not edit around ambiguous boundaries.",
+            ))
 
     claude = home / ".claude" / "CLAUDE.md"
     if claude.exists():

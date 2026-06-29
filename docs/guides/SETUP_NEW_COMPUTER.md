@@ -117,6 +117,24 @@ Windows PowerShell:
 Setup можно запускать повторно. Посторонние файлы и symlink он не
 перезаписывает, а завершает работу с описанием конфликта.
 
+После setup проверьте read-only состояние managed policy и secret-safe план:
+
+```sh
+./scripts/sync-global-agents.sh --check
+./scripts/sync-global-agents.sh --diff --report-only
+```
+
+```powershell
+.\scripts\sync-global-agents.ps1 -Check
+.\scripts\sync-global-agents.ps1 -Diff -ReportOnly
+```
+
+`legacy_exact` означает, что active file уже совпадает с portable policy, но
+ещё не содержит managed markers. Это корректное переходное состояние. Текущий
+инструмент ничего не записывает; markers нельзя добавлять вручную — их установка
+будет отдельной подтверждаемой миграцией. Полная модель состояний описана в
+[[docs/guides/SYNC_GLOBAL_AGENTS|руководстве по global policy sync]].
+
 ## 6. Проверить загрузку инструкций
 
 Для Codex запустите из любого проекта:

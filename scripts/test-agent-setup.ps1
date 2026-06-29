@@ -8,6 +8,7 @@ $AddScope = Join-Path $ScriptDir "add-agent-scope.ps1"
 $CheckEnvironment = Join-Path $ScriptDir "check-environment.ps1"
 $ValidateProject = Join-Path $ScriptDir "validate-project.ps1"
 $ProjectDoctor = Join-Path $ScriptDir "project-doctor.ps1"
+$SyncAgents = Join-Path $ScriptDir "sync-global-agents.ps1"
 $RulesRoot = Split-Path -Parent $ScriptDir
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("agenttest-" + [System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 New-Item -ItemType Directory -Force $Tmp | Out-Null
@@ -175,6 +176,22 @@ try {
     if ($doctorExit -eq 0) { Pass } else { Fail "report-only doctor returned $doctorExit" }
     if ($doctorText.Contains("validator.runtime") -and $doctorText.Contains("structural validation was skipped")) { Pass }
     else { Fail "doctor did not report skipped validation without Python" }
+
+    Write-Host "Read-only global policy sync wrapper..."
+    $syncHome = Join-Path $Tmp "sync-home"
+    $syncCodex = Join-Path $syncHome ".codex"
+    New-Item -ItemType Directory -Force $syncCodex | Out-Null
+    Copy-Item (Join-Path $RulesRoot "GLOBAL_AGENT_INSTRUCTIONS.md") (Join-Path $syncCodex "AGENTS.md")
+    $syncOutput = @(& $engine -NoProfile -File $SyncAgents -Check -HomeDirectory $syncHome 2>&1)
+    $syncExit = $LASTEXITCODE
+    $syncText = ($syncOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ($syncExit -eq 1 -and $syncText.Contains("status=legacy_exact")) { Pass }
+    else { Fail "sync check did not report legacy_exact: $syncText" }
+    $diffOutput = @(& $engine -NoProfile -File $SyncAgents -Diff -HomeDirectory $syncHome -ReportOnly 2>&1)
+    $diffExit = $LASTEXITCODE
+    $diffText = ($diffOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ($diffExit -eq 0 -and $diffText.Contains("Plan: wrap") -and $diffText.Contains("sha256=")) { Pass }
+    else { Fail "sync diff wrapper failed: $diffText" }
 
     Write-Host ""
     $total = $script:Pass + $script:Fail

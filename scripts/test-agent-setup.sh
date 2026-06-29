@@ -31,6 +31,7 @@ setup="$script_dir/setup-global-agents.sh"
 scope="$script_dir/add-agent-scope.sh"
 validator="$script_dir/validate-project.sh"
 doctor="$script_dir/project-doctor.sh"
+sync_agents="$script_dir/sync-global-agents.sh"
 real_git=$(command -v git) || {
   echo "git is required to run agent setup smoke tests." >&2
   exit 1
@@ -183,6 +184,20 @@ if sh "$doctor" --root "$rules_root" --agent-mode codex --report-only \
 else bad "report-only doctor failed"; fi
 if grep -qF 'Project diagnostics:' "$tmp/doctor.out"; then ok
 else bad "doctor project diagnostics are missing"; fi
+
+echo "Read-only global policy sync wrapper..."
+sync_home="$tmp/sync-home"
+mkdir -p "$sync_home/.codex"
+cp "$rules_root/GLOBAL_AGENT_INSTRUCTIONS.md" "$sync_home/.codex/AGENTS.md"
+if sh "$sync_agents" --check --home "$sync_home" >"$tmp/sync-check.out" 2>&1; then
+  bad "legacy sync check should return drift status"
+else ok; fi
+if grep -qF 'status=legacy_exact' "$tmp/sync-check.out"; then ok
+else bad "sync check did not report legacy_exact"; fi
+if sh "$sync_agents" --diff --home "$sync_home" --report-only >"$tmp/sync-diff.out" 2>&1; then ok
+else bad "sync diff report-only failed"; fi
+if grep -qF 'Plan: wrap' "$tmp/sync-diff.out" && grep -qF 'sha256=' "$tmp/sync-diff.out"; then ok
+else bad "sync diff summary is missing"; fi
 
 echo
 total=$((pass + fail))

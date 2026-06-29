@@ -4,6 +4,8 @@
 
 - Minimum supported runtime for validator and future migrations: Python `3.9`.
 - Validator command: `python scripts/validate-project.py --root . --kind rules`.
+- Global policy inspection: `python scripts/sync_global_agents.py --check` или
+  `python scripts/sync_global_agents.py --diff --report-only`.
 - Validator runtime uses only the Python standard library.
 - Install: `python -m pip install -r requirements-dev.txt`.
 - `PyYAML 6.0.3`: required by the official `skill-creator` metadata generator

@@ -4,6 +4,10 @@
 
 ### Добавлено
 
+- Read-only managed-block parser и native wrappers для secret-safe
+  `sync-global-agents --check/--diff` без изменения active global policy.
+- [[docs/guides/SYNC_GLOBAL_AGENTS|Руководство по global policy sync]] со
+  state model, marker grammar и стабильными exit codes.
 - Read-only Python 3.9+ validator, native wrappers и project doctor для проверки
   profile contract, indexes, wikilinks, frontmatter, memory, paths, secrets,
   Git state и Obsidian placement.

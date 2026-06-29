@@ -16,6 +16,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 VALIDATOR_PATH = ROOT / "scripts" / "validate-project.py"
+sys.path.insert(0, str(ROOT / "scripts"))
 SPEC = importlib.util.spec_from_file_location("project_validator", VALIDATOR_PATH)
 assert SPEC and SPEC.loader
 validator = importlib.util.module_from_spec(SPEC)
@@ -156,7 +157,7 @@ class ValidatorTests(unittest.TestCase):
         active.parent.mkdir(parents=True)
         active.write_text("local divergent rule\n", encoding="utf-8")
         findings = validator.check_global_rules(ROOT, home)
-        self.assertIn("doctor.global_drift", finding_codes(findings))
+        self.assertIn("doctor.global_unmanaged_conflict", finding_codes(findings))
         self.assertNotIn("local divergent rule", "\n".join(item.message for item in findings))
 
     def test_cli_exit_codes_and_report_only(self):
