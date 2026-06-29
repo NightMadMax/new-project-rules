@@ -32,6 +32,7 @@ scope="$script_dir/add-agent-scope.sh"
 validator="$script_dir/validate-project.sh"
 doctor="$script_dir/project-doctor.sh"
 sync_agents="$script_dir/sync-global-agents.sh"
+plan_migration="$script_dir/plan-migration.sh"
 real_git=$(command -v git) || {
   echo "git is required to run agent setup smoke tests." >&2
   exit 1
@@ -198,6 +199,13 @@ if sh "$sync_agents" --diff --home "$sync_home" --report-only >"$tmp/sync-diff.o
 else bad "sync diff report-only failed"; fi
 if grep -qF 'Plan: wrap' "$tmp/sync-diff.out" && grep -qF 'sha256=' "$tmp/sync-diff.out"; then ok
 else bad "sync diff summary is missing"; fi
+
+echo "Read-only migration planner wrapper..."
+if sh "$plan_migration" --plan --target global --home "$sync_home" --report-only >"$tmp/migration-plan.out" 2>&1; then ok
+else bad "migration plan report-only failed"; fi
+if grep -qF 'migration=0002-adopt-global-managed-block' "$tmp/migration-plan.out" &&
+   grep -qF 'No files were changed.' "$tmp/migration-plan.out"; then ok
+else bad "migration plan summary is missing"; fi
 
 echo
 total=$((pass + fail))

@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
 import sync_global_agents as agent_sync
+import project_metadata
+import plan_migration as migration_planner
 
 
 MIN_PYTHON = (3, 9)
@@ -155,7 +157,12 @@ def infer_profile(root: Path, rows: Sequence[Artifact]) -> Optional[str]:
     return matches[0] if len(matches) == 1 else None
 
 
-def load_metadata(root: Path, standard_version: int) -> tuple[Optional[dict], list[Finding]]:
+def load_metadata(
+    root: Path,
+    standard_version: int,
+    source: str,
+    project_migrations: Sequence[str],
+) -> tuple[Optional[dict], list[Finding]]:
     path = root / ".project-standard.json"
     if not path.exists():
         return None, [Finding(
@@ -169,20 +176,11 @@ def load_metadata(root: Path, standard_version: int) -> tuple[Optional[dict], li
         data = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         return None, [Finding("ERROR", "metadata.invalid", f"Invalid project metadata: {exc}", relative(path, root))]
-    findings: list[Finding] = []
-    version = data.get("schema_version")
-    profile = data.get("profile")
-    if not isinstance(version, int) or version < 1:
-        findings.append(Finding("ERROR", "metadata.schema", "schema_version must be a positive integer.", relative(path, root)))
-    elif version > standard_version:
-        findings.append(Finding(
-            "ERROR", "metadata.future_schema",
-            f"Project schema {version} is newer than supported schema {standard_version}.",
-            relative(path, root), "Update new-project-rules before validating this project.",
-        ))
-    if profile not in PROFILE_RANKS:
-        findings.append(Finding("ERROR", "metadata.profile", f"Unknown metadata profile: {profile!r}.", relative(path, root)))
-    return data, findings
+    findings = [
+        Finding("ERROR", "metadata.schema", issue, relative(path, root))
+        for issue in project_metadata.validate_metadata(data, standard_version, source, project_migrations)
+    ]
+    return data if isinstance(data, dict) else None, findings
 
 
 def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> list[Finding]:
@@ -442,6 +440,14 @@ def validate(
         raise ContractError(f"Validation root is not a directory: {root}")
     version = load_standard_version(contract_root)
     rows = load_artifacts(contract_root)
+    try:
+        migrations = migration_planner.read_migrations(contract_root, version)
+        source = (contract_root / "config" / "standard-source.txt").read_text(encoding="utf-8").strip()
+    except (migration_planner.MigrationConfigError, OSError) as exc:
+        raise ContractError(f"Invalid migration contract: {exc}") from exc
+    if not project_metadata.SOURCE_RE.fullmatch(source):
+        raise ContractError("config/standard-source.txt must contain owner/repository")
+    project_migrations = [row.migration_id for row in migrations if row.target == "project"]
     if kind == "auto":
         kind = "rules" if (root / "STANDARD_VERSION").is_file() and (root / "config" / "profiles.tsv").is_file() else "project"
 
@@ -449,12 +455,15 @@ def validate(
     findings: list[Finding] = []
     profile: Optional[str] = None
     if kind == "rules":
-        for required in ("README.md", "AGENTS.md", "INDEX.md", "PROJECT.md", "STANDARD_VERSION", "config/profiles.tsv"):
+        for required in (
+            "README.md", "AGENTS.md", "INDEX.md", "PROJECT.md", "STANDARD_VERSION",
+            "config/profiles.tsv", "config/migrations.tsv", "config/standard-source.txt",
+        ):
             if not (root / required).is_file():
                 findings.append(Finding("ERROR", "rules.required", "Required rules-repository artifact is missing.", required))
         findings.extend(check_policy_contract(root))
     else:
-        metadata, metadata_findings = load_metadata(root, version)
+        metadata, metadata_findings = load_metadata(root, version, source, project_migrations)
         findings.extend(metadata_findings)
         metadata_profile = metadata.get("profile") if metadata else None
         if requested_profile != "auto":

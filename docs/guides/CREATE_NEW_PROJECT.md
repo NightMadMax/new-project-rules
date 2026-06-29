@@ -125,4 +125,19 @@ git remote -v
 - `INDEX.md` содержит wikilinks на Markdown-заметки;
 - папка проекта видна внутри общего Obsidian vault и не содержит `.obsidian`.
 
+Когда документы заполнены и Git tree чистый, постройте reviewable metadata plan:
+
+```sh
+./scripts/plan-migration.sh --plan --target project \
+  --root "/path/to/New Project" --profile software --report-only
+```
+
+```powershell
+.\scripts\plan-migration.ps1 -Plan -Target project `
+  -Root "C:\Projects\New Project" -Profile software -ReportOnly
+```
+
+Planner пока не создаёт `.project-standard.json`; подробности и preconditions:
+[[docs/guides/PLAN_MIGRATIONS|планирование миграций]].
+
 Следующий сценарий: [[docs/guides/SETUP_NEW_COMPUTER|подключение нового компьютера]].

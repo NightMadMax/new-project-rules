@@ -11,6 +11,8 @@
 | `STANDARD_VERSION` | Версия схемы project standard |
 | `config/profiles.tsv` | Канонический состав bootstrap-профилей и index relationships |
 | `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
+| `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
+| `config/standard-source.txt` | Канонический owner/repository без credentials и локальных путей |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
 | `requirements-dev.txt` | Python-зависимости для сопровождения Agent Skills |
@@ -20,7 +22,9 @@
 | [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY.md]] | Правила promotion знаний из проектов в общий стандарт |
 | [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE.md]] | Read-only validator, doctor и exit codes |
 | [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS.md]] | Managed-block states, secret-safe check и diff глобальных правил |
+| [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS.md]] | Read-only project/global migration plans и preconditions |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
+| [[docs/architecture/PROJECT_STANDARD_SCHEMA|PROJECT_STANDARD_SCHEMA.md]] | Schema `.project-standard.json` и provenance invariants |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]] | Решение о TSV contract и hybrid runtime |
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |
@@ -55,9 +59,15 @@
 | `scripts/sync-global-agents.sh` | Global policy sync inspection для macOS/Linux |
 | `scripts/sync-global-agents.ps1` | Global policy sync inspection для Windows |
 | `scripts/test-agent-sync.py` | Regression tests managed-block states и отсутствия mutation |
+| `scripts/project_metadata.py` | Общая schema validation и rendering project metadata |
+| `scripts/plan_migration.py` | Read-only migration planner для project/global targets |
+| `scripts/plan-migration.sh` | Migration planner wrapper для macOS/Linux |
+| `scripts/plan-migration.ps1` | Migration planner wrapper для Windows |
+| `scripts/test-migration-planner.py` | Regression tests manifests, blockers, previews и no-mutation |
 | `scripts/test-agent-setup.sh` | Smoke-тест global/scoped agent setup (macOS/Linux) |
 | `scripts/test-agent-setup.ps1` | Smoke-тест global/scoped agent setup (Windows) |
 | `scripts/test-skills.sh` | Проверка универсальных skills и Claude-мостов (macOS/Linux) |
 | `scripts/test-skills.ps1` | Проверка универсальных skills и Claude-мостов (Windows) |
 | `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
+| `scripts/test-powershell-environment.ps1` | Regression test изоляции HOME/Git environment между PowerShell suites |
 | `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |

@@ -29,6 +29,7 @@ related:
 - версионируемый контракт профилей и policy invariants.
 - read-only validator и doctor для project/environment diagnostics.
 - read-only managed-block проверка глобальной policy без изменения active file.
+- plan-only migration engine для legacy metadata и global marker adoption.
 
 ## Non-goals
 

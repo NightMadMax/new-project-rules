@@ -9,6 +9,7 @@ $CheckEnvironment = Join-Path $ScriptDir "check-environment.ps1"
 $ValidateProject = Join-Path $ScriptDir "validate-project.ps1"
 $ProjectDoctor = Join-Path $ScriptDir "project-doctor.ps1"
 $SyncAgents = Join-Path $ScriptDir "sync-global-agents.ps1"
+$PlanMigration = Join-Path $ScriptDir "plan-migration.ps1"
 $RulesRoot = Split-Path -Parent $ScriptDir
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("agenttest-" + [System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 New-Item -ItemType Directory -Force $Tmp | Out-Null
@@ -192,6 +193,13 @@ try {
     $diffText = ($diffOutput | ForEach-Object { $_.ToString() }) -join "`n"
     if ($diffExit -eq 0 -and $diffText.Contains("Plan: wrap") -and $diffText.Contains("sha256=")) { Pass }
     else { Fail "sync diff wrapper failed: $diffText" }
+
+    Write-Host "Read-only migration planner wrapper..."
+    $planOutput = @(& $engine -NoProfile -File $PlanMigration -Target global -Plan -HomeDirectory $syncHome -ReportOnly 2>&1)
+    $planExit = $LASTEXITCODE
+    $planText = ($planOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ($planExit -eq 0 -and $planText.Contains("migration=0002-adopt-global-managed-block") -and $planText.Contains("No files were changed.")) { Pass }
+    else { Fail "migration planner wrapper failed: $planText" }
 
     Write-Host ""
     $total = $script:Pass + $script:Fail

@@ -149,7 +149,14 @@ class ValidatorTests(unittest.TestCase):
         (project / ".project-standard.json").write_text(json.dumps(metadata), encoding="utf-8")
         _, profile, findings = self.validate_project(project)
         self.assertEqual(profile, "minimal")
-        self.assertIn("metadata.future_schema", finding_codes(findings))
+        self.assertIn("metadata.schema", finding_codes(findings))
+
+    def test_metadata_non_object_root_is_reported_without_crash(self):
+        project = self.make_project("minimal")
+        (project / ".project-standard.json").write_text('["not", "an", "object"]\n', encoding="utf-8")
+        _, profile, findings = self.validate_project(project)
+        self.assertEqual(profile, "minimal")
+        self.assertIn("metadata.schema", finding_codes(findings))
 
     def test_global_rule_drift_is_reported_without_exposing_content(self):
         home = self.temp_path / "home"

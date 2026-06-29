@@ -17,7 +17,8 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| — | | | | |
+| 17 | PowerShell tests оставляют пустые Git identity env vars | 2026-06-29 | `test-bootstrap.ps1`, `test-contract.ps1` | Restore через `Environment.SetEnvironmentVariable(..., $null)` оставляет в текущей PowerShell-сессии пустые `GIT_AUTHOR_*`/`GIT_COMMITTER_*`; последующие `git commit` завершаются `fatal: empty ident name`. |
+| 18 | Validator падает на JSON metadata с non-object root | 2026-06-29 | `validate-project.py` | После schema finding код продолжает вызывать `.get()` у массива или scalar из синтаксически корректного JSON. |
 
 ## Fixed
 

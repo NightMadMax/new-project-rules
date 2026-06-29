@@ -4,6 +4,10 @@
 
 ### Добавлено
 
+- Plan-only migration engine с TSV manifest, clean-tree preconditions,
+  reviewable project metadata preview и secret-safe global adoption plan.
+- [[docs/architecture/PROJECT_STANDARD_SCHEMA|Schema `.project-standard.json`]]
+  и [[docs/guides/PLAN_MIGRATIONS|руководство по migration planning]].
 - Read-only managed-block parser и native wrappers для secret-safe
   `sync-global-agents --check/--diff` без изменения active global policy.
 - [[docs/guides/SYNC_GLOBAL_AGENTS|Руководство по global policy sync]] со

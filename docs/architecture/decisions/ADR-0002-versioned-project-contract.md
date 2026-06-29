@@ -57,3 +57,7 @@ Regression tests проверяют каждую реализацию, но не
 - Stage B: shell и PowerShell adapters переведены на прямое чтение manifest;
   contract tests изменяют manifest в изолированной копии и проверяют изменение
   output без правок adapters.
+- Stage C: validator и doctor проверяют contract read-only.
+- Stage D: managed global policy parser реализует secret-safe check/diff.
+- Stage E (plan-only): `config/migrations.tsv`, общая metadata schema и planner
+  строят reviewable планы; mutation намеренно ещё отсутствует.

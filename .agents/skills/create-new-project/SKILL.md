@@ -47,16 +47,21 @@ description: Создаёт новый проект внутри общего Ob
    - Windows: `.\scripts\validate-project.ps1 -Root <destination> -Kind project -Profile <profile>`.
    При отсутствии Python выполнить существующие ручные проверки и явно сообщить,
    что расширенная валидация пропущена; не устанавливать Python без разрешения.
-7. Если bootstrap создал начальный commit до заполнения документов, сделать
+7. Построить read-only plan adoption metadata с явным выбранным profile:
+   - macOS/Linux: `./scripts/plan-migration.sh --plan --target project --root <destination> --profile <profile> --report-only`;
+   - Windows: `.\scripts\plan-migration.ps1 -Plan -Target project -Root <destination> -Profile <profile> -ReportOnly`.
+   Не создавать `.project-standard.json` вручную: текущий этап только показывает
+   reviewable план и preconditions будущего apply.
+8. Если bootstrap создал начальный commit до заполнения документов, сделать
    отдельный осмысленный commit с завершённой конфигурацией.
-8. Создать и отправить GitHub repository через `gh repo create` с выбранной
+9. Создать и отправить GitHub repository через `gh repo create` с выбранной
    visibility, `--source`, `--remote=origin` и `--push`. Не менять существующий
    remote и не перезаписывать repository с совпавшим именем.
 
 ## Проверить результат
 
 1. Запустить подходящие проверки нового проекта и проверить их exit codes,
-   включая validator, когда Python доступен.
+   включая validator и migration plan, когда Python доступен.
 2. Проверить `git status --short --branch`, `git remote -v` и наличие commit в
    `origin/main`.
 3. Убедиться, что папка проекта находится внутри общего Obsidian vault, но сама

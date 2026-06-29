@@ -19,7 +19,7 @@ related:
 | Ubuntu, `sh` | GitHub Actions |
 | Windows PowerShell 5.1 | GitHub Actions |
 | PowerShell 7 | Локально и в GitHub Actions |
-| Python 3.9+ stdlib | Validator и global sync unit/integration tests на Windows и Ubuntu |
+| Python 3.9+ stdlib | Validator, global sync и migration planner tests на Windows и Ubuntu |
 
 Постоянный macOS runner не используется, поскольку репозиторий приватный. Риск
 различий BSD/GNU закрывается локальным прогоном на macOS и отсутствием
@@ -35,12 +35,15 @@ sh scripts/test-agent-setup.sh
 sh scripts/test-skills.sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-migration-planner.py
 python3 scripts/validate-project.py --root . --kind rules --report-only
 python3 scripts/sync_global_agents.py --check --report-only
+python3 scripts/plan_migration.py --plan --target global --report-only
 ```
 
 ```powershell
 .\scripts\test-powershell-syntax.ps1
+.\scripts\test-powershell-environment.ps1
 .\scripts\test-bootstrap.ps1
 .\scripts\test-contract.ps1
 .\scripts\test-agent-setup.ps1
@@ -48,8 +51,10 @@ python3 scripts/sync_global_agents.py --check --report-only
 $env:PYTHONDONTWRITEBYTECODE = "1"
 python .\scripts\test-validator.py
 python .\scripts\test-agent-sync.py
+python .\scripts\test-migration-planner.py
 python .\scripts\validate-project.py --root . --kind rules --report-only
 python .\scripts\sync_global_agents.py --check --report-only
+python .\scripts\plan_migration.py --plan --target global --report-only
 ```
 
 PowerShell-проверки следует выполнять в Windows PowerShell 5.1 и PowerShell 7.
@@ -86,5 +91,11 @@ Parser-check обязан возвращать ненулевой код, есл
   `managed_match`, `managed_drift`, `malformed` и `unsupported_schema`;
 - secret-safe hash/range diff, сохранение текста вне managed block и отсутствие
   mutation во всех read-only режимах;
+- migration manifest uniqueness/schema transitions, exact profile inference,
+  clean-tree blockers и строгая `.project-standard.json` schema;
+- reviewable metadata preview, secret-safe global adoption plan, стабильные
+  planner exit codes и доказательство отсутствия mutation;
+- восстановление HOME/Git process environment после PowerShell bootstrap и
+  contract suites, включая отсутствие пустых identity variables;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;
 - UTF-8 без BOM, отсутствие шаблонных плейсхолдеров и чистое git-дерево.

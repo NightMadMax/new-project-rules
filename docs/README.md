@@ -18,12 +18,14 @@ related:
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Перенос знаний между проектами]]
 - [[docs/guides/VALIDATE_AND_DIAGNOSE|Валидация проекта и диагностика компьютера]]
 - [[docs/guides/SYNC_GLOBAL_AGENTS|Read-only синхронизация глобальных правил]]
+- [[docs/guides/PLAN_MIGRATIONS|Планирование миграций без изменения файлов]]
 
 ## Архитектура и решения
 
 - [[docs/architecture/ARCHITECTURE|Архитектура набора правил]]
 - [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001: двухуровневая документация]]
 - [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002: версионируемый контракт проекта]]
+- [[docs/architecture/PROJECT_STANDARD_SCHEMA|Schema project standard metadata]]
 
 ## Исследования
 

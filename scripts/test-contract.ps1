@@ -176,7 +176,12 @@ try {
 }
 finally {
     foreach ($name in $savedEnvironment.Keys) {
-        [System.Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name])
+        if ($null -eq $savedEnvironment[$name]) {
+            Remove-Item -LiteralPath "Env:$name" -ErrorAction SilentlyContinue
+        }
+        else {
+            [System.Environment]::SetEnvironmentVariable($name, $savedEnvironment[$name])
+        }
     }
     Remove-Item -LiteralPath $Tmp -Recurse -Force -ErrorAction SilentlyContinue
 }
