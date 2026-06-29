@@ -17,8 +17,7 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 17 | PowerShell tests оставляют пустые Git identity env vars | 2026-06-29 | `test-bootstrap.ps1`, `test-contract.ps1` | Restore через `Environment.SetEnvironmentVariable(..., $null)` оставляет в текущей PowerShell-сессии пустые `GIT_AUTHOR_*`/`GIT_COMMITTER_*`; последующие `git commit` завершаются `fatal: empty ident name`. |
-| 18 | Validator падает на JSON metadata с non-object root | 2026-06-29 | `validate-project.py` | После schema finding код продолжает вызывать `.get()` у массива или scalar из синтаксически корректного JSON. |
+| — | | | | |
 
 ## Fixed
 
@@ -39,6 +38,8 @@ related:
 | 14 | Validator применяет document schema к Agent Skills | 2026-06-29 | 2026-06-29 | `1f60012` | Frontmatter validation не различала document schema `type/status` и Agent Skill schema `name/description`. |
 | 15 | В корне rules project существует пустой nested vault | 2026-06-29 | 2026-06-29 | `1f60012` | Пустой локальный `.obsidian` не отслеживался Git и оставался невидимым прежним repository checks. |
 | 16 | Shell wrapper выбирает нерабочий python3 App Alias | 2026-06-29 | 2026-06-29 | `1f60012` | Runtime выбирался по наличию команды, а не по успешному probe Python 3.9+. |
+| 17 | PowerShell tests оставляют пустые Git identity env vars | 2026-06-29 | 2026-06-29 | `d760c69` | Restore отсутствующих variables через .NET оставлял пустые process values; теперь отсутствующие names удаляются через `Env:` provider и проверяются isolation regression test. |
+| 18 | Validator падает на JSON metadata с non-object root | 2026-06-29 | 2026-06-29 | `d760c69` | После schema finding non-object JSON передавался дальше как metadata dict; теперь downstream получает `None`, а regression test проверяет finding без traceback. |
 
 ## Won't Fix
 
