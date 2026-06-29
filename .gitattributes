@@ -4,4 +4,5 @@
 *.md text eol=lf
 *.json text eol=lf
 *.tsv text eol=lf
+*.py text eol=lf
 STANDARD_VERSION text eol=lf

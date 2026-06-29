@@ -27,6 +27,7 @@ related:
 - универсальные Agent Skills для настройки компьютера и создания проекта;
 - правила переносимости, секретов и источников истины.
 - версионируемый контракт профилей и policy invariants.
+- read-only validator и doctor для project/environment diagnostics.
 
 ## Non-goals
 

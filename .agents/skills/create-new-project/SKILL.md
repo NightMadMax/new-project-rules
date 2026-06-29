@@ -42,15 +42,21 @@ description: Создаёт новый проект внутри общего Ob
    необходимости.
 5. Проверить `AGENTS.md`, `CLAUDE.md=@AGENTS.md`, wikilinks, отсутствие
    `.obsidian`, абсолютных machine-specific paths и секретов.
-6. Если bootstrap создал начальный commit до заполнения документов, сделать
+6. Если доступен Python 3.9+, запустить read-only validator из корня правил:
+   - macOS/Linux: `./scripts/validate-project.sh --root <destination> --kind project --profile <profile>`;
+   - Windows: `.\scripts\validate-project.ps1 -Root <destination> -Kind project -Profile <profile>`.
+   При отсутствии Python выполнить существующие ручные проверки и явно сообщить,
+   что расширенная валидация пропущена; не устанавливать Python без разрешения.
+7. Если bootstrap создал начальный commit до заполнения документов, сделать
    отдельный осмысленный commit с завершённой конфигурацией.
-7. Создать и отправить GitHub repository через `gh repo create` с выбранной
+8. Создать и отправить GitHub repository через `gh repo create` с выбранной
    visibility, `--source`, `--remote=origin` и `--push`. Не менять существующий
    remote и не перезаписывать repository с совпавшим именем.
 
 ## Проверить результат
 
-1. Запустить подходящие проверки нового проекта и проверить их exit codes.
+1. Запустить подходящие проверки нового проекта и проверить их exit codes,
+   включая validator, когда Python доступен.
 2. Проверить `git status --short --branch`, `git remote -v` и наличие commit в
    `origin/main`.
 3. Убедиться, что папка проекта находится внутри общего Obsidian vault, но сама

@@ -42,3 +42,10 @@ substitution, Git и безопасный rollback. Parity-тесты согла
 [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]]
 проверяют contract на обеих платформах и доказывают manifest-driven поведение в
 изолированной копии.
+
+`scripts/validate-project.py` является общей read-only validation logic на
+Python 3.9 standard library. Native wrappers проверяют runtime и сохраняют
+единые exit codes. Project doctor сначала выполняет platform environment check,
+затем validator с дополнительной диагностикой Git, global agent policy и
+родительского Obsidian vault. Auto-fix отсутствует: диагностика не владеет
+пользовательскими файлами.

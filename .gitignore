@@ -4,3 +4,5 @@ Thumbs.db
 CLAUDE.local.md
 .claude/settings.local.json
 .claude/scheduled_tasks.lock
+__pycache__/
+*.py[cod]

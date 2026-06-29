@@ -26,6 +26,14 @@ jobs:
         run: sh scripts/test-bootstrap.sh
       - name: Project contract parity test
         run: sh scripts/test-contract.sh
+      - name: Validator regression test
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 scripts/test-validator.py
+      - name: Validator report
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 scripts/validate-project.py --root . --kind rules --report-only
       - name: Agent setup smoke test
         run: sh scripts/test-agent-setup.sh
       - name: Agent skill contract test
@@ -41,6 +49,16 @@ jobs:
       - name: Parse-check PowerShell scripts with PowerShell 7
         shell: pwsh
         run: .\scripts\test-powershell-syntax.ps1
+      - name: Validator regression test on Windows
+        shell: powershell
+        run: |
+          $env:PYTHONDONTWRITEBYTECODE = "1"
+          python .\scripts\test-validator.py
+      - name: Validator report on Windows
+        shell: powershell
+        run: |
+          $env:PYTHONDONTWRITEBYTECODE = "1"
+          python .\scripts\validate-project.py --root . --kind rules --report-only
       - name: Bootstrap regression test with Windows PowerShell 5.1
         shell: powershell
         run: .\scripts\test-bootstrap.ps1

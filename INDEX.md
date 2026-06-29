@@ -18,6 +18,7 @@
 | [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT.md]] | Создание проекта вручную или по запросу агенту |
 | [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER.md]] | Настройка нового macOS/Windows-компьютера |
 | [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY.md]] | Правила promotion знаний из проектов в общий стандарт |
+| [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE.md]] | Read-only validator, doctor и exit codes |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]] | Решение о TSV contract и hybrid runtime |
@@ -43,6 +44,12 @@
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |
 | `scripts/test-contract.sh` | Parity contract и bootstrap outputs (macOS/Linux) |
 | `scripts/test-contract.ps1` | Parity contract и bootstrap outputs (Windows) |
+| `scripts/validate-project.py` | Общая read-only validation logic на Python 3.9+ |
+| `scripts/validate-project.sh` | Validator wrapper для macOS/Linux |
+| `scripts/validate-project.ps1` | Validator wrapper для Windows |
+| `scripts/project-doctor.sh` | Environment + project doctor для macOS/Linux |
+| `scripts/project-doctor.ps1` | Environment + project doctor для Windows |
+| `scripts/test-validator.py` | Regression tests validator и exit codes |
 | `scripts/test-agent-setup.sh` | Smoke-тест global/scoped agent setup (macOS/Linux) |
 | `scripts/test-agent-setup.ps1` | Smoke-тест global/scoped agent setup (Windows) |
 | `scripts/test-skills.sh` | Проверка универсальных skills и Claude-мостов (macOS/Linux) |

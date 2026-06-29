@@ -30,16 +30,19 @@ related:
 - Claude Code, если он будет использоваться;
 - PowerShell для запуска `.ps1` на Windows.
 
+Python 3.9+ нужен для расширенной structural validation, но не для базовой
+environment-проверки и bootstrap. Doctor явно сообщит, если validator пропущен.
+
 Выберите режим проверки: `codex`, `claude` или `both`. По умолчанию используется
 `both`; режим `codex` не требует установленного Claude Code, а `claude` не
 требует Codex.
 
 ```sh
-./scripts/check-environment.sh codex
+./scripts/project-doctor.sh --root . --agent-mode codex
 ```
 
 ```powershell
-.\scripts\check-environment.ps1 -AgentMode codex
+.\scripts\project-doctor.ps1 -Root . -AgentMode codex
 ```
 
 Проверьте доступность команд:

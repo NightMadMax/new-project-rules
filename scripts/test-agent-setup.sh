@@ -29,6 +29,8 @@ script_dir=$(resolve_script_dir)
 rules_root=$(dirname "$script_dir")
 setup="$script_dir/setup-global-agents.sh"
 scope="$script_dir/add-agent-scope.sh"
+validator="$script_dir/validate-project.sh"
+doctor="$script_dir/project-doctor.sh"
 real_git=$(command -v git) || {
   echo "git is required to run agent setup smoke tests." >&2
   exit 1
@@ -170,6 +172,17 @@ if PATH="$tmp/empty-path" HOME="$tmp/check-home" /bin/sh "$script_dir/check-envi
   bad "both-mode environment check should report missing required tools"
 else ok; fi
 assert_count "$tmp/check-both.out" '[MISS] claude' 1 "both-mode environment check"
+
+echo "Validator and doctor wrappers..."
+if sh "$validator" --root "$rules_root" --kind rules >"$tmp/validator.out" 2>&1; then ok
+else bad "validator wrapper failed"; fi
+if grep -qF 'Summary: 0 error(s)' "$tmp/validator.out"; then ok
+else bad "validator wrapper summary is missing"; fi
+if sh "$doctor" --root "$rules_root" --agent-mode codex --report-only \
+  >"$tmp/doctor.out" 2>&1; then ok
+else bad "report-only doctor failed"; fi
+if grep -qF 'Project diagnostics:' "$tmp/doctor.out"; then ok
+else bad "doctor project diagnostics are missing"; fi
 
 echo
 total=$((pass + fail))

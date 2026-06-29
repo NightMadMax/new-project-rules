@@ -6,6 +6,9 @@ $ScriptDir = $PSScriptRoot
 $SetupGlobal = Join-Path $ScriptDir "setup-global-agents.ps1"
 $AddScope = Join-Path $ScriptDir "add-agent-scope.ps1"
 $CheckEnvironment = Join-Path $ScriptDir "check-environment.ps1"
+$ValidateProject = Join-Path $ScriptDir "validate-project.ps1"
+$ProjectDoctor = Join-Path $ScriptDir "project-doctor.ps1"
+$RulesRoot = Split-Path -Parent $ScriptDir
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("agenttest-" + [System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 New-Item -ItemType Directory -Force $Tmp | Out-Null
 
@@ -151,6 +154,27 @@ try {
     }
     $bothText = ($bothOutput | ForEach-Object { $_.ToString() }) -join "`n"
     if ((Count-Literal $bothText "[MISS] claude") -eq 1) { Pass } else { Fail "both mode did not require Claude Code" }
+
+    Write-Host "Validator and doctor wrappers..."
+    $validatorOutput = @(& $engine -NoProfile -File $ValidateProject -Root $RulesRoot -Kind rules 2>&1)
+    $validatorExit = $LASTEXITCODE
+    $validatorText = ($validatorOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ($validatorExit -eq 0 -and $validatorText.Contains("Summary: 0 error(s)")) { Pass }
+    else { Fail "validator wrapper failed: $validatorText" }
+
+    $savedPath = $env:PATH
+    try {
+        $env:PATH = $emptyPath
+        $doctorOutput = @(& $engine -NoProfile -File $ProjectDoctor -Root $RulesRoot -AgentMode codex -ReportOnly 2>&1)
+        $doctorExit = $LASTEXITCODE
+    }
+    finally {
+        $env:PATH = $savedPath
+    }
+    $doctorText = ($doctorOutput | ForEach-Object { $_.ToString() }) -join "`n"
+    if ($doctorExit -eq 0) { Pass } else { Fail "report-only doctor returned $doctorExit" }
+    if ($doctorText.Contains("validator.runtime") -and $doctorText.Contains("structural validation was skipped")) { Pass }
+    else { Fail "doctor did not report skipped validation without Python" }
 
     Write-Host ""
     $total = $script:Pass + $script:Fail

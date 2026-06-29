@@ -4,6 +4,11 @@
 
 ### Добавлено
 
+- Read-only Python 3.9+ validator, native wrappers и project doctor для проверки
+  profile contract, indexes, wikilinks, frontmatter, memory, paths, secrets,
+  Git state и Obsidian placement.
+- [[docs/guides/VALIDATE_AND_DIAGNOSE|Руководство по validator и doctor]] со
+  стабильными exit codes и `report-only` режимом.
 - `STANDARD_VERSION=1`, TSV contracts профилей/policy и parity-тесты, которые
   фиксируют текущие outputs до manifest-driven refactor.
 - [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]]

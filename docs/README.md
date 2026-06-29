@@ -16,6 +16,7 @@ related:
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]
 - [[docs/guides/SETUP_NEW_COMPUTER|Подключение нового компьютера]]
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Перенос знаний между проектами]]
+- [[docs/guides/VALIDATE_AND_DIAGNOSE|Валидация проекта и диагностика компьютера]]
 
 ## Архитектура и решения
 

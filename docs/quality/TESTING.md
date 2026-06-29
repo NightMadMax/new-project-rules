@@ -19,6 +19,7 @@ related:
 | Ubuntu, `sh` | GitHub Actions |
 | Windows PowerShell 5.1 | GitHub Actions |
 | PowerShell 7 | Локально и в GitHub Actions |
+| Python 3.9+ stdlib | Validator unit/integration tests на Windows и Ubuntu |
 
 Постоянный macOS runner не используется, поскольку репозиторий приватный. Риск
 различий BSD/GNU закрывается локальным прогоном на macOS и отсутствием
@@ -32,6 +33,8 @@ sh scripts/test-bootstrap.sh
 sh scripts/test-contract.sh
 sh scripts/test-agent-setup.sh
 sh scripts/test-skills.sh
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
+python3 scripts/validate-project.py --root . --kind rules --report-only
 ```
 
 ```powershell
@@ -40,6 +43,9 @@ sh scripts/test-skills.sh
 .\scripts\test-contract.ps1
 .\scripts\test-agent-setup.ps1
 .\scripts\test-skills.ps1
+$env:PYTHONDONTWRITEBYTECODE = "1"
+python .\scripts\test-validator.py
+python .\scripts\validate-project.py --root . --kind rules --report-only
 ```
 
 PowerShell-проверки следует выполнять в Windows PowerShell 5.1 и PowerShell 7.
@@ -65,5 +71,12 @@ Parser-check обязан возвращать ненулевой код, есл
 - создание, повторный запуск и конфликт global/scoped agent setup;
 - отказ от scope path traversal до создания каталога;
 - режимы environment check `codex`, `claude` и `both`;
+- validator profile inference, explicit profile, metadata readiness и отсутствие
+  mutation;
+- validator findings для missing artifacts, wikilinks, placeholders, nested
+  vault, raw memory, secrets и machine-specific paths;
+- стабильные validator exit codes `0` / `1` / `2` и `report-only`;
+- doctor fallback без Python, Git/Obsidian diagnostics и secret-safe global
+  policy drift detection;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;
 - UTF-8 без BOM, отсутствие шаблонных плейсхолдеров и чистое git-дерево.
