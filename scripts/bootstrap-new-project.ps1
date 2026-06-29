@@ -12,6 +12,43 @@ param(
 $ErrorActionPreference = "Stop"
 $RulesRoot = Split-Path -Parent $PSScriptRoot
 $Templates = Join-Path $RulesRoot "templates/new-project"
+$Manifest = Join-Path $RulesRoot "config/profiles.tsv"
+$ProfileRanks = @{ minimal = 0; software = 1; operated = 2; all = 3 }
+$ExpectedManifestHeader = "minimum_profile`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label"
+$ManifestLines = @(Get-Content -Encoding utf8 $Manifest)
+if ($ManifestLines.Count -lt 2 -or $ManifestLines[0] -cne $ExpectedManifestHeader) {
+    throw "Invalid project profile manifest header: $Manifest"
+}
+$Artifacts = @($ManifestLines | ConvertFrom-Csv -Delimiter "`t")
+$SeenDestinations = @{}
+$GeneratedDestinations = @(".editorconfig", ".gitattributes", ".gitignore", "CLAUDE.md")
+foreach ($artifact in $Artifacts) {
+    if (-not $ProfileRanks.ContainsKey($artifact.minimum_profile)) {
+        throw "Unknown minimum_profile '$($artifact.minimum_profile)' in $Manifest"
+    }
+    if ([System.IO.Path]::IsPathRooted($artifact.destination) -or
+            ($artifact.destination -split '/' | Where-Object { $_ -eq '..' }).Count -gt 0) {
+        throw "Unsafe destination '$($artifact.destination)' in $Manifest"
+    }
+    if ($SeenDestinations.ContainsKey($artifact.destination)) {
+        throw "Duplicate destination '$($artifact.destination)' in $Manifest"
+    }
+    $SeenDestinations[$artifact.destination] = $true
+    if ($artifact.source -eq "@generated") {
+        if ($artifact.destination -notin $GeneratedDestinations) {
+            throw "Unknown generated artifact '$($artifact.destination)' in $Manifest"
+        }
+    }
+    elseif (-not (Test-Path -LiteralPath (Join-Path $Templates $artifact.source) -PathType Leaf)) {
+        throw "Template not found for '$($artifact.destination)': $($artifact.source)"
+    }
+    if (($artifact.docs_section -eq "-") -ne ($artifact.docs_label -eq "-")) {
+        throw "docs_section and docs_label must both be '-' or both be set for '$($artifact.destination)'"
+    }
+}
+$SelectedArtifacts = @($Artifacts | Where-Object {
+        $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
+    })
 
 # Write UTF-8 without a BOM on every PowerShell edition. Windows PowerShell 5.1
 # "-Encoding utf8" emits a BOM, which corrupts the LF-normalized Markdown and
@@ -49,49 +86,6 @@ New-Item -ItemType Directory -Force $Destination | Out-Null
 # process current directory, which can differ from the PowerShell location.
 $Destination = (Resolve-Path $Destination).Path
 
-Write-Utf8NoBom (Join-Path $Destination ".gitignore") @(
-    ".DS_Store"
-    "Thumbs.db"
-    ".trash/"
-    "CLAUDE.local.md"
-    ".claude/settings.local.json"
-    ".claude/scheduled_tasks.lock"
-)
-Write-Utf8NoBom (Join-Path $Destination ".gitattributes") @(
-    "* text=auto"
-    "*.sh text eol=lf"
-    "*.ps1 text eol=crlf"
-    "*.md text eol=lf"
-    "*.json text eol=lf"
-)
-# EditorConfig is the one language-agnostic, zero-dependency formatting baseline
-# every editor honours, so it belongs in the required core of every project.
-Write-Utf8NoBom (Join-Path $Destination ".editorconfig") @(
-    "# EditorConfig - https://editorconfig.org"
-    "root = true"
-    ""
-    "[*]"
-    "charset = utf-8"
-    "end_of_line = lf"
-    "insert_final_newline = true"
-    "trim_trailing_whitespace = true"
-    "indent_style = space"
-    "indent_size = 2"
-    ""
-    "[*.md]"
-    "trim_trailing_whitespace = false"
-    ""
-    "[*.ps1]"
-    "end_of_line = crlf"
-    "indent_size = 4"
-    ""
-    "[Makefile]"
-    "indent_style = tab"
-    ""
-    "[*.go]"
-    "indent_style = tab"
-)
-
 $Today = Get-Date -Format "yyyy-MM-dd"
 
 function Install-Template {
@@ -105,71 +99,77 @@ function Install-Template {
     Write-Utf8NoBom $targetPath $content
 }
 
-Install-Template "README.template.md" "README.md"
-Install-Template "AGENTS.template.md" "AGENTS.md"
-Install-Template "INDEX.template.md" "INDEX.md"
-Install-Template "PROJECT.template.md" "PROJECT.md"
-
-# CLAUDE.md is a portable pointer so Claude Code reads the same AGENTS.md that
-# Codex and other AGENTS.md-aware tools read. A one-line @import avoids fragile
-# symlinks on Windows and never duplicates instruction content.
-Write-Utf8NoBom (Join-Path $Destination "CLAUDE.md") "@AGENTS.md`n"
-
-function Add-IndexEntry {
-    param([string]$Path, [string]$Purpose)
-    $LinkPath = $Path -replace '\.md$', ''
-    Append-Utf8NoBom (Join-Path $Destination "INDEX.md") "| [[$LinkPath|$Path]] | $Purpose |"
+function Install-Generated {
+    param([string]$Target)
+    switch ($Target) {
+        ".gitignore" {
+            Write-Utf8NoBom (Join-Path $Destination $Target) @(
+                ".DS_Store", "Thumbs.db", ".trash/", "CLAUDE.local.md",
+                ".claude/settings.local.json", ".claude/scheduled_tasks.lock"
+            )
+        }
+        ".gitattributes" {
+            Write-Utf8NoBom (Join-Path $Destination $Target) @(
+                "* text=auto", "*.sh text eol=lf", "*.ps1 text eol=crlf",
+                "*.md text eol=lf", "*.json text eol=lf"
+            )
+        }
+        ".editorconfig" {
+            Write-Utf8NoBom (Join-Path $Destination $Target) @(
+                "# EditorConfig - https://editorconfig.org", "root = true", "", "[*]",
+                "charset = utf-8", "end_of_line = lf", "insert_final_newline = true",
+                "trim_trailing_whitespace = true", "indent_style = space", "indent_size = 2",
+                "", "[*.md]", "trim_trailing_whitespace = false", "", "[*.ps1]",
+                "end_of_line = crlf", "indent_size = 4", "", "[Makefile]",
+                "indent_style = tab", "", "[*.go]", "indent_style = tab"
+            )
+        }
+        "CLAUDE.md" { Write-Utf8NoBom (Join-Path $Destination $Target) "@AGENTS.md`n" }
+        default { throw "Unknown generated artifact: $Target" }
+    }
 }
 
-function Add-DocsIndexSection {
+foreach ($artifact in $SelectedArtifacts) {
+    if ($artifact.source -eq "@generated") {
+        Install-Generated $artifact.destination
+    }
+    else {
+        Install-Template $artifact.source $artifact.destination
+    }
+}
+
+function Ensure-IndexEntry {
+    param([string]$Path, [string]$Purpose)
+    if ($Purpose -eq "-") { return }
+    $LinkPath = $Path -replace '\.md$', ''
+    $indexPath = Join-Path $Destination "INDEX.md"
+    $indexContent = Get-Content -Raw -Encoding utf8 $indexPath
+    if (-not $indexContent.Contains("[[$LinkPath")) {
+        Append-Utf8NoBom $indexPath "| [[$LinkPath|$Path]] | $Purpose |"
+    }
+}
+
+function Ensure-DocsIndexEntry {
     param(
         [string]$Heading,
         [string]$Path,
         [string]$Label
     )
+    if ($Heading -eq "-") { return }
     $docsIndex = Join-Path $Destination "docs/README.md"
-    Append-Utf8NoBom $docsIndex ""
-    Append-Utf8NoBom $docsIndex "## $Heading"
-    Append-Utf8NoBom $docsIndex ""
     $linkPath = $Path -replace '\.md$', ''
-    Append-Utf8NoBom $docsIndex "- [[$linkPath|$Label]]"
+    $docsContent = Get-Content -Raw -Encoding utf8 $docsIndex
+    if (-not $docsContent.Contains("[[$linkPath")) {
+        Append-Utf8NoBom $docsIndex ""
+        Append-Utf8NoBom $docsIndex "## $Heading"
+        Append-Utf8NoBom $docsIndex ""
+        Append-Utf8NoBom $docsIndex "- [[$linkPath|$Label]]"
+    }
 }
 
-if ($Profile -ne "minimal") {
-    Install-Template "DOCS_INDEX.template.md" "docs/README.md"
-    Install-Template "CHANGELOG.template.md" "CHANGELOG.md"
-    Install-Template "ARCHITECTURE.template.md" "docs/architecture/ARCHITECTURE.md"
-    Install-Template "TESTING.template.md" "docs/quality/TESTING.md"
-    Add-IndexEntry "docs/README.md" "Documentation directory index"
-    Add-IndexEntry "CHANGELOG.md" "User-visible changes and releases"
-    Add-IndexEntry "docs/architecture/ARCHITECTURE.md" "Current system architecture"
-    Add-IndexEntry "docs/quality/TESTING.md" "Testing strategy and acceptance criteria"
-}
-
-if ($Profile -in @("operated", "all")) {
-    Install-Template "ACTIONS.template.md" "ACTIONS.md"
-    Install-Template "TOOLS.template.md" "TOOLS.md"
-    Install-Template "INTEGRATIONS.template.md" "INTEGRATIONS.md"
-    Install-Template "ENVIRONMENTS.template.md" "docs/operations/ENVIRONMENTS.md"
-    Add-IndexEntry "ACTIONS.md" "Consequential actions outside git"
-    Add-IndexEntry "TOOLS.md" "Non-obvious project tools and helper scripts"
-    Add-IndexEntry "INTEGRATIONS.md" "External systems and integrations"
-    Add-IndexEntry "docs/operations/ENVIRONMENTS.md" "Environment differences without secrets"
-    Add-DocsIndexSection "Operations" "docs/operations/ENVIRONMENTS.md" "Environments"
-}
-
-if ($Profile -eq "all") {
-    Install-Template "INTERFACES.template.md" "docs/api/INTERFACES.md"
-    Install-Template "DATA_MODEL.template.md" "docs/data/DATA_MODEL.md"
-    Install-Template "SECURITY.template.md" "SECURITY.md"
-    Install-Template "THREAT_MODEL.template.md" "docs/security/THREAT_MODEL.md"
-    Add-IndexEntry "docs/api/INTERFACES.md" "Interface catalog and links to API specifications"
-    Add-IndexEntry "docs/data/DATA_MODEL.md" "Data model and migration rules"
-    Add-IndexEntry "SECURITY.md" "Vulnerability reporting policy"
-    Add-IndexEntry "docs/security/THREAT_MODEL.md" "Threats, mitigations, and residual risks"
-    Add-DocsIndexSection "API" "docs/api/INTERFACES.md" "Interfaces"
-    Add-DocsIndexSection "Data" "docs/data/DATA_MODEL.md" "Data model"
-    Add-DocsIndexSection "Security" "docs/security/THREAT_MODEL.md" "Threat model"
+foreach ($artifact in $SelectedArtifacts) {
+    Ensure-IndexEntry $artifact.destination $artifact.root_purpose
+    Ensure-DocsIndexEntry $artifact.docs_section $artifact.destination $artifact.docs_label
 }
 
 $git = Get-Command git -ErrorAction SilentlyContinue | Select-Object -First 1

@@ -50,6 +50,8 @@ Parser-check обязан возвращать ненулевой код, есл
 
 - создание всех bootstrap-профилей и точный состав файлов;
 - parity фактических shell/PowerShell outputs с `config/profiles.tsv`;
+- доказательство manifest-driven поведения через изменённую изолированную копию
+  contract без правок bootstrap adapters;
 - валидность `STANDARD_VERSION` и обязательных policy literals;
 - полнота `docs/README.md` для расширенных профилей;
 - валидность Agent Skills, совпадение Claude-мостов и канонических metadata;

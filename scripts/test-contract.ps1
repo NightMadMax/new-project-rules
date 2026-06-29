@@ -31,7 +31,10 @@ try {
     $version = (Get-Content -Raw -Encoding UTF8 (Join-Path $Root "STANDARD_VERSION")).Trim()
     if ($version -match '^[1-9][0-9]*$') { Pass } else { Fail "STANDARD_VERSION must be a positive integer" }
 
-    $rows = @(Get-Content -Encoding UTF8 $Manifest | ConvertFrom-Csv -Delimiter "`t")
+    $manifestLines = @(Get-Content -Encoding UTF8 $Manifest)
+    $expectedHeader = "minimum_profile`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label"
+    if ($manifestLines[0] -ceq $expectedHeader) { Pass } else { Fail "unexpected profiles.tsv header" }
+    $rows = @($manifestLines | ConvertFrom-Csv -Delimiter "`t")
     $ranks = @{ minimal = 0; software = 1; operated = 2; all = 3 }
     $destinations = @{}
     foreach ($row in $rows) {
@@ -52,7 +55,8 @@ try {
                 -not (Test-Path -LiteralPath (Join-Path $Templates $row.source) -PathType Leaf)) {
             Fail "missing template '$($row.source)'"
         }
-        if ($row.root_index -notin @("yes", "no") -or $row.docs_index -notin @("yes", "no")) {
+        if ([string]::IsNullOrWhiteSpace($row.root_purpose) -or
+                (($row.docs_section -eq "-") -ne ($row.docs_label -eq "-"))) {
             Fail "invalid index relationship for '$($row.destination)'"
         }
     }
@@ -106,15 +110,68 @@ try {
         $docsIndex = if (Test-Path -LiteralPath $docsIndexPath) { Get-Content -Raw -Encoding UTF8 $docsIndexPath } else { "" }
         foreach ($row in $rows | Where-Object { Includes-Profile $_ $profile $ranks }) {
             $linkPath = $row.destination -replace '\.md$', ''
-            if ($row.root_index -eq "yes") {
+            if ($row.root_purpose -ne "-") {
                 if ($rootIndex.Contains("[[$linkPath")) { Pass }
                 else { Fail "${profile}: root INDEX.md misses '$linkPath'" }
             }
-            if ($row.docs_index -eq "yes") {
+            if ($row.docs_section -ne "-") {
                 if ($docsIndex.Contains("[[$linkPath")) { Pass }
                 else { Fail "${profile}: docs/README.md misses '$linkPath'" }
             }
         }
+    }
+
+    Write-Host "Manifest drives bootstrap output..."
+    $fixtureRoot = Join-Path $Tmp "rules-fixture"
+    New-Item -ItemType Directory -Force (Join-Path $fixtureRoot "scripts") | Out-Null
+    New-Item -ItemType Directory -Force (Join-Path $fixtureRoot "config") | Out-Null
+    New-Item -ItemType Directory -Force (Join-Path $fixtureRoot "templates") | Out-Null
+    Copy-Item -LiteralPath $Bootstrap -Destination (Join-Path $fixtureRoot "scripts/bootstrap-new-project.ps1")
+    Copy-Item -LiteralPath $Templates -Destination (Join-Path $fixtureRoot "templates") -Recurse
+    $fixtureManifest = $manifestLines |
+        Where-Object { $_ -notmatch "`tCHANGELOG\.template\.md`t" } |
+        ForEach-Object {
+            ($_ -replace 'Current system architecture', 'Manifest-owned architecture') `
+                -replace "`tEnvironments$", "`tManifest Environments"
+        }
+    [System.IO.File]::WriteAllLines(
+        (Join-Path $fixtureRoot "config/profiles.tsv"),
+        $fixtureManifest,
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+    $fixtureDestination = Join-Path $Tmp "manifest-driven"
+    try {
+        & (Join-Path $fixtureRoot "scripts/bootstrap-new-project.ps1") `
+            -Destination $fixtureDestination -ProjectName "Manifest Driven" -Profile operated *> $null
+        if (-not (Test-Path -LiteralPath (Join-Path $fixtureDestination "CHANGELOG.md")) -and
+                (Test-Path -LiteralPath (Join-Path $fixtureDestination "docs/architecture/ARCHITECTURE.md")) -and
+                (Get-Content -Raw -Encoding UTF8 (Join-Path $fixtureDestination "INDEX.md")).Contains("Manifest-owned architecture") -and
+                (Get-Content -Raw -Encoding UTF8 (Join-Path $fixtureDestination "docs/README.md")).Contains("Manifest Environments")) {
+            Pass
+        }
+        else {
+            Fail "bootstrap output did not follow the modified fixture manifest"
+        }
+    }
+    catch {
+        Fail "modified manifest bootstrap failed: $($_.Exception.Message)"
+    }
+
+    $invalidManifest = @("invalid-header") + @($fixtureManifest | Select-Object -Skip 1)
+    [System.IO.File]::WriteAllLines(
+        (Join-Path $fixtureRoot "config/profiles.tsv"),
+        $invalidManifest,
+        (New-Object System.Text.UTF8Encoding($false))
+    )
+    $invalidDestination = Join-Path $Tmp "invalid-manifest-target"
+    try {
+        & (Join-Path $fixtureRoot "scripts/bootstrap-new-project.ps1") `
+            -Destination $invalidDestination -ProjectName "Invalid Manifest" -Profile minimal *> $null
+        Fail "invalid manifest was accepted"
+    }
+    catch {
+        if (-not (Test-Path -LiteralPath $invalidDestination)) { Pass }
+        else { Fail "invalid manifest changed destination before validation" }
     }
 }
 finally {

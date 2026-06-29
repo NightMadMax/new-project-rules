@@ -35,7 +35,10 @@ related:
 агентами: Claude-мост указывает на канонический skill в `.agents/skills/`.
 Документация хранит назначение, связи, ограничения и эксплуатационный контекст.
 
-На первом этапе contract fixtures используются parity-тестами и не управляют
-bootstrap напрямую. Переход adapters на manifest выполняется только после
-сохранения побайтовой совместимости профилей согласно
-[[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]].
+Оба bootstrap-адаптера читают `config/profiles.tsv` напрямую. Manifest задаёт
+минимальный профиль, источник, destination и связи с обоими индексами;
+platform-specific код отвечает только за запись generated artifacts, template
+substitution, Git и безопасный rollback. Parity-тесты согласно
+[[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]]
+проверяют contract на обеих платформах и доказывают manifest-driven поведение в
+изолированной копии.

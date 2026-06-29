@@ -23,6 +23,9 @@
 
 ### Изменено
 
+- Shell и PowerShell bootstrap теперь получают profile composition и index
+  relationships напрямую из `config/profiles.tsv`; hardcoded списки артефактов
+  удалены без изменения существующих profile outputs.
 - Bootstrap дополняет `docs/README.md` по выбранному профилю и откатывает
   частично созданный проект при ошибке, сохраняя исходный пустой destination.
 - Environment check поддерживает режимы `codex`, `claude` и `both`, поэтому

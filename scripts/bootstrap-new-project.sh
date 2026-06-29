@@ -53,6 +53,65 @@ esac
 script_dir=$(resolve_script_dir)
 project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
+manifest="$project_rules_root/config/profiles.tsv"
+tab=$(printf '\t')
+
+profile_rank() {
+  case "$1" in
+    minimal) echo 0 ;;
+    software) echo 1 ;;
+    operated) echo 2 ;;
+    all) echo 3 ;;
+    *) return 1 ;;
+  esac
+}
+
+includes_profile() {
+  minimum_rank=$(profile_rank "$1") || return 1
+  selected_rank=$(profile_rank "$2") || return 1
+  [ "$minimum_rank" -le "$selected_rank" ]
+}
+
+expected_header="minimum_profile${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label"
+header=$(sed -n '1p' "$manifest")
+[ "$header" = "$expected_header" ] || {
+  echo "Invalid project profile manifest header: $manifest" >&2
+  exit 1
+}
+
+seen_destinations='|'
+first=1
+while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_section docs_label; do
+  if [ "$first" -eq 1 ]; then first=0; continue; fi
+  profile_rank "$minimum" >/dev/null 2>&1 || {
+    echo "Unknown minimum_profile '$minimum' in $manifest" >&2
+    exit 1
+  }
+  case "/$artifact_destination/" in
+    /*/../*|//*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
+  esac
+  case "$seen_destinations" in
+    *"|$artifact_destination|"*)
+      echo "Duplicate destination '$artifact_destination' in $manifest" >&2
+      exit 1
+      ;;
+  esac
+  seen_destinations="$seen_destinations$artifact_destination|"
+  if [ "$source" = @generated ]; then
+    case "$artifact_destination" in
+      .editorconfig|.gitattributes|.gitignore|CLAUDE.md) ;;
+      *) echo "Unknown generated artifact '$artifact_destination' in $manifest" >&2; exit 1 ;;
+    esac
+  elif [ ! -f "$templates/$source" ]; then
+    echo "Template not found for '$artifact_destination': $source" >&2
+    exit 1
+  fi
+  if { [ "$docs_section" = - ] && [ "$docs_label" != - ]; } ||
+     { [ "$docs_section" != - ] && [ "$docs_label" = - ]; }; then
+    echo "docs_section and docs_label must both be '-' or both be set for '$artifact_destination'" >&2
+    exit 1
+  fi
+done < "$manifest"
 
 destination_existed=0
 if [ -d "$destination" ]; then
@@ -77,15 +136,31 @@ cleanup_failed_bootstrap() {
 trap cleanup_failed_bootstrap EXIT
 
 mkdir -p "$destination"
-printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' \
-  'CLAUDE.local.md' '.claude/settings.local.json' '.claude/scheduled_tasks.lock' \
-  > "$destination/.gitignore"
-printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
-  '*.md text eol=lf' '*.json text eol=lf' > "$destination/.gitattributes"
+today=$(date +%Y-%m-%d)
+escaped_name=$(printf '%s' "$project_name" | sed 's/[&|\\]/\\&/g')
 
-# EditorConfig is the one language-agnostic, zero-dependency formatting baseline
-# every editor honours, so it belongs in the required core of every project.
-cat > "$destination/.editorconfig" <<'EDITORCONFIG'
+install_template() {
+  source_file=$1
+  target_file=$2
+  mkdir -p "$(dirname "$destination/$target_file")"
+  sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g" \
+    "$templates/$source_file" > "$destination/$target_file"
+}
+
+install_generated() {
+  target=$1
+  case "$target" in
+    .gitignore)
+      printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' 'CLAUDE.local.md' \
+        '.claude/settings.local.json' '.claude/scheduled_tasks.lock' \
+        > "$destination/$target"
+      ;;
+    .gitattributes)
+      printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
+        '*.md text eol=lf' '*.json text eol=lf' > "$destination/$target"
+      ;;
+    .editorconfig)
+      cat > "$destination/$target" <<'EDITORCONFIG'
 # EditorConfig — https://editorconfig.org
 root = true
 
@@ -110,78 +185,66 @@ indent_style = tab
 [*.go]
 indent_style = tab
 EDITORCONFIG
-
-today=$(date +%Y-%m-%d)
-escaped_name=$(printf '%s' "$project_name" | sed 's/[&|\\]/\\&/g')
-
-install_template() {
-  source_file=$1
-  target_file=$2
-  mkdir -p "$(dirname "$destination/$target_file")"
-  sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g" \
-    "$templates/$source_file" > "$destination/$target_file"
+      ;;
+    CLAUDE.md) printf '@AGENTS.md\n' > "$destination/$target" ;;
+    *) echo "Unknown generated artifact: $target" >&2; exit 1 ;;
+  esac
 }
 
-install_template README.template.md README.md
-install_template AGENTS.template.md AGENTS.md
-install_template INDEX.template.md INDEX.md
-install_template PROJECT.template.md PROJECT.md
+first=1
+while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_section docs_label; do
+  if [ "$first" -eq 1 ]; then first=0; continue; fi
+  includes_profile "$minimum" "$profile" || continue
+  if [ "$source" = @generated ]; then
+    install_generated "$artifact_destination"
+  else
+    install_template "$source" "$artifact_destination"
+  fi
+done < "$manifest"
 
-# CLAUDE.md is a portable pointer so Claude Code reads the same AGENTS.md that
-# Codex and other AGENTS.md-aware tools read. A one-line @import avoids fragile
-# symlinks on Windows and never duplicates instruction content.
-printf '@AGENTS.md\n' > "$destination/CLAUDE.md"
-
-append_index() {
-  link_path=${1%.md}
-  printf '| [[%s|%s]] | %s |\n' "$link_path" "$1" "$2" >> "$destination/INDEX.md"
+ensure_index_entry() {
+  path=$1
+  purpose=$2
+  [ "$purpose" != - ] || return 0
+  link_path=${path%.md}
+  if grep -Fq "[[$link_path" "$destination/INDEX.md"; then
+    return 0
+  else
+    grep_status=$?
+  fi
+  [ "$grep_status" -eq 1 ] || {
+    echo "Could not read $destination/INDEX.md while indexing '$path'." >&2
+    exit 1
+  }
+  printf '| [[%s|%s]] | %s |\n' "$link_path" "$path" "$purpose" >> "$destination/INDEX.md"
 }
 
-append_docs_index_section() {
+ensure_docs_index_entry() {
   heading=$1
   path=$2
   label=$3
+  [ "$heading" != - ] || return 0
   link_path=${path%.md}
+  if grep -Fq "[[$link_path" "$destination/docs/README.md"; then
+    return 0
+  else
+    grep_status=$?
+  fi
+  [ "$grep_status" -eq 1 ] || {
+    echo "Could not read $destination/docs/README.md while indexing '$path'." >&2
+    exit 1
+  }
   printf '\n## %s\n\n- [[%s|%s]]\n' "$heading" "$link_path" "$label" \
     >> "$destination/docs/README.md"
 }
 
-if [ "$profile" != minimal ]; then
-  install_template DOCS_INDEX.template.md docs/README.md
-  install_template CHANGELOG.template.md CHANGELOG.md
-  install_template ARCHITECTURE.template.md docs/architecture/ARCHITECTURE.md
-  install_template TESTING.template.md docs/quality/TESTING.md
-  append_index docs/README.md "Documentation directory index"
-  append_index CHANGELOG.md "User-visible changes and releases"
-  append_index docs/architecture/ARCHITECTURE.md "Current system architecture"
-  append_index docs/quality/TESTING.md "Testing strategy and acceptance criteria"
-fi
-
-if [ "$profile" = operated ] || [ "$profile" = all ]; then
-  install_template ACTIONS.template.md ACTIONS.md
-  install_template TOOLS.template.md TOOLS.md
-  install_template INTEGRATIONS.template.md INTEGRATIONS.md
-  install_template ENVIRONMENTS.template.md docs/operations/ENVIRONMENTS.md
-  append_index ACTIONS.md "Consequential actions outside git"
-  append_index TOOLS.md "Non-obvious project tools and helper scripts"
-  append_index INTEGRATIONS.md "External systems and integrations"
-  append_index docs/operations/ENVIRONMENTS.md "Environment differences without secrets"
-  append_docs_index_section Operations docs/operations/ENVIRONMENTS.md Environments
-fi
-
-if [ "$profile" = all ]; then
-  install_template INTERFACES.template.md docs/api/INTERFACES.md
-  install_template DATA_MODEL.template.md docs/data/DATA_MODEL.md
-  install_template SECURITY.template.md SECURITY.md
-  install_template THREAT_MODEL.template.md docs/security/THREAT_MODEL.md
-  append_index docs/api/INTERFACES.md "Interface catalog and links to API specifications"
-  append_index docs/data/DATA_MODEL.md "Data model and migration rules"
-  append_index SECURITY.md "Vulnerability reporting policy"
-  append_index docs/security/THREAT_MODEL.md "Threats, mitigations, and residual risks"
-  append_docs_index_section API docs/api/INTERFACES.md Interfaces
-  append_docs_index_section Data docs/data/DATA_MODEL.md "Data model"
-  append_docs_index_section Security docs/security/THREAT_MODEL.md "Threat model"
-fi
+first=1
+while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_section docs_label; do
+  if [ "$first" -eq 1 ]; then first=0; continue; fi
+  includes_profile "$minimum" "$profile" || continue
+  ensure_index_entry "$artifact_destination" "$root_purpose"
+  ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
+done < "$manifest"
 
 if command -v git >/dev/null 2>&1; then
   if ! git_output=$(git -C "$destination" init 2>&1); then

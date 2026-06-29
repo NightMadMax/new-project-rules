@@ -39,14 +39,14 @@ case "$version" in
 esac
 
 header=$(sed -n '1p' "$manifest")
-if [ "$header" = "minimum_profile	source	destination	root_index	docs_index" ]; then ok
+if [ "$header" = "minimum_profile	source	destination	root_purpose	docs_section	docs_label" ]; then ok
 else bad "unexpected profiles.tsv header"; fi
 
 destinations="$tmp/destinations"
 : > "$destinations"
 first=1
 tab=$(printf '\t')
-while IFS="$tab" read -r minimum source destination root_index docs_index; do
+while IFS="$tab" read -r minimum source destination root_purpose docs_section docs_label; do
   if [ "$first" -eq 1 ]; then first=0; continue; fi
   rank "$minimum" >/dev/null 2>&1 || bad "unknown minimum_profile '$minimum'"
   case "/$destination/" in
@@ -60,10 +60,11 @@ while IFS="$tab" read -r minimum source destination root_index docs_index; do
   if [ "$source" != @generated ] && [ ! -f "$templates/$source" ]; then
     bad "missing template '$source'"
   fi
-  case "$root_index:$docs_index" in
-    yes:yes|yes:no|no:yes|no:no) ;;
-    *) bad "invalid index relationship for '$destination'" ;;
-  esac
+  if [ -z "$root_purpose" ] ||
+     { [ "$docs_section" = - ] && [ "$docs_label" != - ]; } ||
+     { [ "$docs_section" != - ] && [ "$docs_label" = - ]; }; then
+    bad "invalid index relationship for '$destination'"
+  fi
 done < "$manifest"
 
 first=1
@@ -93,7 +94,7 @@ for profile in minimal software operated all; do
   actual="$tmp/actual-$profile"
   : > "$expected"
   first=1
-  while IFS="$tab" read -r minimum source path root_index docs_index; do
+  while IFS="$tab" read -r minimum source path root_purpose docs_section docs_label; do
     if [ "$first" -eq 1 ]; then first=0; continue; fi
     if includes_profile "$minimum" "$profile"; then
       printf '%s\n' "$path" >> "$expected"
@@ -106,20 +107,60 @@ for profile in minimal software operated all; do
   else bad "$profile: generated files differ from config/profiles.tsv"; fi
 
   first=1
-  while IFS="$tab" read -r minimum source path root_index docs_index; do
+  while IFS="$tab" read -r minimum source path root_purpose docs_section docs_label; do
     if [ "$first" -eq 1 ]; then first=0; continue; fi
     includes_profile "$minimum" "$profile" || continue
     link_path=${path%.md}
-    if [ "$root_index" = yes ]; then
+    if [ "$root_purpose" != - ]; then
       if grep -Fq "[[$link_path" "$destination/INDEX.md"; then ok
       else bad "$profile: root INDEX.md misses '$link_path'"; fi
     fi
-    if [ "$docs_index" = yes ]; then
+    if [ "$docs_section" != - ]; then
       if grep -Fq "[[$link_path" "$destination/docs/README.md"; then ok
       else bad "$profile: docs/README.md misses '$link_path'"; fi
     fi
   done < "$manifest"
 done
+
+echo "Manifest drives bootstrap output..."
+fixture="$tmp/rules-fixture"
+mkdir -p "$fixture/scripts" "$fixture/config" "$fixture/templates"
+cp "$bootstrap" "$fixture/scripts/bootstrap-new-project.sh"
+cp -R "$templates" "$fixture/templates/"
+grep -v "${tab}CHANGELOG.template.md${tab}" "$manifest" \
+  | sed "s/Current system architecture/Manifest-owned architecture/; s/${tab}Environments\$/${tab}Manifest Environments/" \
+  > "$fixture/config/profiles.tsv"
+fixture_destination="$tmp/manifest-driven"
+fixture_home="$tmp/home-manifest-driven"
+mkdir -p "$fixture_home"
+if HOME="$fixture_home" XDG_CONFIG_HOME="$fixture_home/.config" GIT_CONFIG_NOSYSTEM=1 \
+  GIT_CONFIG_GLOBAL=/dev/null GIT_AUTHOR_NAME='Contract Test' \
+  GIT_AUTHOR_EMAIL='contract@example.invalid' GIT_COMMITTER_NAME='Contract Test' \
+  GIT_COMMITTER_EMAIL='contract@example.invalid' \
+  sh "$fixture/scripts/bootstrap-new-project.sh" "$fixture_destination" \
+    "Manifest Driven" operated >/dev/null 2>&1; then
+  if [ ! -e "$fixture_destination/CHANGELOG.md" ] &&
+     [ -f "$fixture_destination/docs/architecture/ARCHITECTURE.md" ] &&
+     grep -Fq 'Manifest-owned architecture' "$fixture_destination/INDEX.md" &&
+     grep -Fq 'Manifest Environments' "$fixture_destination/docs/README.md"; then ok
+  else bad "bootstrap output did not follow the modified fixture manifest"; fi
+else
+  bad "modified manifest bootstrap failed"
+fi
+
+{
+  echo 'invalid-header'
+  sed -n '2,$p' "$manifest"
+} > "$fixture/config/profiles.tsv"
+invalid_destination="$tmp/invalid-manifest-target"
+if sh "$fixture/scripts/bootstrap-new-project.sh" "$invalid_destination" \
+  "Invalid Manifest" minimal >/dev/null 2>&1; then
+  bad "invalid manifest was accepted"
+elif [ ! -e "$invalid_destination" ]; then
+  ok
+else
+  bad "invalid manifest changed destination before validation"
+fi
 
 echo
 total=$((pass + fail))

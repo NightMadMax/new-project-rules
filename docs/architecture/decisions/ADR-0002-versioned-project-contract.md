@@ -48,5 +48,12 @@ Regression tests проверяют каждую реализацию, но не
 - schema migrations получают независимую от changelog версию;
 - TSV ограничивает значения одной строкой без tab characters, что приемлемо
   для путей и boolean relationships;
-- до manifest-driven refactor существует контролируемое временное дублирование:
-  contract описывает поведение, а adapters всё ещё реализуют его вручную.
+- platform adapters сохраняют отдельную реализацию generated artifacts, Git и
+  rollback, но profile composition и index relationships больше не дублируются.
+
+## Статус реализации
+
+- Stage A: version и read-only fixtures добавлены в commit `8b70c45`.
+- Stage B: shell и PowerShell adapters переведены на прямое чтение manifest;
+  contract tests изменяют manifest в изолированной копии и проверяют изменение
+  output без правок adapters.

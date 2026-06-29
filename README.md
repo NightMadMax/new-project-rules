@@ -77,6 +77,10 @@ Windows PowerShell:
 - `all` — `operated` плюс `INTERFACES`, `DATA_MODEL`, `SECURITY` и
   `THREAT_MODEL`.
 
+Канонический состав профилей и их связи с `INDEX.md`/`docs/README.md` хранит
+`config/profiles.tsv`. Оба bootstrap-адаптера читают этот manifest напрямую;
+parity-тесты проверяют фактический output на Windows и macOS/Linux.
+
 Шаблоны «по одному файлу на экземпляр» — ADR, исследования, ревью, runbook и
 postmortem — профиль намеренно не создаёт, чтобы не плодить пустые документы.
 Они остаются в `templates/new-project/` и копируются вручную по мере

@@ -1,21 +1,21 @@
-minimum_profile	source	destination	root_index	docs_index
-minimal	@generated	.editorconfig	no	no
-minimal	@generated	.gitattributes	no	no
-minimal	@generated	.gitignore	no	no
-minimal	README.template.md	README.md	yes	no
-minimal	AGENTS.template.md	AGENTS.md	yes	no
-minimal	@generated	CLAUDE.md	yes	no
-minimal	INDEX.template.md	INDEX.md	yes	no
-minimal	PROJECT.template.md	PROJECT.md	yes	no
-software	DOCS_INDEX.template.md	docs/README.md	yes	no
-software	CHANGELOG.template.md	CHANGELOG.md	yes	no
-software	ARCHITECTURE.template.md	docs/architecture/ARCHITECTURE.md	yes	yes
-software	TESTING.template.md	docs/quality/TESTING.md	yes	yes
-operated	ACTIONS.template.md	ACTIONS.md	yes	no
-operated	TOOLS.template.md	TOOLS.md	yes	no
-operated	INTEGRATIONS.template.md	INTEGRATIONS.md	yes	no
-operated	ENVIRONMENTS.template.md	docs/operations/ENVIRONMENTS.md	yes	yes
-all	INTERFACES.template.md	docs/api/INTERFACES.md	yes	yes
-all	DATA_MODEL.template.md	docs/data/DATA_MODEL.md	yes	yes
-all	SECURITY.template.md	SECURITY.md	yes	no
-all	THREAT_MODEL.template.md	docs/security/THREAT_MODEL.md	yes	yes
+minimum_profile	source	destination	root_purpose	docs_section	docs_label
+minimal	@generated	.editorconfig	-	-	-
+minimal	@generated	.gitattributes	-	-	-
+minimal	@generated	.gitignore	-	-	-
+minimal	README.template.md	README.md	Описание и быстрый старт	-	-
+minimal	AGENTS.template.md	AGENTS.md	Правила агента и workflow	-	-
+minimal	@generated	CLAUDE.md	Imports AGENTS for Claude Code	-	-
+minimal	INDEX.template.md	INDEX.md	Карта фактически существующих файлов	-	-
+minimal	PROJECT.template.md	PROJECT.md	Цели, scope, ограничения и критерии успеха	-	-
+software	DOCS_INDEX.template.md	docs/README.md	Documentation directory index	-	-
+software	CHANGELOG.template.md	CHANGELOG.md	User-visible changes and releases	-	-
+software	ARCHITECTURE.template.md	docs/architecture/ARCHITECTURE.md	Current system architecture	Architecture	Architecture
+software	TESTING.template.md	docs/quality/TESTING.md	Testing strategy and acceptance criteria	Quality	Testing strategy
+operated	ACTIONS.template.md	ACTIONS.md	Consequential actions outside git	-	-
+operated	TOOLS.template.md	TOOLS.md	Non-obvious project tools and helper scripts	-	-
+operated	INTEGRATIONS.template.md	INTEGRATIONS.md	External systems and integrations	-	-
+operated	ENVIRONMENTS.template.md	docs/operations/ENVIRONMENTS.md	Environment differences without secrets	Operations	Environments
+all	INTERFACES.template.md	docs/api/INTERFACES.md	Interface catalog and links to API specifications	API	Interfaces
+all	DATA_MODEL.template.md	docs/data/DATA_MODEL.md	Data model and migration rules	Data	Data model
+all	SECURITY.template.md	SECURITY.md	Vulnerability reporting policy	-	-
+all	THREAT_MODEL.template.md	docs/security/THREAT_MODEL.md	Threats, mitigations, and residual risks	Security	Threat model
