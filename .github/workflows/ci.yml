@@ -26,6 +26,8 @@ jobs:
         run: sh scripts/test-bootstrap.sh
       - name: Agent setup smoke test
         run: sh scripts/test-agent-setup.sh
+      - name: Agent skill contract test
+        run: sh scripts/test-skills.sh
 
   powershell:
     runs-on: windows-latest
@@ -43,9 +45,15 @@ jobs:
       - name: Agent setup smoke test with Windows PowerShell 5.1
         shell: powershell
         run: .\scripts\test-agent-setup.ps1
+      - name: Agent skill contract test with Windows PowerShell 5.1
+        shell: powershell
+        run: .\scripts\test-skills.ps1
       - name: Bootstrap regression test with PowerShell 7
         shell: pwsh
         run: .\scripts\test-bootstrap.ps1
       - name: Agent setup smoke test with PowerShell 7
         shell: pwsh
         run: .\scripts\test-agent-setup.ps1
+      - name: Agent skill contract test with PowerShell 7
+        shell: pwsh
+        run: .\scripts\test-skills.ps1

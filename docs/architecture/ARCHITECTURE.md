@@ -2,7 +2,7 @@
 type: architecture
 status: active
 owner: project
-last_verified: 2026-06-27
+last_verified: 2026-06-29
 source_of_truth: repository
 related:
   - "[[PROJECT]]"
@@ -13,7 +13,7 @@ related:
 
 # Архитектура
 
-Проект состоит из четырёх слоёв:
+Проект состоит из пяти слоёв:
 
 1. [[GLOBAL_AGENT_INSTRUCTIONS]] задаёт поведение агента до открытия проекта.
 2. [[AGENTS]] задаёт локальные правила конкретного репозитория.

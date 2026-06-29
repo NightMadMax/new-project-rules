@@ -86,6 +86,23 @@
 - If `docs/quality/DEFECTS.md` does not exist when a defect is found, create it
   using the project defect template.
 
+## Knowledge Promotion
+
+- Keep project-specific facts, architecture, defects, decisions, research, and
+  operational knowledge in the project where they originated.
+- Treat Codex and Claude generated memory as local working state, not as a
+  version-controlled source of truth. Never commit raw memory directories.
+- Promote a lesson into `new-project-rules` only when it is reusable across
+  projects, independent of private business context, and expressible as a rule,
+  template, test, validator, script, or skill.
+- Before promotion, record the source project or artifact, supporting evidence,
+  intended scope, and verification date. Remove secrets, personal data, private
+  identifiers, and machine-specific paths.
+- Preserve the original project record. Promote an abstracted conclusion rather
+  than copying raw incident, defect, conversation, or memory text.
+- When applicability is uncertain, keep the knowledge in the source project and
+  propose promotion for user review instead of changing the shared standard.
+
 ## Verification
 
 - Validate shell scripts with `sh -n`.

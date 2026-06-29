@@ -2,7 +2,7 @@
 type: documentation-index
 status: active
 owner: project
-last_verified: 2026-06-28
+last_verified: 2026-06-29
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -15,6 +15,7 @@ related:
 
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]
 - [[docs/guides/SETUP_NEW_COMPUTER|Подключение нового компьютера]]
+- [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Перенос знаний между проектами]]
 
 ## Архитектура и решения
 

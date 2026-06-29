@@ -71,3 +71,29 @@ test, lint, and run commands. Delete this section if the project has none.
 - Treat API specifications, lock files, generated SBOM files, and
   `.github/CODEOWNERS` as authoritative.
 - Never commit secrets or real credentials.
+
+## Knowledge Promotion
+
+- Keep project-specific facts, architecture, defects, decisions, research, and
+  operational knowledge in this project.
+- Treat Codex and Claude generated memory as local working state. Never commit
+  raw memory directories.
+- Promote a lesson into the shared `new-project-rules` standard only when it is
+  reusable across projects, independent of private context, and can become a
+  rule, template, test, validator, script, or skill.
+- Record the source artifact, evidence, intended scope, and verification date;
+  remove secrets, personal data, private identifiers, and machine-specific paths.
+- Preserve the original record and promote an abstracted conclusion, not raw
+  incident, defect, conversation, or memory text.
+- When applicability is uncertain, keep the knowledge here and ask the user
+  before changing the shared standard.
+
+## Defect Tracking
+
+- Record every discovered defect, bug, or known issue in
+  `docs/quality/DEFECTS.md` immediately upon discovery.
+- Include a short title, status (`open` / `fixed` / `wontfix`), discovery date,
+  description, and root cause when known.
+- When fixed, keep the entry and add the fix date and commit reference.
+- Check existing open defects before changing the affected component.
+- If the defect log does not exist, create it from the shared project template.

@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-06-28
+last_verified: 2026-06-29
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -17,7 +17,10 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| — | | | | |
+| 7 | Расширенные профили создают неполный docs index | 2026-06-29 | Bootstrap | Профили `operated` и `all` создают дополнительные документы, но не добавляют их в `docs/README.md`. |
+| 8 | Claude одновременно optional и required | 2026-06-29 | Environment check | Руководство разрешает Codex-only среду, но `check-environment` безусловно считает отсутствие Claude Code ошибкой. |
+| 9 | Scoped setup создаёт внешний каталог до проверки | 2026-06-29 | Agent scope | Destination создаётся до окончательной проверки нахождения внутри git-root; ошибочный путь может оставить пустой внешний каталог. |
+| 10 | Bootstrap не откатывает частично созданный проект | 2026-06-29 | Bootstrap | Ошибка после начала генерации оставляет неполное дерево, которое требуется удалять или разбирать вручную. |
 
 ## Fixed
 
@@ -26,6 +29,10 @@ related:
 | 1 | Mojibake в UI-метаданных skill | 2026-06-28 | 2026-06-28 | `a999788` | Native Windows исказил кириллические `--interface`; UI metadata переведены в ASCII. |
 | 2 | Skill helpers требуют отсутствующий PyYAML | 2026-06-28 | 2026-06-28 | `a999788` | Runtime не содержал `PyYAML`; добавлен `requirements-dev.txt`, установлен и проверен `PyYAML 6.0.3`. |
 | 3 | Skill helpers читают UTF-8 как cp1251 | 2026-06-28 | 2026-06-28 | `a999788` | `Path.read_text()` выбрал legacy code page; helpers запускаются с `PYTHONUTF8=1`, workaround записан в [[TOOLS]]. |
+| 5 | Переносимые правила расходятся с активными | 2026-06-29 | 2026-06-29 | pending | Атомарное обновление global/project/template rules не было проверено semantic contract test. |
+| 6 | Skill-тесты не запускаются в CI | 2026-06-29 | 2026-06-29 | pending | Workflow не вызывал существующие `test-skills.*`. |
+| 11 | Архитектура заявляет четыре слоя и перечисляет пять | 2026-06-29 | 2026-06-29 | pending | Число слоёв не обновили после добавления Agent Skills. |
+| 12 | Defect template создаёт фиктивный открытый дефект | 2026-06-29 | 2026-06-29 | pending | Пример был помещён в рабочую таблицу вместо инструкции под ней. |
 
 ## Won't Fix
 

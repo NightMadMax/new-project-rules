@@ -48,6 +48,20 @@ check_skill() {
 
 check_skill setup-new-computer
 check_skill create-new-project
+check_skill promote-project-knowledge
+
+for file in \
+  "$root/AGENTS.md" \
+  "$root/GLOBAL_AGENT_INSTRUCTIONS.md" \
+  "$root/templates/new-project/AGENTS.template.md"
+do
+  for heading in '## Knowledge Promotion' '## Defect Tracking'; do
+    if ! grep -Fq "$heading" "$file"; then
+      echo "FAIL: missing '$heading' in $file" >&2
+      fail=$((fail + 1))
+    fi
+  done
+done
 
 if [ "$fail" -ne 0 ]; then
   echo "$fail skill check(s) failed." >&2

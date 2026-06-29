@@ -2,7 +2,7 @@
 type: testing
 status: active
 owner: project
-last_verified: 2026-06-28
+last_verified: 2026-06-29
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -48,6 +48,8 @@ Parser-check обязан возвращать ненулевой код, есл
 
 - создание всех bootstrap-профилей и точный состав файлов;
 - валидность Agent Skills, совпадение Claude-мостов и канонических metadata;
+- наличие обязательных Knowledge Promotion и Defect Tracking в переносимых
+  global/project rules;
 - начальный commit при настроенной Git-идентичности;
 - staged-состояние без commit при отсутствующей идентичности;
 - корректный отказ при ошибке `git init`, `git add`, `git status` или commit;

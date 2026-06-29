@@ -4,6 +4,9 @@
 
 ### Добавлено
 
+- [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Политика переноса знаний]] и skill
+  `promote-project-knowledge`: локальные memory отделены от проверенных общих
+  правил, а promotion требует источника, области применения и проверки.
 - Универсальные Agent Skills `setup-new-computer` и `create-new-project` для
   Codex и Claude Code с единым каноническим workflow.
 - [[docs/quality/DEFECTS|Реестр дефектов]] для обязательной фиксации найденных
@@ -13,6 +16,10 @@
 
 ### Изменено
 
+- Глобальные и проектные шаблоны правил синхронизированы и теперь содержат
+  единые требования Knowledge Promotion и Defect Tracking.
+- CI запускает contract-тесты Agent Skills и проверяет обязательные блоки
+  переносимых инструкций.
 - Общая рабочая папка теперь является единым Obsidian vault, а каждый проект —
   вложенной папкой и отдельным git/GitHub-репозиторием.
 - Bootstrap больше не создаёт `.obsidian` внутри проектов; правила, шаблоны,

@@ -84,6 +84,21 @@
 - Add `CHANGELOG.md` for projects with user-visible changes or releases.
 - Keep durable documentation under `docs/` instead of accumulating reports in
   the repository root.
+
+## Defect Tracking
+
+- Every discovered defect, bug, or known issue must be recorded in
+  `docs/quality/DEFECTS.md` immediately upon discovery — never leave it only in
+  conversation context, commit messages, or memory.
+- Each entry must include: a short title, current status (`open` / `fixed` /
+  `wontfix`), the date discovered, a brief description, and the root cause when
+  known.
+- When a defect is fixed, update its status and add the fix date and commit
+  reference; do not delete the entry.
+- Before starting work on a component, check `DEFECTS.md` for open issues in
+  that area to avoid re-introducing or duplicating known problems.
+- If `docs/quality/DEFECTS.md` does not exist when a defect is found, create it
+  using the project defect template.
 - When `docs/` exists, maintain `docs/README.md` as its connected documentation
   index.
 - Store current architecture in `docs/architecture/ARCHITECTURE.md` and one
@@ -106,6 +121,23 @@
   repurposed.
 - Keep every project artifact inside the project root.
 
+## Knowledge Promotion
+
+- Keep project-specific facts, architecture, defects, decisions, research, and
+  operational knowledge in the project where they originated.
+- Treat Codex and Claude generated memory as local working state, not as a
+  version-controlled source of truth. Never commit raw memory directories.
+- Promote a lesson into `new-project-rules` only when it is reusable across
+  projects, independent of private business context, and expressible as a rule,
+  template, test, validator, script, or skill.
+- Before promotion, record the source project or artifact, supporting evidence,
+  intended scope, and verification date. Remove secrets, personal data, private
+  identifiers, and machine-specific paths.
+- Preserve the original project record. Promote an abstracted conclusion rather
+  than copying raw incident, defect, conversation, or memory text.
+- When applicability is uncertain, keep the knowledge in the source project and
+  propose promotion for user review instead of changing the shared standard.
+
 ## Operating Rule
 
 - Work directly with Markdown files in the project folder; the parent Obsidian
@@ -114,5 +146,6 @@
   second vault path.
 - When a reusable new-project convention changes, update the global agent
   instructions (`~/.codex/AGENTS.md`, imported by `~/.claude/CLAUDE.md`), this
-  portable copy, bootstrap documentation, and affected templates in the same
-  task.
+  portable copy, bootstrap documentation, affected templates, and all related
+  skills in the same task. Never update rules without updating the skills that
+  implement them.

@@ -15,7 +15,7 @@ Do not delete entries — update their status instead.
 
 | # | Title | Discovered | Component | Description |
 |---|-------|-----------|-----------|-------------|
-| 1 | _Example: null pointer on empty input_ | YYYY-MM-DD | `src/parser` | Parser crashes when the input string is empty. Root cause: missing guard before `str[0]` access. |
+| — | | | | |
 
 ## Fixed
 
