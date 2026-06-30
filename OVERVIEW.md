@@ -56,44 +56,20 @@ AI-ассистента, как не закоммитить лишнее. Это
 выбирать инструменты (приоритет существующего стека; спрашивать перед установкой
 новых зависимостей), как организовывать вложенные инструкции.
 
-## Что это делает технически
+## Технически
 
-Набор работает как versioned project standard:
+Набор хранит машиночитаемый контракт стандарта в `config/`, создаёт новые
+проекты через `templates/new-project/` и `scripts/bootstrap-new-project.*`, а
+проверку и эволюцию стандарта выполняет через validator, doctor, sync и
+migration workflow.
 
-- `config/` хранит машиночитаемое описание профилей, policy и migrations;
-- `templates/new-project/` задаёт содержимое создаваемых файлов;
-- `scripts/bootstrap-new-project.*` собирают новый проект из manifest-driven профиля;
-- `scripts/validate-project.py` и обёртки проверяют структуру и обязательные инварианты;
-- `scripts/project-doctor.*` добавляют диагностику среды;
-- `scripts/sync-global-agents.*` проверяют, что переносимые глобальные правила
-  не разошлись с `~/.codex/AGENTS.md`;
-- `scripts/plan-migration.*` строят reviewable migration-планы и применяют их
-  только по fingerprint-подтверждению.
+Детали команд и их фактическое поведение вынесены в гайды:
 
-То есть проект не просто копирует шаблоны, а хранит контракт стандарта,
-умеет проверять его соблюдение и управлять эволюцией этого стандарта.
-
-## Основные команды пользователя
-
-```sh
-./scripts/setup-global-agents.sh
-./scripts/bootstrap-new-project.sh "/path/to/My Project" "My Project" software
-./scripts/project-doctor.sh --root . --agent-mode codex
-./scripts/validate-project.sh --root . --kind rules
-./scripts/sync-global-agents.sh --check
-./scripts/plan-migration.sh --plan --target project --root "/path/to/project"
-```
-
-Windows PowerShell:
-
-```powershell
-.\scripts\setup-global-agents.ps1
-.\scripts\bootstrap-new-project.ps1 -Destination "C:\Projects\My Project" -ProjectName "My Project" -Profile software
-.\scripts\project-doctor.ps1 -Root . -AgentMode codex
-.\scripts\validate-project.ps1 -Root . -Kind rules
-.\scripts\sync-global-agents.ps1 -Check
-.\scripts\plan-migration.ps1 -Plan -Target project -Root "C:\Projects\My Project"
-```
+- [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]]
+- [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER]]
+- [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE]]
+- [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS]]
+- [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]]
 
 ## Как начать
 

@@ -36,11 +36,13 @@ sh scripts/test-skills.sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-migration-planner.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
 python3 scripts/check-action-pins.py
 python3 scripts/validate-project.py --root . --kind rules --report-only
 python3 scripts/sync_global_agents.py --check --report-only
 python3 scripts/plan_migration.py --plan --target global --report-only
+python3 scripts/standardize_existing_project.py --root . --json
 ```
 
 ```powershell
@@ -54,11 +56,13 @@ $env:PYTHONDONTWRITEBYTECODE = "1"
 python .\scripts\test-validator.py
 python .\scripts\test-agent-sync.py
 python .\scripts\test-migration-planner.py
+python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-supply-chain.py
 python .\scripts\check-action-pins.py
 python .\scripts\validate-project.py --root . --kind rules --report-only
 python .\scripts\sync_global_agents.py --check --report-only
 python .\scripts\plan_migration.py --plan --target global --report-only
+python .\scripts\standardize_existing_project.py --root . --json
 ```
 
 PowerShell-проверки следует выполнять в Windows PowerShell 5.1 и PowerShell 7.
@@ -99,6 +103,11 @@ Parser-check обязан возвращать ненулевой код, есл
   clean-tree blockers и строгая `.project-standard.json` schema;
 - reviewable metadata preview, secret-safe global adoption plan, стабильные
   planner exit codes и доказательство отсутствия mutation;
+- decision report для legacy-проекта, рекомендации `adopt-in-place` /
+  `re-bootstrap-from-existing`, conflict detection для `CLAUDE.md` и nested
+  `.obsidian`, а также отсутствие mutation у standardization planner;
+- fingerprinted `adopt-in-place` apply только для safe files, rejection при
+  mismatch fingerprint и обновление index links без перезаписи сложных docs;
 - fingerprint mismatch/stale preimage rejection, обязательный confirmation,
   atomic-write cleanup при interruption и повторная pre-apply validation;
 - project apply как единственный unstaged metadata file, точный global backup,

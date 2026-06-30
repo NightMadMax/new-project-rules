@@ -51,6 +51,8 @@ function Test-Skill {
 
 Test-Skill "setup-new-computer"
 Test-Skill "create-new-project"
+Test-Skill "assess-existing-project"
+Test-Skill "standardize-existing-project"
 Test-Skill "promote-project-knowledge"
 Test-Skill "reflect-and-record"
 

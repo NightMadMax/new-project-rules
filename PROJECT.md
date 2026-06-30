@@ -34,6 +34,13 @@ related:
 - помогает безопасно эволюционировать стандарт через versioned contracts и
   migration plans.
 
+Командные сценарии и их технические детали считаются эксплуатационным знанием и
+поддерживаются в [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]],
+[[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER]],
+[[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE]],
+[[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS]] и
+[[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]].
+
 ## Scope
 
 - [[GLOBAL_AGENT_INSTRUCTIONS|глобальные инструкции агента]];
@@ -63,11 +70,10 @@ related:
 - новый проект не зависит от исходного компьютера;
 - инструкции одинаково трактуют vault, repo и Markdown-файлы.
 
-## Основные команды пользователя
+## Командные сценарии
 
-- `./scripts/setup-global-agents.sh` или `.\scripts\setup-global-agents.ps1` — один раз настроить глобальные правила Codex/Claude.
-- `./scripts/bootstrap-new-project.sh ...` или `.\scripts\bootstrap-new-project.ps1 ...` — создать новый проект.
-- `./scripts/project-doctor.sh --root . --agent-mode codex` или `.\scripts\project-doctor.ps1 -Root . -AgentMode codex` — проверить среду и проект.
-- `./scripts/validate-project.sh --root . --kind rules` или `.\scripts\validate-project.ps1 -Root . -Kind rules` — запустить read-only validator.
-- `./scripts/sync-global-agents.sh --check` или `.\scripts\sync-global-agents.ps1 -Check` — проверить глобальные правила Codex/Claude.
-- `./scripts/plan-migration.sh --plan ...` или `.\scripts\plan-migration.ps1 -Plan ...` — построить migration plan.
+- Настройка компьютера и глобальных правил: [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER]].
+- Создание проекта и scoped rules: [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]].
+- Диагностика и validator: [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE]].
+- Проверка global policy: [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS]].
+- Migration workflow: [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]].

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Standardize Existing Project"
+  short_description: "Assess and standardize a legacy project safely"
+  default_prompt: "Use $standardize-existing-project to compare in-place adoption with creating a new standardized project from an existing one."

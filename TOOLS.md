@@ -9,6 +9,10 @@
 - Migration plan: `python scripts/plan_migration.py --plan --target project
   --root <project>` или `--target global`. Apply требует fingerprint из
   проверенного плана и явные `--apply --fingerprint <value> --yes`.
+- Existing-project standardization plan:
+  `python scripts/standardize_existing_project.py --root <project>`; первая
+  версия умеет read-only assessment и безопасный `adopt-in-place` plan/apply
+  по fingerprint для отсутствующих managed files и index updates.
 - Supply-chain checks: `python scripts/check-action-pins.py` и
   `python scripts/test-supply-chain.py`; external Actions разрешены только по
   full commit SHA, Docker actions — по `sha256` digest.

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Assess Existing Project"
+  short_description: "Inspect a legacy project without changing it"
+  default_prompt: "Use $assess-existing-project to build a read-only decision report for bringing an existing project to the shared standard."
