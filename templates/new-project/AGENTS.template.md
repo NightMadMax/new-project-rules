@@ -21,6 +21,13 @@ Add only commands verified in this repository. When setting the project up,
 inspect its manifests and configuration to fill in the real install, build,
 test, lint, and run commands. Delete this section if the project has none.
 
+## Done when
+
+State the project's definition of done so the agent can self-verify before
+reporting completion: which checks must pass (tests, lint, build), what counts
+as a verified change, and any required review or approval. List concrete,
+checkable conditions. Delete this section until the project has real criteria.
+
 ## Markdown Workflow
 
 - Edit Markdown files directly in the project folder.
@@ -30,7 +37,12 @@ test, lint, and run commands. Delete this section if the project has none.
   `@AGENTS.md` so Claude Code reads the same file; keep all rules in `AGENTS.md`.
 - If a subdirectory needs scoped instructions, create an adjacent
   `AGENTS.md`/`CLAUDE.md` pair. Scoped rules must specialize broader rules
-  without contradicting them.
+  without contradicting them. An `AGENTS.override.md` replaces a level entirely;
+  plain `AGENTS.md` is concatenated with parent levels.
+- Keep `AGENTS.md` compact: Codex truncates the instruction chain past
+  `project_doc_max_bytes` (32 KiB by default). Move topic detail into `docs/`.
+- Do not edit `AGENTS.md` or `CLAUDE.md` mid-session; it invalidates the cached
+  prompt prefix. Record new rules between sessions.
 - Keep `INDEX.md` current when files change purpose or location.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths
   do not create Obsidian graph connections.

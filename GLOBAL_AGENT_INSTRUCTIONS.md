@@ -38,6 +38,17 @@
   via `scripts/add-agent-scope.sh` or `.ps1`). Nested rules must specialize the
   root rules without contradicting them. Both agents combine instruction layers;
   a nearer file is loaded later but does not erase broader instructions.
+- Keep `AGENTS.md` compact. Codex stops appending the instruction chain once it
+  exceeds `project_doc_max_bytes` (32 KiB by default), so a long or verbose file
+  is silently truncated. Prefer short, specific rules and move topic detail into
+  `docs/`.
+- An `AGENTS.md` is concatenated with parent levels, but an `AGENTS.override.md`
+  at a level replaces that level entirely instead of extending it. Use plain
+  `AGENTS.md` to add rules; use `*.override.md` only to deliberately replace
+  them.
+- Do not edit `AGENTS.md` or `CLAUDE.md` in the middle of an agent session: it
+  invalidates the cached prompt prefix and wastes tokens. Record a new rule
+  between sessions, promoting it from a recurring defect or a confirmed practice.
 
 ## Tool Selection
 

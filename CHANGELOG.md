@@ -4,6 +4,11 @@
 
 ### Добавлено
 
+- [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|Исследование рантайм-возможностей
+  Codex/Claude Code 2026]]: сверка стандарта с официальными моделями обоих
+  агентов и приоритизированный план улучшений правил и настройки компьютера.
+- Раздел `Done when` в шаблоне [[templates/new-project/AGENTS.template|AGENTS]]
+  для явных критериев готовности и самопроверки агента.
 - Immutable GitHub Actions SHA policy, weekly Dependabot updates и
   path-triggered/manual macOS smoke workflow.
 - [[docs/security/THREAT_MODEL|Threat model]] bootstrap, Agent Skills, global
@@ -44,6 +49,14 @@
 
 ### Изменено
 
+- В переносимые и проектные правила, активный `~/.codex/AGENTS.md` и шаблон
+  AGENTS добавлены агент-рантайм-правила Codex: держать `AGENTS.md` компактным
+  (лимит `project_doc_max_bytes`, 32 KiB), семантика `AGENTS.override.md`
+  (полная замена уровня) и запрет менять `AGENTS.md`/`CLAUDE.md` в середине
+  сессии (инвалидация prompt cache).
+- [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Политика переноса знаний]] подкреплена
+  официальной позицией OpenAI о локальности memories/sessions и предпочтении
+  skills вместо deprecated custom prompts.
 - Workflow token остаётся read-only, checkout credentials не сохраняются, а
   CI отклоняет mutable `uses:` references до запуска project tests.
 - Shell и PowerShell bootstrap теперь получают profile composition и index

@@ -28,7 +28,12 @@
   `@AGENTS.md` so Claude Code reads the same file; never duplicate rules there.
 - For scoped subdirectory instructions, create an adjacent
   `AGENTS.md`/`CLAUDE.md` pair. Scoped rules must specialize broader rules
-  without contradicting them.
+  without contradicting them. An `AGENTS.override.md` replaces a level entirely;
+  plain `AGENTS.md` is concatenated with parent levels.
+- Keep `AGENTS.md` compact: Codex truncates the instruction chain past
+  `project_doc_max_bytes` (32 KiB by default). Move topic detail into `docs/`.
+- Do not edit `AGENTS.md` or `CLAUDE.md` mid-session; it invalidates the cached
+  prompt prefix. Record new rules between sessions.
 
 ## Repository Workflow
 
