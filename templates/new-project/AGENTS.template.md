@@ -116,9 +116,10 @@ checkable conditions. Delete this section until the project has real criteria.
 
 - Record every discovered defect, bug, or known issue in
   `docs/quality/DEFECTS.md` immediately upon discovery.
-- Include a short title, status (`open` / `fixed` / `wontfix`), discovery date,
-  description, and root cause when known.
-- When fixed, keep the entry and add the fix date and commit reference.
+- Include a short title, discovery date, and description. Status is represented
+  by the section where the entry lives: `Open`, `Fixed`, or `Won't Fix`.
+- When fixed, move the entry to `Fixed` and add the fix date, commit reference,
+  and root cause when known.
 - Check existing open defects before changing the affected component.
 - If the defect log does not exist, create it from the shared project template.
 
