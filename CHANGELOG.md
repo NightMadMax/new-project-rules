@@ -15,6 +15,9 @@
 - Правило `Reflexive Learning` (во всех слоях и `~/.codex/AGENTS.md`): после
   ошибки или поправки агент рефлексирует, обобщает урок и маршрутизирует его в
   DEFECTS / PLAYBOOK / AGENTS / promotion — замыкает петлю обучения.
+- Skill [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] (канон +
+  Claude-мост + регистрация в `test-skills`): вызываемая процедура рефлексии и
+  записи урока для Codex и Claude Code.
 - [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|Исследование community-практик
   Claude Code и Codex]]: config-as-code инциденты, качество правил AGENTS.md,
   петля reflect-and-record и кандидаты на внедрение.

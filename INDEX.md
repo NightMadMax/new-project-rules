@@ -45,6 +45,7 @@
 | [[.agents/skills/assess-existing-project/SKILL|assess-existing-project]] | Read-only оценка существующего проекта относительно стандарта |
 | [[.agents/skills/standardize-existing-project/SKILL|standardize-existing-project]] | Выбор и выполнение стратегии стандартизации существующего проекта |
 | [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Проверяемый перенос общего урока в набор правил |
+| [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] | Рефлексия ошибки/поправки и запись урока в нужный артефакт |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |
 | `scripts/bootstrap-new-project.ps1` | Создание проекта в Windows PowerShell |
 | `scripts/setup-global-agents.sh` | Глобальная настройка Codex+Claude (macOS/Linux) |
