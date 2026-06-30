@@ -156,6 +156,49 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertFalse((project / "CLAUDE.md").exists())
 
+    def test_rebootstrap_plan_and_apply_copy_safe_transfer_set(self):
+        project = self.base / "legacy-rebootstrap"
+        project.mkdir()
+        (project / "src").mkdir()
+        (project / "src" / "main.py").write_text("print('ok')\n", encoding="utf-8")
+        (project / "package.json").write_text('{"name":"legacy"}\n', encoding="utf-8")
+        (project / "docs").mkdir()
+        (project / "docs" / "README.md").write_text("# Legacy docs\n", encoding="utf-8")
+        self.git_init(project)
+        destination = self.base / "rebuilt"
+        plan = subprocess.run([
+            sys.executable, str(MODULE_PATH),
+            "--root", str(project),
+            "--strategy", "re-bootstrap-from-existing",
+            "--plan-rebootstrap",
+            "--destination", str(destination),
+            "--project-name", "Rebuilt Project",
+            "--profile", "software",
+        ], capture_output=True, text=True)
+        self.assertEqual(plan.returncode, 0, plan.stderr)
+        self.assertIn("destination=", plan.stdout)
+        fingerprint = next(
+            line.split("=", 1)[1].strip()
+            for line in plan.stdout.splitlines()
+            if line.startswith("fingerprint=")
+        )
+        apply = subprocess.run([
+            sys.executable, str(MODULE_PATH),
+            "--root", str(project),
+            "--strategy", "re-bootstrap-from-existing",
+            "--apply",
+            "--destination", str(destination),
+            "--project-name", "Rebuilt Project",
+            "--profile", "software",
+            "--fingerprint", fingerprint,
+            "--yes",
+        ], capture_output=True, text=True)
+        self.assertEqual(apply.returncode, 0, apply.stderr)
+        self.assertTrue((destination / "src" / "main.py").exists())
+        self.assertTrue((destination / "package.json").exists())
+        self.assertFalse((destination / "docs" / "README.md").read_text(encoding="utf-8").startswith("# Legacy"))
+        self.assertIn("NEXT METADATA PLAN:", apply.stdout)
+
     def test_wrapper_reports_python_requirement_for_missing_runtime(self):
         env = os.environ.copy()
         env["PATH"] = str(self.base / "empty-path")

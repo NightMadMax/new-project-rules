@@ -10,7 +10,10 @@ param(
     [string]$Profile = "auto",
 
     [switch]$PlanAdopt,
+    [switch]$PlanRebootstrap,
     [switch]$Apply,
+    [string]$Destination,
+    [string]$ProjectName,
     [string]$Fingerprint,
     [switch]$Confirm,
     [switch]$Json
@@ -41,7 +44,10 @@ $Arguments = @(
     "--profile", $Profile
 )
 if ($PlanAdopt) { $Arguments += "--plan-adopt" }
+if ($PlanRebootstrap) { $Arguments += "--plan-rebootstrap" }
 if ($Apply) { $Arguments += "--apply" }
+if ($Destination) { $Arguments += @("--destination", $Destination) }
+if ($ProjectName) { $Arguments += @("--project-name", $ProjectName) }
 if ($Fingerprint) { $Arguments += @("--fingerprint", $Fingerprint) }
 if ($Confirm) { $Arguments += "--yes" }
 if ($Json) { $Arguments += "--json" }

@@ -7,6 +7,7 @@ import argparse
 import csv
 import importlib.util
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -35,7 +36,7 @@ SAFE_CREATE_FILES = {
     "docs/README.md",
 }
 CORE_DOCS = ("README.md", "PROJECT.md", "INDEX.md", "AGENTS.md")
-TRANSFER_DIRS = ("src", "app", "lib", "tests", "docs")
+TRANSFER_DIRS = ("src", "app", "lib", "tests")
 TRANSFER_FILES = (
     "package.json",
     "package-lock.json",
@@ -131,6 +132,8 @@ class ApplyPlan:
     files: tuple[FilePlan, ...]
     blockers: tuple[str, ...]
     fingerprint: str
+    destination: Optional[Path] = None
+    project_name: Optional[str] = None
 
 
 def load_validator_module(contract_root: Path):
@@ -282,6 +285,10 @@ def collect_transfer_set(root: Path) -> tuple[str, ...]:
         if (root / path).exists():
             transfer.append(path)
     return tuple(transfer)
+
+
+def path_is_empty(path: Path) -> bool:
+    return not any(path.iterdir())
 
 
 def assess_project(root: Path, contract_root: Path, requested_strategy: str, requested_profile: str) -> AssessmentReport:
@@ -567,6 +574,7 @@ def build_adopt_in_place_plan(root: Path, contract_root: Path, report: Assessmen
             files=(),
             blockers=tuple(dict.fromkeys(blockers)),
             fingerprint="",
+            destination=root,
         )
 
     rows = load_artifacts(contract_root)
@@ -623,6 +631,71 @@ def build_adopt_in_place_plan(root: Path, contract_root: Path, report: Assessmen
         files=tuple(sorted(files, key=lambda item: item.path.as_posix())),
         blockers=(),
         fingerprint=fingerprint,
+        destination=root,
+    )
+
+
+def build_rebootstrap_plan(
+    root: Path,
+    contract_root: Path,
+    report: AssessmentReport,
+    destination: Optional[Path],
+    project_name: Optional[str],
+) -> ApplyPlan:
+    blockers: list[str] = []
+    if not report.safe_to_rebootstrap:
+        blockers.extend(report.rebootstrap_blockers)
+    if destination is None:
+        blockers.append("re-bootstrap-from-existing requires --destination")
+    if project_name is None or not project_name.strip():
+        blockers.append("re-bootstrap-from-existing requires --project-name")
+    if destination is not None:
+        resolved = destination.resolve()
+        if resolved == root:
+            blockers.append("Destination must differ from the legacy project root")
+        elif resolved.exists() and resolved.is_dir() and not path_is_empty(resolved):
+            blockers.append("Destination directory must not already contain files")
+        elif resolved.exists() and not resolved.is_dir():
+            blockers.append("Destination exists and is not a directory")
+
+    profile = report.candidate_profile or (report.requested_profile if report.requested_profile != "auto" else "software")
+    transfer_paths = []
+    for item in report.proposed_transfer_set:
+        if item == "docs":
+            continue
+        transfer_paths.append(item)
+    files = tuple(
+        FilePlan(
+            path=(destination / item) if destination is not None else Path(item),
+            action="copy",
+            content="",
+            existed=False,
+        )
+        for item in sorted(transfer_paths)
+    )
+    fingerprint = ""
+    if not blockers and destination is not None and project_name is not None:
+        payload = {
+            "source_root": str(root),
+            "destination": str(destination),
+            "strategy": "re-bootstrap-from-existing",
+            "profile": profile,
+            "project_name": project_name,
+            "transfer_paths": sorted(transfer_paths),
+        }
+        fingerprint = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+        ).hexdigest()
+    return ApplyPlan(
+        status="blocked" if blockers else "ready",
+        strategy="re-bootstrap-from-existing",
+        profile=profile,
+        summary="Create a new standardized project and copy only the agreed safe transfer set.",
+        files=files,
+        blockers=tuple(dict.fromkeys(blockers)),
+        fingerprint=fingerprint,
+        destination=destination,
+        project_name=project_name,
     )
 
 
@@ -633,13 +706,21 @@ def format_apply_plan(plan: ApplyPlan, root: Path) -> str:
         f"profile={plan.profile}",
         plan.summary,
     ]
+    if plan.destination is not None:
+        lines.append(f"destination={plan.destination}")
+    if plan.project_name:
+        lines.append(f"project_name={plan.project_name}")
     if plan.blockers:
         lines.append("blocking_issues:")
         lines.extend(f"- {item}" for item in plan.blockers)
     if plan.files:
         lines.append("planned_changes:")
         for file in plan.files:
-            lines.append(f"- {file.action}: {file.path.relative_to(root).as_posix()}")
+            try:
+                relative = file.path.relative_to(root).as_posix()
+            except ValueError:
+                relative = str(file.path)
+            lines.append(f"- {file.action}: {relative}")
     if plan.fingerprint:
         lines.append(f"fingerprint={plan.fingerprint}")
     lines.append("No files were changed.")
@@ -654,6 +735,79 @@ def apply_plan(plan: ApplyPlan) -> list[Path]:
         file.path.parent.mkdir(parents=True, exist_ok=True)
         file.path.write_text(file.content, encoding="utf-8")
         changed.append(file.path)
+    return changed
+
+
+def copy_transfer_item(source_root: Path, destination_root: Path, relative: str) -> list[Path]:
+    source = source_root / relative
+    destination = destination_root / relative
+    changed: list[Path] = []
+    if source.is_dir():
+        for item in sorted(path for path in source.rglob("*") if path.is_file()):
+            rel = item.relative_to(source_root)
+            target = destination_root / rel
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(item, target)
+            changed.append(target)
+        return changed
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(source, destination)
+    changed.append(destination)
+    return changed
+
+
+def git_identity_available(root: Path) -> bool:
+    git = shutil.which("git")
+    if not git:
+        return False
+    author = subprocess.run([git, "-C", str(root), "var", "GIT_AUTHOR_IDENT"], capture_output=True)
+    committer = subprocess.run([git, "-C", str(root), "var", "GIT_COMMITTER_IDENT"], capture_output=True)
+    return author.returncode == 0 and committer.returncode == 0
+
+
+def git_commit_all(root: Path, message: str) -> bool:
+    git = shutil.which("git")
+    if not git or not git_identity_available(root):
+        return False
+    subprocess.run([git, "-C", str(root), "add", "-A"], check=True, capture_output=True, text=True)
+    status = subprocess.run([git, "-C", str(root), "status", "--porcelain"], capture_output=True, text=True, check=True)
+    if not status.stdout.strip():
+        return True
+    subprocess.run([git, "-C", str(root), "commit", "-m", message], check=True, capture_output=True, text=True)
+    return True
+
+
+def bootstrap_project(contract_root: Path, destination: Path, project_name: str, profile: str) -> None:
+    if os.name == "nt":
+        command = [
+            "powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File",
+            str(contract_root / "scripts" / "bootstrap-new-project.ps1"),
+            "-Destination", str(destination),
+            "-ProjectName", project_name,
+            "-Profile", profile,
+        ]
+    else:
+        command = [
+            "sh",
+            str(contract_root / "scripts" / "bootstrap-new-project.sh"),
+            str(destination),
+            project_name,
+            profile,
+        ]
+    result = subprocess.run(command, capture_output=True, text=True)
+    if result.returncode != 0:
+        raise StandardizationApplyError(
+            f"Bootstrap failed for {destination}:\n{result.stdout}{result.stderr}"
+        )
+
+
+def apply_rebootstrap_plan(plan: ApplyPlan, source_root: Path) -> list[Path]:
+    if plan.status != "ready" or plan.destination is None or plan.project_name is None:
+        raise StandardizationApplyError("Cannot apply a blocked or incomplete re-bootstrap plan")
+    bootstrap_project(Path(__file__).resolve().parent.parent, plan.destination, plan.project_name, plan.profile)
+    changed: list[Path] = []
+    for file in plan.files:
+        changed.extend(copy_transfer_item(source_root, plan.destination, file.path.name if file.path.parent == plan.destination else str(file.path.relative_to(plan.destination))))
     return changed
 
 
@@ -680,6 +834,13 @@ def post_apply_report(root: Path, contract_root: Path, profile: str) -> tuple[st
     validation_lines.append("")
     validation_lines.append("NEXT METADATA PLAN:")
     validation_lines.append(migration.format_plan(plan).rstrip("\n"))
+    if plan.status == "blocked" and any("Git working tree is not clean" in blocker for blocker in plan.blockers):
+        validation_lines.append("")
+        validation_lines.append("NEXT STEPS:")
+        validation_lines.append(f"- git -C \"{root}\" status --short")
+        validation_lines.append(f"- git -C \"{root}\" add -A")
+        validation_lines.append(f"- git -C \"{root}\" commit -m \"Standardize project structure\"")
+        validation_lines.append(f"- python3 scripts/plan_migration.py --plan --target project --root \"{root}\" --profile {profile} --report-only")
     return "\n".join(validation_lines), error_count
 
 
@@ -690,6 +851,7 @@ def build_parser() -> argparse.ArgumentParser:
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--apply", action="store_true", help="Apply safe in-place standardization changes")
     mode.add_argument("--plan-adopt", action="store_true", help="Show a reviewable adopt-in-place apply plan")
+    mode.add_argument("--plan-rebootstrap", action="store_true", help="Show a reviewable re-bootstrap apply plan")
     parser.add_argument(
         "--strategy",
         choices=("auto", "adopt-in-place", "re-bootstrap-from-existing"),
@@ -700,6 +862,8 @@ def build_parser() -> argparse.ArgumentParser:
         choices=("auto", "minimal", "software", "operated", "all"),
         default="auto",
     )
+    parser.add_argument("--destination", help="Destination for re-bootstrap strategy")
+    parser.add_argument("--project-name", help="Project name for re-bootstrap strategy")
     parser.add_argument("--fingerprint", help="Fingerprint from a reviewed apply plan")
     parser.add_argument("--yes", action="store_true", help="Confirm apply")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON report")
@@ -721,8 +885,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except StandardizationConfigError as exc:
         print(f"Standardization planner error: {exc}", file=sys.stderr)
         return 2
-    if args.apply or args.plan_adopt:
-        plan = build_adopt_in_place_plan(Path(args.root).resolve(), Path(args.contract_root).resolve(), report)
+    if args.apply or args.plan_adopt or args.plan_rebootstrap:
+        root = Path(args.root).resolve()
+        contract_root = Path(args.contract_root).resolve()
+        plan = build_adopt_in_place_plan(root, contract_root, report)
+        if args.plan_rebootstrap or (args.apply and args.strategy == "re-bootstrap-from-existing"):
+            destination = Path(args.destination).resolve() if args.destination else None
+            plan = build_rebootstrap_plan(root, contract_root, report, destination, args.project_name)
         if args.apply:
             if not args.yes:
                 print("Apply requires --yes.", file=sys.stderr)
@@ -737,14 +906,23 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                 print("Fingerprint mismatch; rerun the plan and review current changes.", file=sys.stderr)
                 return 1
             try:
-                changed = apply_plan(plan)
-                post_report, error_count = post_apply_report(Path(args.root).resolve(), Path(args.contract_root).resolve(), plan.profile)
+                if plan.strategy == "re-bootstrap-from-existing":
+                    changed = apply_rebootstrap_plan(plan, root)
+                    auto_commit = git_commit_all(plan.destination, "Import safe files from legacy project")
+                    post_report, error_count = post_apply_report(plan.destination, contract_root, plan.profile)
+                    if not auto_commit:
+                        post_report += "\n\nNEXT STEPS:\n"
+                        post_report += f"- Configure git user.name/user.email in \"{plan.destination}\" and commit imported files before metadata adoption.\n"
+                else:
+                    changed = apply_plan(plan)
+                    post_report, error_count = post_apply_report(root, contract_root, plan.profile)
             except (OSError, StandardizationApplyError, StandardizationConfigError) as exc:
                 print(f"Standardization apply error: {exc}", file=sys.stderr)
                 return 1
             print(f"Applied {len(changed)} change(s).")
             for path in changed:
-                print(f"- {path.relative_to(Path(args.root).resolve()).as_posix()}")
+                base = plan.destination if plan.destination is not None and plan.strategy == "re-bootstrap-from-existing" else root
+                print(f"- {path.relative_to(base).as_posix()}")
             print(post_report)
             return 1 if error_count else 0
         if args.json:

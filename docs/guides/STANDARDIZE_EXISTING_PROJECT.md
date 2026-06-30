@@ -68,11 +68,15 @@ python3 scripts/standardize_existing_project.py --root "/path/to/project" --json
 ```sh
 ./scripts/standardize-existing-project.sh --root "/path/to/project" --strategy adopt-in-place --plan-adopt
 ./scripts/standardize-existing-project.sh --root "/path/to/project" --strategy adopt-in-place --apply --fingerprint "<64-hex>" --yes
+./scripts/standardize-existing-project.sh --root "/path/to/project" --strategy re-bootstrap-from-existing --plan-rebootstrap --destination "/path/to/New Project" --project-name "New Project"
+./scripts/standardize-existing-project.sh --root "/path/to/project" --strategy re-bootstrap-from-existing --apply --destination "/path/to/New Project" --project-name "New Project" --fingerprint "<64-hex>" --yes
 ```
 
 ```powershell
 .\scripts\standardize-existing-project.ps1 -Root "C:\Projects\Example" -Strategy adopt-in-place -PlanAdopt
 .\scripts\standardize-existing-project.ps1 -Root "C:\Projects\Example" -Strategy adopt-in-place -Apply -Fingerprint "<64-hex>" -Confirm
+.\scripts\standardize-existing-project.ps1 -Root "C:\Projects\Example" -Strategy re-bootstrap-from-existing -PlanRebootstrap -Destination "C:\Projects\New Project" -ProjectName "New Project"
+.\scripts\standardize-existing-project.ps1 -Root "C:\Projects\Example" -Strategy re-bootstrap-from-existing -Apply -Destination "C:\Projects\New Project" -ProjectName "New Project" -Fingerprint "<64-hex>" -Confirm
 ```
 
 ## Что должен сделать агент
@@ -202,13 +206,14 @@ Assessment должен возвращать не свободный текст,
 
 ### Если выбран `re-bootstrap-from-existing`
 
-1. Создать новый проект через
-   [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]].
-2. Перенести только согласованный набор файлов.
-3. Довести docs и project files до стандарта уже в новом repo.
-4. Прогнать validator.
-5. Выполнить metadata adoption для нового проекта.
-6. Отдельно перечислить, что осталось в legacy-проекте и что не переносилось.
+1. Построить reviewable `--plan-rebootstrap` с `--destination` и
+   `--project-name`.
+2. Создать новый проект через existing bootstrap profile.
+3. Перенести только safe transfer set: код, тесты и manifests.
+4. Не переносить docs, agent files, secrets и deployment artifacts автоматически.
+5. Прогнать validator для нового проекта.
+6. Построить metadata migration plan для нового проекта.
+7. Отдельно перечислить, что осталось в legacy-проекте и что не переносилось.
 
 ## Ограничения первой версии
 

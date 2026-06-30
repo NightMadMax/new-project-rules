@@ -108,6 +108,9 @@ Parser-check обязан возвращать ненулевой код, есл
   `.obsidian`, а также отсутствие mutation у standardization planner;
 - fingerprinted `adopt-in-place` apply только для safe files, rejection при
   mismatch fingerprint и обновление index links без перезаписи сложных docs;
+- `re-bootstrap-from-existing` plan/apply, bootstrap нового проекта, перенос
+  только safe transfer set и сохранение bootstrap docs без перезаписи legacy
+  документации;
 - fingerprint mismatch/stale preimage rejection, обязательный confirmation,
   atomic-write cleanup при interruption и повторная pre-apply validation;
 - project apply как единственный unstaged metadata file, точный global backup,
