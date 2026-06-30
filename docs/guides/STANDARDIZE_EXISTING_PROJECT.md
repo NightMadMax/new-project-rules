@@ -1,6 +1,6 @@
 ---
 type: guide
-status: draft
+status: active
 owner: project
 last_verified: 2026-06-30
 source_of_truth: repository
@@ -13,7 +13,7 @@ related:
 
 # Стандартизация существующего проекта
 
-Этот guide описывает будущий workflow для уже существующего проекта, который
+Этот guide описывает текущий workflow для уже существующего проекта, который
 нужно привести к стандарту `new-project-rules`. В отличие от
 [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]], здесь bootstrap не
 запускается вслепую поверх существующей папки.
@@ -223,5 +223,6 @@ Assessment должен возвращать не свободный текст,
 - `adopt-in-place` умеет только безопасные file creates и index updates;
 - `README.md`, `PROJECT.md`, `AGENTS.md` и содержательные docs всё ещё требуют
   manual review;
-- `re-bootstrap-from-existing` пока остаётся orchestration workflow без
-  отдельного helper apply.
+- `re-bootstrap-from-existing` уже умеет bootstrap нового проекта и safe-set
+  apply, но содержательные docs, agent files и deployment-конфиги всё ещё
+  требуют отдельного review.

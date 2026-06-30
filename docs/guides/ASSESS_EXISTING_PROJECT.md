@@ -1,6 +1,6 @@
 ---
 type: guide
-status: draft
+status: active
 owner: project
 last_verified: 2026-06-30
 source_of_truth: repository
