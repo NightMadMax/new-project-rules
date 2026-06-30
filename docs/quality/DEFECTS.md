@@ -17,8 +17,7 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 19 | create-new-project планирует metadata до clean-tree commit | 2026-06-30 | `create-new-project` skill | Workflow запускает migration plan после редактирования стартовых документов, но до commit; обязательный clean-tree guard закономерно блокирует plan. |
-| 20 | Migration apply может заменить symlink обычным файлом | 2026-06-30 | `plan_migration.py` | Existing destination через symlink читается как обычный файл, а `os.replace` заменил бы ссылку вместо безопасного обновления её target; broken project metadata symlink также выглядел бы отсутствующим. |
+| — | | | | |
 
 ## Fixed
 
@@ -41,6 +40,8 @@ related:
 | 16 | Shell wrapper выбирает нерабочий python3 App Alias | 2026-06-29 | 2026-06-29 | `1f60012` | Runtime выбирался по наличию команды, а не по успешному probe Python 3.9+. |
 | 17 | PowerShell tests оставляют пустые Git identity env vars | 2026-06-29 | 2026-06-29 | `d760c69` | Restore отсутствующих variables через .NET оставлял пустые process values; теперь отсутствующие names удаляются через `Env:` provider и проверяются isolation regression test. |
 | 18 | Validator падает на JSON metadata с non-object root | 2026-06-29 | 2026-06-29 | `d760c69` | После schema finding non-object JSON передавался дальше как metadata dict; теперь downstream получает `None`, а regression test проверяет finding без traceback. |
+| 19 | create-new-project планирует metadata до clean-tree commit | 2026-06-30 | 2026-06-30 | `e4dcd52` | Workflow запускал plan до commit стартовых документов; теперь completed configuration коммитится до plan, а metadata — отдельным commit после apply. |
+| 20 | Migration apply может заменить symlink обычным файлом | 2026-06-30 | 2026-06-30 | `e4dcd52` | Atomic replace не различал file и symlink; project/global plans теперь блокируют symlink destinations и требуют ручного решения ownership. |
 
 ## Won't Fix
 
