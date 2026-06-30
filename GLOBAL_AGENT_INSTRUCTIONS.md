@@ -146,6 +146,17 @@
 - Create `docs/quality/PLAYBOOK.md` from the project template the first time a
   pattern qualifies; do not pre-create it empty.
 
+## Reflexive Learning
+
+- After a mistake or a user correction, before moving on, reflect on the root
+  cause, abstract it beyond the specific case, and record the lesson where it
+  belongs: `docs/quality/DEFECTS.md` for a bug, `docs/quality/PLAYBOOK.md` for a
+  verified good approach, `AGENTS.md` for a project rule (between sessions, not
+  mid-session), or a promotion proposal when the lesson is reusable across
+  projects.
+- Record only abstractable, recurring lessons; skip one-off typos and noise so
+  the defect log and playbook stay signal-dense.
+
 ## Knowledge Promotion
 
 - Keep project-specific facts, architecture, defects, decisions, research, and

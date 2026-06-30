@@ -12,6 +12,12 @@
 - [[templates/new-project/PLAYBOOK.template|Шаблон Playbook]] и правило
   `Pattern Playbook` (во всех слоях правил и активном `~/.codex/AGENTS.md`):
   фиксировать проверенные удачные паттерны как success-аналог журнала дефектов.
+- Правило `Reflexive Learning` (во всех слоях и `~/.codex/AGENTS.md`): после
+  ошибки или поправки агент рефлексирует, обобщает урок и маршрутизирует его в
+  DEFECTS / PLAYBOOK / AGENTS / promotion — замыкает петлю обучения.
+- [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|Исследование community-практик
+  Claude Code и Codex]]: config-as-code инциденты, качество правил AGENTS.md,
+  петля reflect-and-record и кандидаты на внедрение.
 - Подтверждение Claude-специфики (settings keys, hooks events, `.claude/rules/`
   с `paths:`, subagents, MCP `.mcp.json`) по `code.claude.com/docs` в
   [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|исследовании]]; поправлены
