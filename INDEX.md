@@ -38,6 +38,7 @@
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
+| [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
 | [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | [[.agents/skills/setup-new-computer/SKILL|setup-new-computer]] | Универсальный workflow настройки компьютера |
