@@ -44,6 +44,11 @@ related:
 | 20 | Migration apply может заменить symlink обычным файлом | 2026-06-30 | 2026-06-30 | `e4dcd52` | Atomic replace не различал file и symlink; project/global plans теперь блокируют symlink destinations и требуют ручного решения ownership. |
 | 21 | Верхнеуровневые документы дублируют per-command manual | 2026-06-30 | 2026-06-30 | `487a1b6` | Верхний уровень был перегружен повтором per-command manual вместо краткого overview и ссылок на `docs/guides/`, что создавало риск drift. |
 | 22 | Guide по новому компьютеру не объясняет агентский workflow достаточно явно | 2026-06-30 | 2026-06-30 | `487a1b6` | В guide не хватало явных agent-first примеров запросов и ожидаемого поведения; сценарий был в основном ручным. |
+| 23 | PLAYBOOK объявлен в правилах, но отсутствует в структуре и навигации проекта | 2026-06-30 | 2026-06-30 | `97ae46f` | Правила и skills уже требовали `docs/quality/PLAYBOOK.md`, но индекс, docs map и сам rules-project не отражали этот артефакт как часть рабочей модели. |
+| 24 | Модель артефактов не описывает DEFECTS и PLAYBOOK как штатные knowledge artifacts | 2026-06-30 | 2026-06-30 | `97ae46f` | Исследовательская taxonomy отставала от operational rules и не фиксировала negative/positive learning loop в явном виде. |
+| 25 | Defect-tracking contract расходится с форматом журнала DEFECTS | 2026-06-30 | 2026-06-30 | `97ae46f`, `fb079d3` | Правила описывали `status` как поле записи, тогда как шаблон и реальный журнал кодировали статус через секции `Open` / `Fixed` / `Won't Fix`. |
+| 26 | PROJECT.md не отражает existing-project workflows как часть фактического scope | 2026-06-30 | 2026-06-30 | `97ae46f` | Верхнеуровневое описание проекта отставало от уже реализованных assessment/standardization сценариев. |
+| 27 | Переносимые и шаблонные agent instructions отставали от обновлённого defect contract | 2026-06-30 | 2026-06-30 | `fb079d3` | После выравнивания repo-local правил portable copy и template сохраняли старую формулировку, что снова создавало риск drift в новых проектах. |
 
 ## Won't Fix
 
