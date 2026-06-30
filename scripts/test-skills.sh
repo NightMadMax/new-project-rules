@@ -48,8 +48,6 @@ check_skill() {
 
 check_skill setup-new-computer
 check_skill create-new-project
-check_skill assess-existing-project
-check_skill standardize-existing-project
 check_skill promote-project-knowledge
 check_skill reflect-and-record
 
