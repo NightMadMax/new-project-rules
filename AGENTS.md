@@ -35,6 +35,18 @@
 - Do not edit `AGENTS.md` or `CLAUDE.md` mid-session; it invalidates the cached
   prompt prefix. Record new rules between sessions.
 
+## Rule Authoring
+
+- Keep instruction files compact (target ~150 lines); over-long files get
+  ignored from the bottom. Move detail into `docs/` or skills.
+- Prefer specific negative instructions ("don't use X — use Y") and exact
+  commands over prose like "write clean code".
+- Lead with the most critical, non-negotiable rules and group them by task.
+- State the reason, then the rule; avoid vague directives and aspirational rules
+  not reflected in the codebase.
+- Verify a rule sticks by asking the agent to recite it back; if it cannot, the
+  file is too long or the rule is unclear.
+
 ## Repository Workflow
 
 - Use GitHub for version control and portability between computers.

@@ -12,6 +12,9 @@
 - [[templates/new-project/PLAYBOOK.template|Шаблон Playbook]] и правило
   `Pattern Playbook` (во всех слоях правил и активном `~/.codex/AGENTS.md`):
   фиксировать проверенные удачные паттерны как success-аналог журнала дефектов.
+- Раздел `Rule Authoring` (во всех слоях и `~/.codex/AGENTS.md`): как писать
+  эффективные правила — компактность ~150 строк, negative-инструкции,
+  command-first, группировка по задаче и тест recite-back (из community-практик).
 - Правило `Reflexive Learning` (во всех слоях и `~/.codex/AGENTS.md`): после
   ошибки или поправки агент рефлексирует, обобщает урок и маршрутизирует его в
   DEFECTS / PLAYBOOK / AGENTS / promotion — замыкает петлю обучения.
