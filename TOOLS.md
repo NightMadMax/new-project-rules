@@ -9,6 +9,9 @@
 - Migration plan: `python scripts/plan_migration.py --plan --target project
   --root <project>` или `--target global`. Apply требует fingerprint из
   проверенного плана и явные `--apply --fingerprint <value> --yes`.
+- Supply-chain checks: `python scripts/check-action-pins.py` и
+  `python scripts/test-supply-chain.py`; external Actions разрешены только по
+  full commit SHA, Docker actions — по `sha256` digest.
 - Validator runtime uses only the Python standard library.
 - Install: `python -m pip install -r requirements-dev.txt`.
 - `PyYAML 6.0.3`: required by the official `skill-creator` metadata generator

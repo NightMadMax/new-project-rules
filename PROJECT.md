@@ -30,6 +30,7 @@ related:
 - read-only validator и doctor для project/environment diagnostics.
 - read-only managed-block проверка глобальной policy без изменения active file.
 - fingerprint-защищённый migration engine для legacy metadata и global marker adoption.
+- immutable GitHub Actions policy, Dependabot, macOS smoke и supply-chain threat model.
 
 ## Non-goals
 

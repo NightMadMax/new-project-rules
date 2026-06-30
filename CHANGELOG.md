@@ -4,6 +4,10 @@
 
 ### Добавлено
 
+- Immutable GitHub Actions SHA policy, weekly Dependabot updates и
+  path-triggered/manual macOS smoke workflow.
+- [[docs/security/THREAT_MODEL|Threat model]] bootstrap, Agent Skills, global
+  policy, migrations, knowledge promotion и CI supply chain.
 - Fingerprint-protected migration apply с повторной проверкой preconditions,
   atomic write, точным global backup и идемпотентным повторным запуском.
 - [[ACTIONS|Журнал внешних действий]] для global marker adoption и rollback
@@ -40,6 +44,8 @@
 
 ### Изменено
 
+- Workflow token остаётся read-only, checkout credentials не сохраняются, а
+  CI отклоняет mutable `uses:` references до запуска project tests.
 - Shell и PowerShell bootstrap теперь получают profile composition и index
   relationships напрямую из `config/profiles.tsv`; hardcoded списки артефактов
   удалены без изменения существующих profile outputs.

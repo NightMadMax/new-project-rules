@@ -1,0 +1,57 @@
+name: macos-smoke
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/**"
+      - "config/**"
+      - "scripts/**"
+      - "templates/**"
+      - ".agents/**"
+  pull_request:
+    paths:
+      - ".github/workflows/**"
+      - "config/**"
+      - "scripts/**"
+      - "templates/**"
+      - ".agents/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  smoke:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Verify immutable action pins
+        run: python3 scripts/check-action-pins.py
+      - name: Parse shell scripts
+        run: |
+          for file in scripts/*.sh; do
+            sh -n "$file"
+          done
+      - name: Run shell contract suites
+        run: |
+          sh scripts/test-bootstrap.sh
+          sh scripts/test-contract.sh
+          sh scripts/test-agent-setup.sh
+          sh scripts/test-skills.sh
+      - name: Run Python contract suites
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 scripts/test-validator.py
+          python3 scripts/test-agent-sync.py
+          python3 scripts/test-migration-planner.py
+          python3 scripts/test-supply-chain.py
+          python3 scripts/validate-project.py --root . --kind rules --report-only

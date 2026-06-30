@@ -2,7 +2,7 @@
 type: documentation-index
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -38,6 +38,10 @@ related:
 - [[docs/quality/TESTING|Проверка скриптов]]
 - [[docs/quality/DEFECTS|Реестр дефектов]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
+
+## Безопасность
+
+- [[docs/security/THREAT_MODEL|Threat model bootstrap и CI supply chain]]
 
 ## Стандартная структура нового проекта
 

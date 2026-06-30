@@ -34,6 +34,7 @@
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
+| [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | [[.agents/skills/setup-new-computer/SKILL|setup-new-computer]] | Универсальный workflow настройки компьютера |
 | [[.agents/skills/create-new-project/SKILL|create-new-project]] | Универсальный workflow создания проекта |
@@ -71,4 +72,8 @@
 | `scripts/test-skills.ps1` | Проверка универсальных skills и Claude-мостов (Windows) |
 | `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
 | `scripts/test-powershell-environment.ps1` | Regression test изоляции HOME/Git environment между PowerShell suites |
+| `scripts/check-action-pins.py` | Запрет mutable external Action references |
+| `scripts/test-supply-chain.py` | Regression tests Action SHA/Docker digest policy |
+| `.github/dependabot.yml` | Еженедельные GitHub Actions updates |
 | `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |
+| `.github/workflows/macos-smoke.yml` | Path-triggered и ручной macOS smoke suite |

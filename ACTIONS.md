@@ -17,3 +17,5 @@ related:
 | Date | Action | Target | Status | Evidence / rollback |
 |---|---|---|---|---|
 | 2026-06-30 | Adopt global managed-policy markers | `~/.codex/AGENTS.md` | completed | Commit `e4dcd52`; fingerprint `05a3a369…51120`; backup `AGENTS.md.bak.20260630T004702Z`, SHA-256 `0cbba770…4f4198`; postcondition `managed_match`, repeated apply `up_to_date`. Rollback: atomic restore из backup. |
+| 2026-06-30 | Audit/apply default-branch protection | GitHub `NightMadMax/new-project-rules` | blocked | Rulesets и classic branch protection APIs вернули `403`: private repo требует GitHub Pro либо public visibility. State не изменён; повторить после смены plan/visibility. |
+| 2026-06-30 | Verify workflow token defaults | GitHub `NightMadMax/new-project-rules` | completed | API: `default_workflow_permissions=read`, `can_approve_pull_request_reviews=false`; изменение не требовалось. |

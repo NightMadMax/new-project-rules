@@ -15,7 +15,11 @@ jobs:
   shell:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Verify immutable action pins
+        run: python3 scripts/check-action-pins.py
       - name: Lint shell scripts
         run: |
           for f in scripts/*.sh; do
@@ -33,6 +37,7 @@ jobs:
           python3 scripts/test-validator.py
           python3 scripts/test-agent-sync.py
           python3 scripts/test-migration-planner.py
+          python3 scripts/test-supply-chain.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -48,7 +53,12 @@ jobs:
   powershell:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+      - name: Verify immutable action pins
+        shell: powershell
+        run: python .\scripts\check-action-pins.py
       - name: Parse-check PowerShell scripts with Windows PowerShell 5.1
         shell: powershell
         run: .\scripts\test-powershell-syntax.ps1
@@ -62,6 +72,7 @@ jobs:
           python .\scripts\test-validator.py
           python .\scripts\test-agent-sync.py
           python .\scripts\test-migration-planner.py
+          python .\scripts\test-supply-chain.py
       - name: Validator report on Windows
         shell: powershell
         run: |

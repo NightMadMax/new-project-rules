@@ -21,6 +21,13 @@ source_of_truth: repository
 | Threat | Impact | Likelihood | Mitigation | Verification |
 |---|---|---|---|---|
 
+## Software Supply Chain
+
+- Зафиксируйте внешние dependencies, CI actions, package registries и
+  credentials, пересекающие trust boundary.
+- Для каждого контроля укажите pin/lock/provenance, механизм обновления и
+  проверяемый rollback. Не считайте mutable tag или branch immutable source.
+
 ## Assumptions and Residual Risks
 
 - Проверяемые предположения и принятые остаточные риски.
