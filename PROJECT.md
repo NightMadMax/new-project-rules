@@ -18,6 +18,22 @@ related:
 Хранить единый переносимый стандарт создания новых проектов для AI-агентов
 (Codex, Claude Code и других AGENTS.md-совместимых), Obsidian и GitHub.
 
+## Краткое техническое описание
+
+Проект предназначен для того, чтобы новый репозиторий можно было создать не как
+разовый набор файлов, а как повторяемый стандарт с проверяемой структурой,
+едиными правилами для агентов и предсказуемой документацией.
+
+На практике он:
+
+- создаёт каркас нового проекта по профилю;
+- задаёт единый источник правил через `AGENTS.md` и импорт в `CLAUDE.md`;
+- поддерживает модель "одна папка проекта = git root = папка внутри общего
+  Obsidian vault";
+- валидирует структуру проекта и среду;
+- помогает безопасно эволюционировать стандарт через versioned contracts и
+  migration plans.
+
 ## Scope
 
 - [[GLOBAL_AGENT_INSTRUCTIONS|глобальные инструкции агента]];
@@ -46,3 +62,12 @@ related:
 - bootstrap создаёт согласованную структуру нового проекта;
 - новый проект не зависит от исходного компьютера;
 - инструкции одинаково трактуют vault, repo и Markdown-файлы.
+
+## Основные команды пользователя
+
+- `./scripts/setup-global-agents.sh` или `.\scripts\setup-global-agents.ps1` — один раз настроить глобальные правила Codex/Claude.
+- `./scripts/bootstrap-new-project.sh ...` или `.\scripts\bootstrap-new-project.ps1 ...` — создать новый проект.
+- `./scripts/project-doctor.sh --root . --agent-mode codex` или `.\scripts\project-doctor.ps1 -Root . -AgentMode codex` — проверить среду и проект.
+- `./scripts/validate-project.sh --root . --kind rules` или `.\scripts\validate-project.ps1 -Root . -Kind rules` — запустить read-only validator.
+- `./scripts/sync-global-agents.sh --check` или `.\scripts\sync-global-agents.ps1 -Check` — проверить глобальные правила Codex/Claude.
+- `./scripts/plan-migration.sh --plan ...` или `.\scripts\plan-migration.ps1 -Plan ...` — построить migration plan.
