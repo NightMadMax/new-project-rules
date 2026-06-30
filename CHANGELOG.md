@@ -9,6 +9,13 @@
   агентов и приоритизированный план улучшений правил и настройки компьютера.
 - Раздел `Done when` в шаблоне [[templates/new-project/AGENTS.template|AGENTS]]
   для явных критериев готовности и самопроверки агента.
+- [[templates/new-project/PLAYBOOK.template|Шаблон Playbook]] и правило
+  `Pattern Playbook` (во всех слоях правил и активном `~/.codex/AGENTS.md`):
+  фиксировать проверенные удачные паттерны как success-аналог журнала дефектов.
+- Подтверждение Claude-специфики (settings keys, hooks events, `.claude/rules/`
+  с `paths:`, subagents, MCP `.mcp.json`) по `code.claude.com/docs` в
+  [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|исследовании]]; поправлены
+  выдуманные `subagentStatusLine` и `disable-model-invocation` для субагентов.
 - Immutable GitHub Actions SHA policy, weekly Dependabot updates и
   path-triggered/manual macOS smoke workflow.
 - [[docs/security/THREAT_MODEL|Threat model]] bootstrap, Agent Skills, global

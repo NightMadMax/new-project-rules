@@ -79,23 +79,48 @@ related:
    промпта (prompt caching).
 8. Рекомендованный элемент AGENTS.md — раздел критериев готовности «Done when».
 
-### Claude Code: к проверке по `code.claude.com/docs`
+### Claude Code: сверено по `code.claude.com/docs` (2026-06-30)
 
-Подтверждены концептуально, но конкретные ключи не сверены с первоисточником и
-требуют проверки перед фиксацией в стандарте:
+Подтверждено первоисточником:
 
-- Иерархия `CLAUDE.md` (managed / user `~/.claude` / project / `CLAUDE.local.md`
-  / subdirectory) и возможные path-scoped rules `.claude/rules/` с `paths:`.
-- `.claude/settings.json` / `settings.local.json`, блок `permissions`
-  (`allow`/`deny`/`ask`), env, model.
-- Hooks: `PreToolUse`/`PostToolUse`/`SessionStart`/`UserPromptSubmit`/`Stop`
-  и т.д.; блокирующий `PreToolUse` через ненулевой exit code.
-- Subagents `.claude/agents/*.md` с frontmatter (`name`, `description`, `tools`,
-  `model`).
-- MCP через `.mcp.json` (project) и user scope.
-- Конкретные ключи `effortLevel`, `autoMemoryEnabled`, `subagentStatusLine`,
-  событие `InstructionsLoaded`, номер версии — НЕ подтверждены, не вносить без
-  проверки.
+- Иерархия `CLAUDE.md` по load order: managed policy
+  (`/Library/Application Support/ClaudeCode/CLAUDE.md`,
+  `/etc/claude-code/CLAUDE.md`, `C:\Program Files\ClaudeCode\CLAUDE.md`) →
+  user `~/.claude/CLAUDE.md` → project `./CLAUDE.md` или `./.claude/CLAUDE.md` →
+  `./CLAUDE.local.md`; subdirectory `CLAUDE.md` грузятся on-demand.
+- `@path` импорты (относительные/абсолютные, макс. 4 hops; пропускают code
+  spans/blocks). Цель < 200 строк на файл.
+- `.claude/rules/*.md` с YAML-полем `paths:` (glob, brace expansion); правила
+  без `paths` грузятся всегда; `~/.claude/rules/` — user-level; шаринг через
+  symlink.
+- AGENTS.md import-паттерн (`@AGENTS.md`, опционально Claude-специфика ниже) —
+  официально рекомендованный способ; symlink — альтернатива, но на Windows
+  требует прав, поэтому import предпочтителен. Это ровно текущий подход стандарта.
+- `.claude/settings.json` / `settings.local.json` / user `~/.claude/settings.json`
+  / managed; ключи `permissions` (`allow`/`deny`/`ask`), `hooks`, `env`,
+  `model`, `effortLevel`, `autoMemoryEnabled`, `autoMemoryDirectory`,
+  `fileCheckpointingEnabled`, `alwaysThinkingEnabled`, `outputStyle`,
+  `claudeMd`, `claudeMdExcludes` — существуют.
+- Hooks events: `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`,
+  `Stop`, `PreCompact`/`PostCompact`, `InstructionsLoaded`, `SubagentStart/Stop`
+  и др.; блок `PreToolUse` через `exit 2` (stderr) или JSON
+  `permissionDecision: "deny"`; `matcher` по имени инструмента (`Edit|Write`).
+- Subagents `.claude/agents/*.md` (project, prec. 3) и `~/.claude/agents/`
+  (user, prec. 4); обязательны только `name` и `description`; поля `tools`,
+  `model`, `permissionMode`, `mcpServers`, `hooks`, `memory`, `isolation`,
+  `color`. Субагенты могут иметь собственную auto memory.
+- MCP: project scope через версионируемый `.mcp.json` в корне (требует
+  approval); local scope в `~/.claude.json`; user scope. Секреты — через
+  `${VAR}` expansion и `--env`, не в файле.
+- Auto memory: `~/.claude/projects/<project>/memory/MEMORY.md`, первые 200
+  строк/25KB в каждую сессию, machine-local, требует v2.1.59+.
+
+Поправки к черновому отчёту:
+
+- `subagentStatusLine` — такого ключа нет (выдумано). Не использовать.
+- `disable-model-invocation` как поле субагента не подтверждено (вероятно
+  относится к skills, не к subagents). Управление авто-делегированием субагентов
+  идёт через `description`.
 
 ## Conclusion
 

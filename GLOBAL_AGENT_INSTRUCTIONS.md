@@ -132,6 +132,20 @@
   repurposed.
 - Keep every project artifact inside the project root.
 
+## Pattern Playbook
+
+- Record a verified, reusable successful pattern in `docs/quality/PLAYBOOK.md`
+  once it has proven correct at least twice — the success-side counterpart to
+  the defect log, so the agent repeats the known-good approach instead of
+  rediscovering it.
+- Each entry includes a short title, the date added, the component, the concrete
+  known-good steps, and the evidence (commits/PRs or a passing test).
+- Keep playbook entries project-specific. When a pattern is reusable across
+  projects and free of private context, propose it for Knowledge Promotion
+  instead of leaving it only in the project.
+- Create `docs/quality/PLAYBOOK.md` from the project template the first time a
+  pattern qualifies; do not pre-create it empty.
+
 ## Knowledge Promotion
 
 - Keep project-specific facts, architecture, defects, decisions, research, and

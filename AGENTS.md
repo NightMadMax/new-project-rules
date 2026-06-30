@@ -108,6 +108,17 @@
 - When applicability is uncertain, keep the knowledge in the source project and
   propose promotion for user review instead of changing the shared standard.
 
+## Pattern Playbook
+
+- Record a verified, reusable successful pattern in `docs/quality/PLAYBOOK.md`
+  once it has proven correct at least twice — the success-side counterpart to
+  the defect log, so the agent repeats the known-good approach.
+- Each entry includes a short title, the date added, the component, the concrete
+  known-good steps, and the evidence (commits/PRs or a passing test).
+- Keep entries project-specific; propose cross-project patterns for promotion
+  instead of leaving them only here. Create the file from the template the first
+  time a pattern qualifies; do not pre-create it empty.
+
 ## Verification
 
 - Validate shell scripts with `sh -n`.

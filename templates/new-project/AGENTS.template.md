@@ -109,3 +109,14 @@ checkable conditions. Delete this section until the project has real criteria.
 - When fixed, keep the entry and add the fix date and commit reference.
 - Check existing open defects before changing the affected component.
 - If the defect log does not exist, create it from the shared project template.
+
+## Pattern Playbook
+
+- Record a verified, reusable successful pattern in `docs/quality/PLAYBOOK.md`
+  once it has proven correct at least twice — the success-side counterpart to
+  the defect log, so the agent repeats the known-good approach.
+- Each entry includes a short title, the date added, the component, the concrete
+  known-good steps, and the evidence (commits/PRs or a passing test).
+- Keep entries project-specific; propose cross-project patterns for promotion.
+  Create the file from the template the first time a pattern qualifies; do not
+  pre-create it empty.
