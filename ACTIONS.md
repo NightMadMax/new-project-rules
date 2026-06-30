@@ -16,4 +16,4 @@ related:
 
 | Date | Action | Target | Status | Evidence / rollback |
 |---|---|---|---|---|
-| 2026-06-30 | Adopt global managed-policy markers | `~/.codex/AGENTS.md` | planned | Выполнить только по fingerprint-reviewed plan; rollback через timestamped backup. |
+| 2026-06-30 | Adopt global managed-policy markers | `~/.codex/AGENTS.md` | completed | Commit `e4dcd52`; fingerprint `05a3a369…51120`; backup `AGENTS.md.bak.20260630T004702Z`, SHA-256 `0cbba770…4f4198`; postcondition `managed_match`, repeated apply `up_to_date`. Rollback: atomic restore из backup. |
