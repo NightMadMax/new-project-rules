@@ -17,8 +17,7 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 21 | Верхнеуровневые документы дублируют per-command manual | 2026-06-30 | README / OVERVIEW / PROJECT / docs/guides | Один и тот же командный материал был размножен между верхнеуровневыми описаниями и guide-файлами, что создаёт риск drift при изменении флагов и workflow. |
-| 22 | Guide по новому компьютеру не объясняет агентский workflow достаточно явно | 2026-06-30 | docs/guides/SETUP_NEW_COMPUTER.md / CREATE_NEW_PROJECT.md | В guide был ручной сценарий и только краткое упоминание skill-команды, но не было явных примеров запросов пользователю и ожидаемого поведения агента для настройки нового компьютера и создания нового проекта. |
+| Нет открытых дефектов |  |  |  |  |
 
 ## Fixed
 
@@ -43,6 +42,8 @@ related:
 | 18 | Validator падает на JSON metadata с non-object root | 2026-06-29 | 2026-06-29 | `d760c69` | После schema finding non-object JSON передавался дальше как metadata dict; теперь downstream получает `None`, а regression test проверяет finding без traceback. |
 | 19 | create-new-project планирует metadata до clean-tree commit | 2026-06-30 | 2026-06-30 | `e4dcd52` | Workflow запускал plan до commit стартовых документов; теперь completed configuration коммитится до plan, а metadata — отдельным commit после apply. |
 | 20 | Migration apply может заменить symlink обычным файлом | 2026-06-30 | 2026-06-30 | `e4dcd52` | Atomic replace не различал file и symlink; project/global plans теперь блокируют symlink destinations и требуют ручного решения ownership. |
+| 21 | Верхнеуровневые документы дублируют per-command manual | 2026-06-30 | 2026-06-30 | `487a1b6` | Верхний уровень был перегружен повтором per-command manual вместо краткого overview и ссылок на `docs/guides/`, что создавало риск drift. |
+| 22 | Guide по новому компьютеру не объясняет агентский workflow достаточно явно | 2026-06-30 | 2026-06-30 | `487a1b6` | В guide не хватало явных agent-first примеров запросов и ожидаемого поведения; сценарий был в основном ручным. |
 
 ## Won't Fix
 
