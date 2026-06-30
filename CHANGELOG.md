@@ -4,6 +4,16 @@
 
 ### Добавлено
 
+- [[docs/quality/PROMOTION_CANDIDATES|Backlog promotion candidates]] как
+  staging area между project lessons и checked-in standard artifacts.
+- Skills [[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]]
+  и [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]]
+  для двухшагового knowledge-promotion workflow: сначала harvesting и triage,
+  затем реализация approved-кандидата в правила, шаблоны, тесты, guides или
+  skills.
+- [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]]
+  переписан в orchestration-layer над `harvest-project-lessons` и
+  `apply-promotion-candidate`, чтобы не дублировать low-level workflow.
 - [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|Исследование рантайм-возможностей
   Codex/Claude Code 2026]]: сверка стандарта с официальными моделями обоих
   агентов и приоритизированный план улучшений правил и настройки компьютера.

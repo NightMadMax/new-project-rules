@@ -39,13 +39,16 @@
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
+| [[docs/quality/PROMOTION_CANDIDATES|PROMOTION_CANDIDATES.md]] | Очередь кандидатов на перенос lessons в общий стандарт |
 | [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | [[.agents/skills/setup-new-computer/SKILL|setup-new-computer]] | Универсальный workflow настройки компьютера |
 | [[.agents/skills/create-new-project/SKILL|create-new-project]] | Универсальный workflow создания проекта |
 | [[.agents/skills/assess-existing-project/SKILL|assess-existing-project]] | Read-only оценка существующего проекта относительно стандарта |
 | [[.agents/skills/standardize-existing-project/SKILL|standardize-existing-project]] | Выбор и выполнение стратегии стандартизации существующего проекта |
-| [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Проверяемый перенос общего урока в набор правил |
+| [[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]] | Сбор и triage promotion-кандидатов из соседних проектов |
+| [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]] | Перенос одного approved-кандидата в checked-in артефакты стандарта |
+| [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Оркестрация knowledge promotion: local vs harvest vs apply |
 | [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] | Рефлексия ошибки/поправки и запись урока в нужный артефакт |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |
 | `scripts/bootstrap-new-project.ps1` | Создание проекта в Windows PowerShell |

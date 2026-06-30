@@ -8,7 +8,11 @@ related:
   - "[[AGENTS]]"
   - "[[GLOBAL_AGENT_INSTRUCTIONS]]"
   - "[[docs/quality/DEFECTS]]"
+  - "[[docs/quality/PLAYBOOK]]"
+  - "[[docs/quality/PROMOTION_CANDIDATES]]"
   - "[[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]]"
+  - "[[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]]"
+  - "[[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]]"
 ---
 
 # Перенос знаний между проектами
@@ -63,13 +67,36 @@ checked-in документации
 2. Отделить наблюдаемый факт от предполагаемого общего урока.
 3. Проверить критерии promotion и найти независимое подтверждение, когда это
    разумно.
-4. Составить карточку promotion и получить согласие пользователя, если перенос
+4. Перед прямым переносом решить, какая ветка workflow нужна:
+   оставить lesson в исходном проекте, сначала собрать candidate или уже
+   применить approved candidate.
+5. Составить карточку promotion и получить согласие пользователя, если перенос
    не был явно запрошен.
-5. Реализовать обобщённое изменение в `new-project-rules` вместе с тестом или
+6. Реализовать обобщённое изменение в `new-project-rules` вместе с тестом или
    другой проверкой.
-6. Обновить все связанные источники правил, шаблоны, skills, индексы и журнал
+7. Обновить все связанные источники правил, шаблоны, skills, индексы и журнал
    изменений в одной задаче.
-7. Сохранить ссылку на исходный артефакт, не копируя его приватное содержание.
+8. Сохранить ссылку на исходный артефакт, не копируя его приватное содержание.
+
+## Operational workflow
+
+Для регулярного обогащения общего стандарта используйте двухшаговый pipeline:
+
+1. [[.agents/skills/harvest-project-lessons/SKILL|`harvest-project-lessons`]]
+   просматривает соседние git-проекты, извлекает кандидатов из `DEFECTS`,
+   `PLAYBOOK`, ADR, research и runbook, а затем нормализует их в
+   [[docs/quality/PROMOTION_CANDIDATES|`PROMOTION_CANDIDATES`]].
+2. Review переводит запись в `approved` или `rejected`.
+3. [[.agents/skills/apply-promotion-candidate/SKILL|`apply-promotion-candidate`]]
+   берёт один `approved` кандидат и превращает его в конкретные checked-in
+   артефакты `new-project-rules`.
+
+Так общий стандарт получает не сырые project lessons, а уже очищенные и
+разобранные кандидаты с понятным target.
+
+`promote-project-knowledge` в этой схеме работает как orchestration entrypoint:
+он не обязан сам менять репозиторий, а сначала определяет, нужна ли ветка
+`harvest` или `apply`.
 
 ## Как связаны DEFECTS, PLAYBOOK и promotion
 
@@ -97,6 +124,25 @@ checked-in документации
 Очищено от секретов и локальных деталей: да/нет
 Проверено: YYYY-MM-DD
 ```
+
+## Backlog кандидатов
+
+Рабочая очередь ведётся в [[docs/quality/PROMOTION_CANDIDATES]]. Это не журнал
+дефектов и не playbook, а staging-area между project lessons и checked-in
+standard artifacts.
+
+Минимальная status model:
+
+- `new` — найден, но ещё не разобран;
+- `triaged` — lesson очищен и связан с target;
+- `approved` — разрешено переносить;
+- `implemented` — перенос выполнен и связан с commit;
+- `rejected` — перенос отклонён.
+
+Кандидат должен указывать не только lesson, но и **форму реализации**:
+`rule`, `template`, `test`, `validator`, `script`, `skill` или `guide`.
+Именно эта привязка позволяет второму workflow переносить урок как change set,
+а не как абстрактную заметку.
 
 ## Примеры
 
