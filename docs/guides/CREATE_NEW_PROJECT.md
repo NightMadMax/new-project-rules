@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-28
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -137,7 +137,21 @@ git remote -v
   -Root "C:\Projects\New Project" -Profile software -ReportOnly
 ```
 
-Planner пока не создаёт `.project-standard.json`; подробности и preconditions:
-[[docs/guides/PLAN_MIGRATIONS|планирование миграций]].
+Скопируйте fingerprint только после review и примените план:
+
+```sh
+./scripts/plan-migration.sh --apply --target project \
+  --root "/path/to/New Project" --profile software \
+  --fingerprint "<64-hex>" --yes
+```
+
+```powershell
+.\scripts\plan-migration.ps1 -Apply -Target project `
+  -Root "C:\Projects\New Project" -Profile software `
+  -Fingerprint "<64-hex>" -Confirm
+```
+
+До plan дерево должно быть чистым; после apply проверьте и отдельно закоммитьте
+только `.project-standard.json`. Подробности: [[docs/guides/PLAN_MIGRATIONS|планирование миграций]].
 
 Следующий сценарий: [[docs/guides/SETUP_NEW_COMPUTER|подключение нового компьютера]].

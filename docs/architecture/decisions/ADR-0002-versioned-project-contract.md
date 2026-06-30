@@ -2,7 +2,7 @@
 type: decision
 status: accepted
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[docs/architecture/ARCHITECTURE|ARCHITECTURE]]"
@@ -59,5 +59,6 @@ Regression tests проверяют каждую реализацию, но не
   output без правок adapters.
 - Stage C: validator и doctor проверяют contract read-only.
 - Stage D: managed global policy parser реализует secret-safe check/diff.
-- Stage E (plan-only): `config/migrations.tsv`, общая metadata schema и planner
-  строят reviewable планы; mutation намеренно ещё отсутствует.
+- Stage E: `config/migrations.tsv`, общая metadata schema и planner строят
+  reviewable планы; apply защищён fingerprint, повторной проверкой, atomic write
+  и backup для global policy.

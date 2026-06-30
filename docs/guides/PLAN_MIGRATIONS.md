@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[docs/architecture/PROJECT_STANDARD_SCHEMA]]"
@@ -13,9 +13,10 @@ related:
 
 # Планирование миграций
 
-Planner строит reviewable план перехода legacy state (`schema=0`) к текущему
-стандарту. На этом этапе доступен только `--plan`: он не создаёт metadata, не
-добавляет markers и не делает backup.
+Migration engine строит reviewable план перехода legacy state (`schema=0`) к
+текущему стандарту. `--plan` ничего не меняет и выдаёт fingerprint; `--apply`
+принимает только этот fingerprint, повторно проверяет state и требует явное
+подтверждение.
 
 ## Legacy project
 
@@ -44,6 +45,25 @@ Planner:
 Статус `blocked` означает, что план построен, но apply был бы небезопасен:
 например, профиль неоднозначен, tree dirty или metadata уже повреждена.
 
+После review скопируйте fingerprint из того же плана:
+
+```sh
+./scripts/plan-migration.sh --apply --target project \
+  --root "/path/to/project" --profile software \
+  --fingerprint "<64-hex>" --yes
+```
+
+```powershell
+.\scripts\plan-migration.ps1 -Apply -Target project `
+  -Root "C:\Projects\Example" -Profile software `
+  -Fingerprint "<64-hex>" -Confirm
+```
+
+Apply создаёт только `.project-standard.json` через temporary file и atomic
+replace. Файл остаётся unstaged: проверьте `git diff -- .project-standard.json`
+и закоммитьте его отдельно. Повторный запуск возвращает `up_to_date`. Existing
+metadata symlink блокируется и автоматически не заменяется.
+
 ## Global policy
 
 ```sh
@@ -59,12 +79,30 @@ Planner:
 используются только состояние, диапазоны, число строк и SHA-256. Конфликт,
 повреждённые markers или unsupported schema блокируют adoption.
 
+Подтверждённый apply:
+
+```sh
+./scripts/plan-migration.sh --apply --target global \
+  --fingerprint "<64-hex>" --yes
+```
+
+```powershell
+.\scripts\plan-migration.ps1 -Apply -Target global `
+  -Fingerprint "<64-hex>" -Confirm
+```
+
+Перед atomic replace создаётся побайтовый backup рядом с active file:
+`AGENTS.md.bak.<UTC timestamp>`. Если active state изменился после plan или во
+время backup, apply останавливается. Rollback — заменить active file этим backup
+и повторно запустить check/plan. Existing `AGENTS.md` symlink автоматически не
+заменяется: plan будет `blocked`, пока владение ссылкой не разобрано вручную.
+
 ## Exit codes
 
-- `0` — план готов или migration не требуется;
+- `0` — план готов, apply verified или migration не требуется;
 - `1` — план заблокирован precondition;
 - `2` — некорректная команда или migration contract;
 - `--report-only` / `-ReportOnly` — всегда `0` после вывода отчёта.
 
-Каждый отчёт завершается `No files were changed.`. Apply появится только после
-отдельной реализации backup, clean-tree recheck, atomic write и idempotence.
+Read-only отчёт завершается `No files were changed.`. `--report-only` запрещён
+с `--apply`, а fingerprint/confirmation нельзя передавать режиму `--plan`.

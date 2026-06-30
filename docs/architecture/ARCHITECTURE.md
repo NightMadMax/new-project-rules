@@ -2,7 +2,7 @@
 type: architecture
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[PROJECT]]"
@@ -62,4 +62,7 @@ Python 3.9 standard library. Native wrappers проверяют runtime и со�
 которую используют validator и `scripts/plan_migration.py`. Planner проверяет
 точный профиль, clean Git trees и committed provenance, затем показывает
 reviewable project JSON или secret-safe global structural plan. Текущая граница
-заканчивается на `--plan`: write path и `--apply` отсутствуют.
+apply требует точный fingerprint просмотренного плана и явный confirmation.
+Перед записью planner повторяет preconditions: project target получает один
+atomic-written unstaged metadata file, а global target — побайтовый timestamped
+backup и atomic replace с сохранением внешнего пользовательского текста.

@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[GLOBAL_AGENT_INSTRUCTIONS]]"
@@ -14,8 +14,9 @@ related:
 # Read-only синхронизация глобальных правил
 
 Инструмент сравнивает переносимую политику из
-[[GLOBAL_AGENT_INSTRUCTIONS]] с `~/.codex/AGENTS.md`. Текущий этап только
-проверяет состояние и строит secret-safe план: команды записи и `--apply` нет.
+[[GLOBAL_AGENT_INSTRUCTIONS]] с `~/.codex/AGENTS.md`. `sync-global-agents`
+остаётся read-only; подтверждаемую запись выполняет отдельный migration engine
+по [[docs/guides/PLAN_MIGRATIONS|reviewed fingerprint-плану]].
 
 ## Managed block
 
@@ -69,7 +70,7 @@ doctor.
 диапазоны строк, число строк и SHA-256 исходного/ожидаемого блока. Поэтому
 случайная локальная инструкция или секрет не попадает в terminal и CI logs.
 
-На текущем компьютере ожидаемое переходное состояние — `legacy_exact`:
-содержимое уже правильное, но markers будут добавлены только отдельной
-подтверждаемой миграцией с preview и backup. Read-only команды не меняют ни
+До migration ожидаемое переходное состояние — `legacy_exact`: содержимое уже
+правильное, но markers добавляются только отдельной подтверждаемой миграцией с
+preview и backup. Read-only команды не меняют ни
 `~/.codex/AGENTS.md`, ни `~/.claude/CLAUDE.md`.

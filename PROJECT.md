@@ -2,7 +2,7 @@
 type: project
 status: active
 owner: mx
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -29,7 +29,7 @@ related:
 - версионируемый контракт профилей и policy invariants.
 - read-only validator и doctor для project/environment diagnostics.
 - read-only managed-block проверка глобальной policy без изменения active file.
-- plan-only migration engine для legacy metadata и global marker adoption.
+- fingerprint-защищённый migration engine для legacy metadata и global marker adoption.
 
 ## Non-goals
 

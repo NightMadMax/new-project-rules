@@ -4,6 +4,10 @@
 
 ### Добавлено
 
+- Fingerprint-protected migration apply с повторной проверкой preconditions,
+  atomic write, точным global backup и идемпотентным повторным запуском.
+- [[ACTIONS|Журнал внешних действий]] для global marker adoption и rollback
+  evidence.
 - Plan-only migration engine с TSV manifest, clean-tree preconditions,
   reviewable project metadata preview и secret-safe global adoption plan.
 - [[docs/architecture/PROJECT_STANDARD_SCHEMA|Schema `.project-standard.json`]]

@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -17,7 +17,8 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| — | | | | |
+| 19 | create-new-project планирует metadata до clean-tree commit | 2026-06-30 | `create-new-project` skill | Workflow запускает migration plan после редактирования стартовых документов, но до commit; обязательный clean-tree guard закономерно блокирует plan. |
+| 20 | Migration apply может заменить symlink обычным файлом | 2026-06-30 | `plan_migration.py` | Existing destination через symlink читается как обычный файл, а `os.replace` заменил бы ссылку вместо безопасного обновления её target; broken project metadata symlink также выглядел бы отсутствующим. |
 
 ## Fixed
 

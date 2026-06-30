@@ -8,6 +8,7 @@
 | [[CLAUDE|CLAUDE.md]] | Imports [[AGENTS]] for Claude Code |
 | [[GLOBAL_AGENT_INSTRUCTIONS|GLOBAL_AGENT_INSTRUCTIONS.md]] | Переносимый блок глобальных инструкций агента |
 | [[PROJECT|PROJECT.md]] | Цели, scope, ограничения и критерии успеха |
+| [[ACTIONS|ACTIONS.md]] | Журнал значимых действий вне Git и rollback evidence |
 | `STANDARD_VERSION` | Версия схемы project standard |
 | `config/profiles.tsv` | Канонический состав bootstrap-профилей и index relationships |
 | `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
@@ -60,7 +61,7 @@
 | `scripts/sync-global-agents.ps1` | Global policy sync inspection для Windows |
 | `scripts/test-agent-sync.py` | Regression tests managed-block states и отсутствия mutation |
 | `scripts/project_metadata.py` | Общая schema validation и rendering project metadata |
-| `scripts/plan_migration.py` | Read-only migration planner для project/global targets |
+| `scripts/plan_migration.py` | Fingerprint-защищённый migration planner/executor для project/global targets |
 | `scripts/plan-migration.sh` | Migration planner wrapper для macOS/Linux |
 | `scripts/plan-migration.ps1` | Migration planner wrapper для Windows |
 | `scripts/test-migration-planner.py` | Regression tests manifests, blockers, previews и no-mutation |

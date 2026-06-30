@@ -7,7 +7,8 @@
 - Global policy inspection: `python scripts/sync_global_agents.py --check` или
   `python scripts/sync_global_agents.py --diff --report-only`.
 - Migration plan: `python scripts/plan_migration.py --plan --target project
-  --root <project>` или `--target global`; apply пока отсутствует.
+  --root <project>` или `--target global`. Apply требует fingerprint из
+  проверенного плана и явные `--apply --fingerprint <value> --yes`.
 - Validator runtime uses only the Python standard library.
 - Install: `python -m pip install -r requirements-dev.txt`.
 - `PyYAML 6.0.3`: required by the official `skill-creator` metadata generator

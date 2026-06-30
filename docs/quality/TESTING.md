@@ -2,7 +2,7 @@
 type: testing
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-06-30
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -95,6 +95,11 @@ Parser-check обязан возвращать ненулевой код, есл
   clean-tree blockers и строгая `.project-standard.json` schema;
 - reviewable metadata preview, secret-safe global adoption plan, стабильные
   planner exit codes и доказательство отсутствия mutation;
+- fingerprint mismatch/stale preimage rejection, обязательный confirmation,
+  atomic-write cleanup при interruption и повторная pre-apply validation;
+- project apply как единственный unstaged metadata file, точный global backup,
+  managed-match postcondition и идемпотентный повторный apply;
+- отказ global migration заменять existing symlink обычным файлом;
 - восстановление HOME/Git process environment после PowerShell bootstrap и
   contract suites, включая отсутствие пустых identity variables;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;

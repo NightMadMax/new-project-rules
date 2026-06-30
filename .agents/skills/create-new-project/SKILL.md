@@ -47,21 +47,25 @@ description: Создаёт новый проект внутри общего Ob
    - Windows: `.\scripts\validate-project.ps1 -Root <destination> -Kind project -Profile <profile>`.
    При отсутствии Python выполнить существующие ручные проверки и явно сообщить,
    что расширенная валидация пропущена; не устанавливать Python без разрешения.
-7. Построить read-only plan adoption metadata с явным выбранным profile:
+7. Если bootstrap создал начальный commit до заполнения документов, сделать
+   отдельный осмысленный commit с завершённой конфигурацией. Перед migration
+   plan рабочее дерево обязано быть чистым.
+8. Построить plan adoption metadata с явным выбранным profile:
    - macOS/Linux: `./scripts/plan-migration.sh --plan --target project --root <destination> --profile <profile> --report-only`;
    - Windows: `.\scripts\plan-migration.ps1 -Plan -Target project -Root <destination> -Profile <profile> -ReportOnly`.
-   Не создавать `.project-standard.json` вручную: текущий этап только показывает
-   reviewable план и preconditions будущего apply.
-8. Если bootstrap создал начальный commit до заполнения документов, сделать
-   отдельный осмысленный commit с завершённой конфигурацией.
-9. Создать и отправить GitHub repository через `gh repo create` с выбранной
+   Проверить preview и сохранить выданный fingerprint. Если plan `ready`,
+   применить его через `--apply --fingerprint <value> --yes` или PowerShell
+   `-Apply -Fingerprint <value> -Confirm`; не создавать metadata вручную.
+9. Проверить, что apply добавил только `.project-standard.json`, повторный plan
+   возвращает `up_to_date`, затем закоммитить metadata отдельным commit.
+10. Создать и отправить GitHub repository через `gh repo create` с выбранной
    visibility, `--source`, `--remote=origin` и `--push`. Не менять существующий
    remote и не перезаписывать repository с совпавшим именем.
 
 ## Проверить результат
 
 1. Запустить подходящие проверки нового проекта и проверить их exit codes,
-   включая validator и migration plan, когда Python доступен.
+   включая validator и migration status `up_to_date`, когда Python доступен.
 2. Проверить `git status --short --branch`, `git remote -v` и наличие commit в
    `origin/main`.
 3. Убедиться, что папка проекта находится внутри общего Obsidian vault, но сама

@@ -12,6 +12,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -85,6 +86,7 @@ class MigrationPlannerTests(unittest.TestCase):
         plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "ready")
         self.assertEqual(plan.migration_id, "0001-adopt-project-standard")
+        self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
         metadata = json.loads(plan.preview)
         self.assertEqual(metadata["profile"], "software")
         self.assertIsNone(metadata["created_at"])
@@ -94,6 +96,19 @@ class MigrationPlannerTests(unittest.TestCase):
         ))
         self.assertEqual(before, digest_tree(project))
         self.assertFalse((project / ".project-standard.json").exists())
+
+    def test_project_apply_is_atomic_reviewable_and_idempotent(self):
+        project = self.make_project("minimal")
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        result = planner.apply_plan(plan)
+        metadata_path = project / ".project-standard.json"
+        self.assertTrue(result.changed)
+        self.assertTrue(metadata_path.is_file())
+        status = subprocess.run(["git", "-C", str(project), "status", "--porcelain"], capture_output=True, text=True)
+        self.assertIn(".project-standard.json", status.stdout)
+        repeated = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(repeated.status, "up_to_date")
+        self.assertFalse(planner.apply_plan(repeated).changed)
 
     def test_project_plan_blocks_ambiguous_and_dirty_state(self):
         ambiguous = self.base / "ambiguous"
@@ -106,6 +121,13 @@ class MigrationPlannerTests(unittest.TestCase):
         plan = planner.project_plan(dirty, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "blocked")
         self.assertIn("not clean", "\n".join(plan.blockers))
+
+    def test_project_metadata_symlink_is_blocked(self):
+        project = self.make_project("minimal")
+        with mock.patch.object(planner.Path, "is_symlink", return_value=True):
+            plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(plan.status, "blocked")
+        self.assertIn("symlink", "\n".join(plan.blockers))
 
     def test_current_metadata_is_up_to_date(self):
         project = self.make_project("minimal")
@@ -138,6 +160,47 @@ class MigrationPlannerTests(unittest.TestCase):
         self.assertIn("sha256=", report)
         self.assertEqual(before, active.read_bytes())
 
+    def test_global_apply_creates_exact_backup_and_is_idempotent(self):
+        home = self.base / "apply-home"
+        active = home / ".codex" / "AGENTS.md"
+        active.parent.mkdir(parents=True)
+        shutil.copy2(self.contract / "GLOBAL_AGENT_INSTRUCTIONS.md", active)
+        before = active.read_bytes()
+        plan = planner.global_plan(home, self.contract, self.migrations, self.version)
+        result = planner.apply_plan(plan)
+        self.assertTrue(result.changed)
+        self.assertIsNotNone(result.backup)
+        assert result.backup is not None
+        self.assertEqual(result.backup.read_bytes(), before)
+        state = planner.agent_sync.inspect_sync_state(
+            self.contract / "GLOBAL_AGENT_INSTRUCTIONS.md", active, self.version
+        )
+        self.assertEqual(state.status, "managed_match")
+        repeated = planner.global_plan(home, self.contract, self.migrations, self.version)
+        self.assertEqual(repeated.status, "up_to_date")
+        self.assertFalse(planner.apply_plan(repeated).changed)
+
+    def test_apply_rejects_stale_preimage_and_cleans_interrupted_temp(self):
+        project = self.make_project("minimal")
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        assert plan.destination is not None
+        readme = project / "README.md"
+        original_readme = readme.read_text(encoding="utf-8")
+        readme.write_text("concurrent project change\n", encoding="utf-8")
+        with self.assertRaises(planner.MigrationApplyError):
+            planner.apply_plan(plan)
+        readme.write_text(original_readme, encoding="utf-8")
+        plan.destination.write_text("concurrent\n", encoding="utf-8")
+        with self.assertRaises(planner.MigrationApplyError):
+            planner.apply_plan(plan)
+        plan.destination.unlink()
+        fresh = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        with mock.patch.object(planner.os, "replace", side_effect=OSError("interrupted")):
+            with self.assertRaises(planner.MigrationApplyError):
+                planner.apply_plan(fresh)
+        self.assertFalse(plan.destination.exists())
+        self.assertEqual(list(project.glob("..project-standard.json.tmp.*")), [])
+
     def test_global_conflict_redacts_active_content(self):
         home = self.base / "conflict-home"
         active = home / ".codex" / "AGENTS.md"
@@ -149,6 +212,16 @@ class MigrationPlannerTests(unittest.TestCase):
         self.assertEqual(plan.status, "blocked")
         self.assertNotIn(secret, report)
 
+    def test_global_symlink_destination_is_blocked(self):
+        home = self.base / "symlink-home"
+        active = home / ".codex" / "AGENTS.md"
+        active.parent.mkdir(parents=True)
+        shutil.copy2(self.contract / "GLOBAL_AGENT_INSTRUCTIONS.md", active)
+        with mock.patch.object(planner.Path, "is_symlink", return_value=True):
+            plan = planner.global_plan(home, self.contract, self.migrations, self.version)
+        self.assertEqual(plan.status, "blocked")
+        self.assertIn("symlink", "\n".join(plan.blockers))
+
     def test_cli_exit_codes_and_no_mutation(self):
         project = self.make_project("minimal")
         before = digest_tree(project)
@@ -157,9 +230,27 @@ class MigrationPlannerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("No files were changed.", result.stdout)
         self.assertEqual(before, digest_tree(project))
-        (project / "README.md").write_text("dirty\n", encoding="utf-8")
-        self.assertEqual(subprocess.run(base, capture_output=True).returncode, 1)
-        self.assertEqual(subprocess.run(base + ["--report-only"], capture_output=True).returncode, 0)
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        apply_base = [
+            sys.executable, str(MODULE_PATH), "--apply", "--target", "project",
+            "--root", str(project), "--contract-root", str(self.contract),
+            "--fingerprint", plan.fingerprint,
+        ]
+        self.assertEqual(subprocess.run(apply_base, capture_output=True).returncode, 2)
+        applied = subprocess.run(apply_base + ["--yes"], capture_output=True, text=True)
+        self.assertEqual(applied.returncode, 0, applied.stderr)
+        self.assertTrue((project / ".project-standard.json").is_file())
+        self.assertEqual(subprocess.run(apply_base + ["--yes"], capture_output=True).returncode, 0)
+
+    def test_cli_rejects_fingerprint_mismatch(self):
+        project = self.make_project("minimal")
+        command = [
+            sys.executable, str(MODULE_PATH), "--apply", "--target", "project",
+            "--root", str(project), "--contract-root", str(self.contract),
+            "--fingerprint", "0" * 64, "--yes",
+        ]
+        self.assertEqual(subprocess.run(command, capture_output=True).returncode, 1)
+        self.assertFalse((project / ".project-standard.json").exists())
 
 
 if __name__ == "__main__":
