@@ -17,9 +17,7 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 30 | `USE_THIS_PROJECT.md` неполон | 2026-07-02 | guides | Секция 8 «Перенести знания» даёт только Codex-вызовы без Claude Code эквивалентов; skill `reflect-and-record` не упомянут вовсе, остальные 7 workflows покрыты. |
-| 31 | CHANGELOG `Unreleased` разросся и отстаёт | 2026-07-02 | changelog | ~105 строк накопили пять версий работы после `v1.9.0`; релиз не нарезан; новый гайд `USE_THIS_PROJECT.md` не отражён. |
-| 32 | `TOOLS.md` не каталогизирует большинство скриптов | 2026-07-02 | tools catalog | 32 из 40 скриптов `scripts/` не упомянуты; нужен каталог либо явная ссылка на [[INDEX]]/[[docs/quality/TESTING|TESTING]] как источник. |
+| Нет открытых дефектов |  |  |  |  |
 
 ## Fixed
 
@@ -53,6 +51,9 @@ related:
 | 27 | Переносимые и шаблонные agent instructions отставали от обновлённого defect contract | 2026-06-30 | 2026-06-30 | `fb079d3` | После выравнивания repo-local правил portable copy и template сохраняли старую формулировку, что снова создавало риск drift в новых проектах. |
 | 28 | Активный `~/.codex/AGENTS.md` разошёлся с переносимой копией, managed markers утрачены | 2026-07-02 | 2026-07-02 | см. [[ACTIONS]] | После adoption 2026-06-30 активный файл был перезаписан старой редакцией без markers (вероятно, старый `setup-global-agents` на другом компьютере; root cause подтвердить). Исправлено: user-reviewed копия portable → active, затем migration `0002` (fingerprint `18a73ff1…f063d`), postcondition `managed_match`. |
 | 29 | `docs/README.md` не содержит два research-файла | 2026-07-02 | 2026-07-02 | `7fb88eb` | Секция «Исследования» не пополнялась при добавлении research-файлов; ссылки на AGENT_RUNTIME_CAPABILITIES_2026 и AGENT_COMMUNITY_PRACTICES_2026 добавлены. |
+| 30 | `USE_THIS_PROJECT.md` неполон | 2026-07-02 | 2026-07-02 | `21f3cdf` | Гайд писался до финализации набора skills: секция knowledge promotion не получила Claude Code эквиваленты, а `reflect-and-record` выпал из перечня workflows. Добавлены `/`-вызовы и секция 9 с фразами и таблицей выбора. |
+| 31 | CHANGELOG `Unreleased` разросся и отстаёт | 2026-07-02 | 2026-07-02 | `21f3cdf` | Пять циклов работы после `v1.9.0` не нарезались в релиз, и записи о новых артефактах отставали. Нарезан `v1.10.0 — 2026-07-02`, добавлены записи о гайде и дефектах 28–29. |
+| 32 | `TOOLS.md` не каталогизирует большинство скриптов | 2026-07-02 | 2026-07-02 | `21f3cdf` | Правило про TOOLS.md выполнялось только для Python/PowerShell runtime. Добавлен раздел `Script entry points`: ссылка на [[INDEX]]/[[docs/quality/TESTING|TESTING]] как авторитетные каталоги, семейства скриптов и явное исключение из правила парности `.sh`/`.ps1`. |
 
 ## Won't Fix
 
