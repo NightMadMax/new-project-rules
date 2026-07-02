@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Добавлено
+
+- Шаг «Консолидация журналов» в skill
+  [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] и шаблон
+  [[templates/new-project/DEFECTS.template|DEFECTS]]: при более чем ~30
+  Fixed-записях старые переносятся в архив. Первая консолидация выполнена:
+  записи 1–27 перенесены в [[docs/quality/DEFECTS_ARCHIVE|архив дефектов]].
+- `.obsidian/` в генерируемый `.gitignore` (bootstrap sh/ps1,
+  standardize-existing-project, локальный `.gitignore`) и заметка в
+  [[docs/architecture/ARCHITECTURE|архитектуре]] о принадлежности `.obsidian/`
+  уровню родительского vault (защита от повторения класса дефекта 15).
+
 ### Исправлено
 
 - Гайд [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT]] дополнен: Claude

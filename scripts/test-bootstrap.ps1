@@ -157,6 +157,7 @@ try {
         Assert-Grep (Join-Path $dir "AGENTS.md") "Test $p" $p
         Assert-Grep (Join-Path $dir "AGENTS.md") "Always answer the user in Russian" $p
         Assert-Grep (Join-Path $dir ".gitignore") "CLAUDE.local.md" $p
+        Assert-Grep (Join-Path $dir ".gitignore") ".obsidian/" $p
         Assert-CleanTree $dir $p
     }
 

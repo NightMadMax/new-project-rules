@@ -451,6 +451,7 @@ def render_artifact(contract_root: Path, destination: str, project_name: str) ->
         return "\n".join((
             ".DS_Store",
             "Thumbs.db",
+            ".obsidian/",
             ".trash/",
             "CLAUDE.local.md",
             ".claude/settings.local.json",

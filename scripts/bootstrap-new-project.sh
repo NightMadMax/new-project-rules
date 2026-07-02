@@ -151,7 +151,7 @@ install_generated() {
   target=$1
   case "$target" in
     .gitignore)
-      printf '%s\n' '.DS_Store' 'Thumbs.db' '.trash/' 'CLAUDE.local.md' \
+      printf '%s\n' '.DS_Store' 'Thumbs.db' '.obsidian/' '.trash/' 'CLAUDE.local.md' \
         '.claude/settings.local.json' '.claude/scheduled_tasks.lock' \
         > "$destination/$target"
       ;;

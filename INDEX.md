@@ -40,6 +40,7 @@
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
+| [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
 | [[docs/quality/PROMOTION_CANDIDATES|PROMOTION_CANDIDATES.md]] | Очередь кандидатов на перенос lessons в общий стандарт |
 | [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |

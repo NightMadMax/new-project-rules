@@ -104,7 +104,7 @@ function Install-Generated {
     switch ($Target) {
         ".gitignore" {
             Write-Utf8NoBom (Join-Path $Destination $Target) @(
-                ".DS_Store", "Thumbs.db", ".trash/", "CLAUDE.local.md",
+                ".DS_Store", "Thumbs.db", ".obsidian/", ".trash/", "CLAUDE.local.md",
                 ".claude/settings.local.json", ".claude/scheduled_tasks.lock"
             )
         }
