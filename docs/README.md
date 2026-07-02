@@ -13,6 +13,7 @@ related:
 
 ## Руководства
 
+- [[docs/guides/USE_THIS_PROJECT|Как работать с этим проектом]]
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]
 - [[docs/guides/ASSESS_EXISTING_PROJECT|Оценка существующего проекта]]
 - [[docs/guides/STANDARDIZE_EXISTING_PROJECT|Стандартизация существующего проекта]]
@@ -34,6 +35,9 @@ related:
 - [[docs/research/PROJECT_ARTIFACT_MODEL|Модель артефактов проекта]]
 - [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|Обязательная база инструментов проекта в 2026 году]]
 - [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план развития policy-системы]]
+- [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|Рантайм-возможности Codex/Claude Code 2026]]
+- [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|Community-практики Claude Code/Codex]]
+- [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта и направления улучшений — июль 2026]]
 
 ## Качество и ревью
 
