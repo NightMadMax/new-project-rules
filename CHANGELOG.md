@@ -13,6 +13,26 @@
   standardize-existing-project, локальный `.gitignore`) и заметка в
   [[docs/architecture/ARCHITECTURE|архитектуре]] о принадлежности `.obsidian/`
   уровню родительского vault (защита от повторения класса дефекта 15).
+- Пакет B аудита 2026-07, правило бюджета цепочки инструкций (рекомендация 3):
+  глобальные плюс проектные правила вместе ≤ ~300 непустых строк — во всех
+  слоях правил; проверка `instructions.chain_budget` в `validate-project.py`
+  для проектного `AGENTS.md` и `AGENTS.template.md` с регрессионными тестами.
+- Правило «не запускать двух агентов одновременно в одной рабочей копии;
+  параллельно — только в отдельных git worktrees» во всех слоях правил
+  (рекомендация 5).
+- Указания для skills (рекомендация 8): ключевые триггеры — в начало
+  `description` SKILL.md, deprecated `~/.codex/prompts` не использовать — в
+  [[docs/guides/AI_KNOWLEDGE_PORTABILITY|гайде о переносимости знаний]] и
+  skill [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]].
+- Первый паттерн в [[docs/quality/PLAYBOOK|PLAYBOOK]]: refresh глобальной
+  managed policy при `managed_drift` по паттерну engine (подтверждён дважды).
+
+### Изменено
+
+- Консолидированы формулировки в `GLOBAL_AGENT_INSTRUCTIONS.md` и `AGENTS.md`
+  без потери правил, чтобы цепочка инструкций осталась в бюджете (299/300
+  непустых строк); активный `~/.codex/AGENTS.md` обновлён по паттерну
+  PLAYBOOK № 1, postcondition `managed_match` (см. [[ACTIONS]]).
 
 ### Исправлено
 

@@ -51,6 +51,8 @@ checkable conditions. Delete this section until the project has real criteria.
 
 - Keep instruction files compact (target ~150 lines); over-long files get
   ignored from the bottom. Move detail into `docs/` or skills.
+- Budget the whole chain: global plus project rules together must stay within
+  ~300 non-empty lines; the shared `validate-project` check warns past it.
 - Prefer specific negative instructions ("don't use X — use Y") and exact
   commands over prose like "write clean code".
 - Lead with the most critical, non-negotiable rules and group them by task.
@@ -66,6 +68,8 @@ checkable conditions. Delete this section until the project has real criteria.
 - Ask before pull requests, releases, issues, remote changes, or destructive
   history operations.
 - Keep paths relative and account for macOS and Windows differences.
+- Never run two agents at the same time in this working copy; parallel agents
+  belong in separate git worktrees.
 
 ## Tool Selection
 

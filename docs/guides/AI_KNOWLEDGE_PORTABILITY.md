@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-29
+last_verified: 2026-07-03
 source_of_truth: repository
 related:
   - "[[AGENTS]]"
@@ -59,6 +59,11 @@ checked-in документации
 ([Codex custom prompts](https://developers.openai.com/codex/custom-prompts)),
 поэтому новые переносимые workflow оформляйте как skill в `.agents/skills/` с
 тонким мостом в `.claude/skills/`, а не как локальные prompts.
+
+Качество поля `description` в SKILL.md критично для имплицитного вызова: при
+нехватке контекста Codex сокращает описания skills первыми, и триггеры в конце
+описания теряются. Ключевые триггеры и типовые фразы пользователя выносите в
+начало `description`.
 
 ## Процесс
 

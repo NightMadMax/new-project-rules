@@ -18,10 +18,8 @@
 ## Markdown Workflow
 
 - Edit Markdown files directly in this project folder.
-- Do not use an Obsidian REST API, helper script, synchronization step, or
-  duplicate Markdown copy.
-- Keep `INDEX.md` updated when a file is added, removed, moved, renamed, or
-  repurposed.
+- Do not use an Obsidian REST API, helper script, or duplicate Markdown copy.
+- Keep `INDEX.md` updated when files change name, location, or purpose.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths
   do not create Obsidian graph connections.
 - `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains
@@ -39,6 +37,8 @@
 
 - Keep instruction files compact (target ~150 lines); over-long files get
   ignored from the bottom. Move detail into `docs/` or skills.
+- Budget the whole chain: global plus project rules together must stay within
+  ~300 non-empty lines; `scripts/validate-project.py` warns past the budget.
 - Prefer specific negative instructions ("don't use X — use Y") and exact
   commands over prose like "write clean code".
 - Lead with the most critical, non-negotiable rules and group them by task.
@@ -55,6 +55,8 @@
 - Ask before creating pull requests, releases, issues, changing remotes, or
   performing destructive history operations.
 - Keep paths relative and scripts portable across macOS and Windows.
+- Never run two agents at the same time in this working copy; parallel agents
+  belong in separate git worktrees.
 
 ## Tool Selection
 

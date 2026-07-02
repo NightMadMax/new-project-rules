@@ -54,6 +54,9 @@
 
 - Keep instruction files compact (target ~150 lines); over-long files get
   ignored from the bottom. Move detail into `docs/` or skills.
+- Budget the whole instruction chain, not one file: global plus project rules
+  together must stay within ~300 non-empty lines, because models reliably
+  follow only ~150–200 instructions per context.
 - Prefer specific negative instructions ("don't use X — use Y") and exact
   commands over prose like "write clean code".
 - Lead with the most critical, non-negotiable rules and group them by task
@@ -82,8 +85,7 @@
   verification quality, do not silently use the weaker workaround. Explain
   what tool is needed, why it is preferable, what will be installed, and ask
   the user for permission before installation.
-- Do not request or perform an installation for a marginal convenience when an
-  available standard tool provides equivalent quality.
+- Do not install for marginal convenience when a standard tool is equivalent.
 - After approval, install through the platform or project package manager,
   verify the installed version, and document project-specific tooling in
   `TOOLS.md` or the appropriate manifest without recording secrets.
@@ -92,8 +94,7 @@
 
 - Edit Markdown files directly in the project folder. They are simultaneously
   repository files and Obsidian notes.
-- Do not use an Obsidian REST API, helper script, synchronization step, or
-  duplicate Markdown copy in the default parent-vault layout.
+- Do not add an Obsidian REST API, helper script, or duplicate Markdown copy.
 - Never store tokens, passwords, private keys, or real credentials in the
   repository, documentation, scripts, or committed shell history.
 - Use Obsidian wikilinks for relationships between Markdown notes. Filenames
@@ -121,8 +122,7 @@
   reference, and root cause when known; do not delete the entry.
 - Before starting work on a component, check `DEFECTS.md` for open issues in
   that area to avoid re-introducing or duplicating known problems.
-- If `docs/quality/DEFECTS.md` does not exist when a defect is found, create it
-  using the project defect template.
+- Create a missing `docs/quality/DEFECTS.md` from the project defect template.
 - When `docs/` exists, maintain `docs/README.md` as its connected documentation
   index.
 - Store current architecture in `docs/architecture/ARCHITECTURE.md` and one
@@ -167,8 +167,7 @@
   verified good approach, `AGENTS.md` for a project rule (between sessions, not
   mid-session), or a promotion proposal when the lesson is reusable across
   projects.
-- Record only abstractable, recurring lessons; skip one-off typos and noise so
-  the defect log and playbook stay signal-dense.
+- Record only abstractable, recurring lessons; skip one-off typos and noise.
 
 ## Knowledge Promotion
 
@@ -189,10 +188,9 @@
 
 ## Operating Rule
 
-- Work directly with Markdown files in the project folder; the parent Obsidian
-  vault indexes those same files.
-- Do not turn each project into a separate vault and do not mirror files to a
-  second vault path.
+- Never run two agents at the same time in one working copy (`.git/index.lock`
+  conflicts, stale reads); run agents in parallel only in separate git
+  worktrees.
 - When a reusable new-project convention changes, update the global agent
   instructions (`~/.codex/AGENTS.md`, imported by `~/.claude/CLAUDE.md`), this
   portable copy, bootstrap documentation, affected templates, and all related

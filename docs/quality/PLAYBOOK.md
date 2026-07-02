@@ -2,7 +2,7 @@
 type: playbook
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-03
 source_of_truth: repository
 related:
   - "[[docs/README]]"
@@ -25,7 +25,7 @@ related:
 
 | # | Title | Added | Component | Pattern | Evidence |
 |---|---|---|---|---|---|
-| — | | | | | |
+| 1 | Refresh глобальной managed policy при `managed_drift` | 2026-07-03 | `~/.codex/AGENTS.md`, `scripts/sync_global_agents.py` | Migration engine намеренно блокирует `managed_drift`; обновлять managed block ручным шагом по паттерну engine: timestamped backup рядом с активным файлом, desired text через `sync_global_agents.desired_text(state)` (сохраняет пользовательский prefix/suffix), запись через `plan_migration.atomic_write`, postcondition `sync-global-agents --check` → `managed_match`, запись в [[ACTIONS]] с SHA-256 и rollback. | Два успешных применения: 2026-07-02 (второй компьютер, дефект 28) и 2026-07-03 (пакет B); записи в [[ACTIONS]]. |
 
 ---
 

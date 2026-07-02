@@ -2,7 +2,7 @@
 type: action-log
 status: active
 owner: project
-last_verified: 2026-07-02
+last_verified: 2026-07-03
 source_of_truth: repository
 related:
   - "[[docs/guides/PLAN_MIGRATIONS]]"
@@ -16,6 +16,7 @@ related:
 
 | Date | Action | Target | Status | Evidence / rollback |
 |---|---|---|---|---|
+| 2026-07-03 | Refresh managed block after package B rule updates | `~/.codex/AGENTS.md` | completed | Пакет B аудита 2026-07: portable policy получила бюджет цепочки инструкций, правило git worktrees и консолидацию формулировок, state стал `managed_drift`. Ручной шаг по паттерну engine ([[docs/quality/PLAYBOOK|PLAYBOOK]] № 1): backup `AGENTS.md.bak.20260702T220018Z` (SHA-256 `78fa7ee3…8743d2`), desired text через `sync_global_agents.desired_text` (prefix/suffix сохранены), atomic replace; postcondition `managed_match`, новый SHA-256 `960c2037…07eb13`. Rollback: atomic restore из backup. |
 | 2026-07-02 | Refresh managed block on second computer after `managed_drift` | `~/.codex/AGENTS.md` (второй компьютер) | completed | Продолжение дефекта 28: managed block содержал редакцию 2026-06-30 (151 строка, SHA-256 `0cbba770…4f4198`), portable policy выросла до 200 строк. Migration engine блокирует `managed_drift`, поэтому user-approved ручной шаг по паттерну engine: backup `AGENTS.md.bak.20260702T153050Z` (SHA-256 `129d1be2…907c94`), desired text через `sync_global_agents.desired_text` (prefix/suffix сохранены), atomic replace; postcondition `managed_match`. Root cause проверен: текущий `setup-global-agents.ps1` существующий файл не перезаписывает. Rollback: atomic restore из backup. |
 | 2026-07-02 | Re-adopt global managed-policy markers after drift | `~/.codex/AGENTS.md` | completed | Дефект 28 ([[docs/quality/DEFECTS|DEFECTS]]): активный файл был перезаписан старой редакцией без markers (`unmanaged_conflict`). Ручной user-reviewed шаг: backup `AGENTS.md.bak-2026-07-02`, копия portable policy поверх активного (`legacy_exact`); затем migration `0002`, fingerprint `18a73ff1…f063d`, engine backup `AGENTS.md.bak.20260702T151955Z`; postcondition `managed_match`. Root cause до конца не установлен — проверить второй компьютер на старый `setup-global-agents`. Rollback: atomic restore из backup. |
 | 2026-06-30 | Adopt global managed-policy markers | `~/.codex/AGENTS.md` | completed | Commit `e4dcd52`; fingerprint `05a3a369…51120`; backup `AGENTS.md.bak.20260630T004702Z`, SHA-256 `0cbba770…4f4198`; postcondition `managed_match`, repeated apply `up_to_date`. Rollback: atomic restore из backup. |
