@@ -4,6 +4,11 @@
 
 ### Добавлено
 
+- [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта — июль 2026]]:
+  внутренний аудит консистентности, сверка с актуальной документацией
+  Codex CLI и Claude Code, community-практики; дефекты 28–32 записаны в
+  [[docs/quality/DEFECTS|DEFECTS]], рекомендации приоритизированы.
+
 - [[docs/quality/PROMOTION_CANDIDATES|Backlog promotion candidates]] как
   staging area между project lessons и checked-in standard artifacts.
 - Skills [[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]]

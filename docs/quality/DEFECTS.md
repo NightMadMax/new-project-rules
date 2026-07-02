@@ -17,7 +17,11 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| Нет открытых дефектов |  |  |  |  |
+| 28 | Активный `~/.codex/AGENTS.md` разошёлся с переносимой копией, managed markers утрачены | 2026-07-02 | global rules sync | `sync_global_agents.py --check` → `unmanaged_conflict` (exit 1), хотя [[ACTIONS]] фиксирует принятие markers 2026-06-30 (`e4dcd52`). В активном файле старая модель vault и нет секции Knowledge Promotion. Исправлять через `plan_migration.py --target global`, не ручной правкой. |
+| 29 | `docs/README.md` не содержит два research-файла | 2026-07-02 | docs index | В секции «Исследования» отсутствуют [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026]] и [[docs/research/AGENT_COMMUNITY_PRACTICES_2026]], хотя они есть в [[INDEX]] и на диске. |
+| 30 | `USE_THIS_PROJECT.md` неполон | 2026-07-02 | guides | Секция 8 «Перенести знания» даёт только Codex-вызовы без Claude Code эквивалентов; skill `reflect-and-record` не упомянут вовсе, остальные 7 workflows покрыты. |
+| 31 | CHANGELOG `Unreleased` разросся и отстаёт | 2026-07-02 | changelog | ~105 строк накопили пять версий работы после `v1.9.0`; релиз не нарезан; новый гайд `USE_THIS_PROJECT.md` не отражён. |
+| 32 | `TOOLS.md` не каталогизирует большинство скриптов | 2026-07-02 | tools catalog | 32 из 40 скриптов `scripts/` не упомянуты; нужен каталог либо явная ссылка на [[INDEX]]/[[docs/quality/TESTING|TESTING]] как источник. |
 
 ## Fixed
 
