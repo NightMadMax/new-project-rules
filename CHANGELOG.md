@@ -2,13 +2,28 @@
 
 ## Unreleased
 
+### Исправлено
+
+- Гайд [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT]] дополнен: Claude
+  Code эквиваленты в секции knowledge promotion и workflow
+  `reflect-and-record` (дефект 30).
+- [[TOOLS|TOOLS.md]] ссылается на каталог скриптов в [[INDEX|INDEX]] и
+  [[docs/quality/TESTING|TESTING]] и фиксирует исключения из правила
+  парности `.sh`/`.ps1` (дефект 32).
+- Раздел `Unreleased` нарезан в релиз `v1.10.0` (дефект 31).
+
+## v1.10.0 — 2026-07-02
+
 ### Добавлено
 
+- [[docs/guides/USE_THIS_PROJECT|Гайд «Как работать с этим проектом»]]:
+  пользовательский вход с фразами для типовых задач и выбором workflow;
+  ссылки добавлены в [[README|README]], [[INDEX|INDEX]] и
+  [[docs/README|индекс документации]].
 - [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта — июль 2026]]:
   внутренний аудит консистентности, сверка с актуальной документацией
   Codex CLI и Claude Code, community-практики; дефекты 28–32 записаны в
   [[docs/quality/DEFECTS|DEFECTS]], рекомендации приоритизированы.
-
 - [[docs/quality/PROMOTION_CANDIDATES|Backlog promotion candidates]] как
   staging area между project lessons и checked-in standard artifacts.
 - Skills [[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]]
@@ -80,6 +95,14 @@
   проблем и истории их исправления.
 - `requirements-dev.txt` с `PyYAML` для официальных генератора и validator
   Agent Skills.
+
+### Исправлено
+
+- Дефект 28: активный `~/.codex/AGENTS.md` восстановлен из переносимой
+  политики на обоих компьютерах (re-adoption managed markers и обновление
+  managed block); операции зафиксированы в [[ACTIONS|ACTIONS]].
+- Дефект 29: в [[docs/README|индекс документации]] добавлены отсутствовавшие
+  research-файлы.
 
 ### Изменено
 

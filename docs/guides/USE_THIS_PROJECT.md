@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-02
 source_of_truth: repository
 related:
   - "[[README]]"
@@ -27,7 +27,8 @@ related:
 - оценить существующий проект без изменений;
 - стандартизировать legacy-проект безопасным способом;
 - проверить среду, структуру проекта и состояние глобальных правил;
-- перенести повторяемые знания из одного проекта в общий стандарт.
+- перенести повторяемые знания из одного проекта в общий стандарт;
+- записать урок после ошибки или удачного повторённого подхода.
 
 ## Самая короткая модель использования
 
@@ -218,6 +219,12 @@ Codex:
 - `$harvest-project-lessons`
 - `$apply-promotion-candidate`
 
+Claude Code:
+
+- `/promote-project-knowledge`
+- `/harvest-project-lessons`
+- `/apply-promotion-candidate`
+
 Фразы:
 
 > Посмотри, есть ли в проекте повторяемый lesson, который нужно поднять в
@@ -234,6 +241,30 @@ Codex:
 
 Подробности:
 [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY]].
+
+### 9. Записать урок после ошибки или поправки
+
+Codex: `$reflect-and-record`
+
+Claude Code: `/reflect-and-record`
+
+Фразы:
+
+> Ты только что ошибся: `<что произошло>`. Отрефлексируй корневую причину и
+> запиши урок туда, где ему место.
+
+> Зафиксируй этот вывод так, чтобы он не потерялся: дефект, паттерн или
+> правило — реши сам и объясни выбор.
+
+Когда использовать:
+
+- агент ошибся или пользователь его поправил;
+- найден дефект, который нужно записать в
+  [[docs/quality/DEFECTS|DEFECTS]];
+- подход сработал повторно и заслуживает записи в
+  [[docs/quality/PLAYBOOK|PLAYBOOK]].
+
+Подробности: [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]].
 
 ## Полезные уточнения в запросе
 
@@ -258,6 +289,7 @@ Codex:
 | Нужно проверить структуру и среду | validator / doctor |
 | Нужно проверить или подтянуть global instructions | sync-global-agents / plan-migration |
 | Нужно вынести lesson в общий стандарт | knowledge portability workflows |
+| Агент ошибся или найден урок, который нельзя терять | `reflect-and-record` |
 
 ## Если не хотите помнить названия skill
 

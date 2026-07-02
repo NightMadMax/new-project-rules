@@ -1,5 +1,20 @@
 # Tools
 
+## Script entry points
+
+- Полный каталог скриптов `scripts/` с назначением каждого ведётся в
+  [[INDEX|INDEX]]; команды и матрица тестов — в
+  [[docs/quality/TESTING|TESTING]]. Здесь перечислены только неочевидные
+  runtime-требования и ключевые команды.
+- Семейства скриптов: `bootstrap-new-project.*` (создание проекта),
+  `setup-global-agents.*` и `add-agent-scope.*` (настройка правил),
+  `check-environment.*` и `project-doctor.*` (диагностика),
+  `validate-project.*`, `sync-global-agents.*`, `plan-migration.*`,
+  `standardize-existing-project.*` (контракт и миграции), `test-*` (тесты).
+- Каждый инструмент имеет парные `.sh` и `.ps1` entry points для чистых
+  машин без Python. Исключение: `test-powershell-environment.ps1` и
+  `test-powershell-syntax.ps1` PowerShell-специфичны и sh-пары не имеют.
+
 ## Python development dependencies
 
 - Minimum supported runtime for validator and future migrations: Python `3.9`.
