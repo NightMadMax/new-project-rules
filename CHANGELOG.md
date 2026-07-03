@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Исправлено
+
+- Дефекты 35–37 и 40 в `scripts/standardize_existing_project.py`: symlink и
+  containment guards для всех planned writes и copies (adopt-in-place и
+  re-bootstrap), запрет destination внутри legacy root (включая `.git`),
+  fingerprint плана теперь включает манифест файлов transfer set с
+  sha256-хэшами содержимого; добавлены regression tests
+  (см. [[docs/quality/DEFECTS|DEFECTS]]).
+
 ### Добавлено
 
 - [[docs/research/PROJECT_AUDIT_2026-07-03|Повторный глубокий аудит проекта]]:
