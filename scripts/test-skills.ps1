@@ -3,6 +3,21 @@ $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 $Failures = 0
 
+function Test-RequiredLiterals {
+    param(
+        [string]$File,
+        [string[]]$Literals
+    )
+
+    $text = Get-Content -Raw -Encoding UTF8 $File
+    foreach ($literal in $Literals) {
+        if (-not $text.Contains($literal)) {
+            Write-Host "FAIL: missing required literal '$literal' in $File"
+            $script:Failures++
+        }
+    }
+}
+
 function Test-Skill {
     param([string]$Name)
 
@@ -51,9 +66,25 @@ function Test-Skill {
 
 Test-Skill "setup-new-computer"
 Test-Skill "create-new-project"
+Test-Skill "assess-existing-project"
+Test-Skill "standardize-existing-project"
+Test-Skill "harvest-project-lessons"
+Test-Skill "apply-promotion-candidate"
 Test-Skill "promote-project-knowledge"
+Test-Skill "reflect-and-record"
 
 $requiredHeadings = @("## Knowledge Promotion", "## Defect Tracking")
+$sharedRuleLiterals = @(
+    'docs/quality/DEFECTS.md',
+    'immediately upon discovery',
+    'section where the entry',
+    '`Open`, `Fixed`, or `Won''t Fix`',
+    'move the entry to `Fixed`',
+    'docs/quality/PLAYBOOK.md',
+    'raw memory directories.',
+    'validator, script, or skill',
+    'lesson is reusable'
+)
 foreach ($file in @(
         (Join-Path $Root "AGENTS.md"),
         (Join-Path $Root "GLOBAL_AGENT_INSTRUCTIONS.md"),
@@ -66,6 +97,7 @@ foreach ($file in @(
             $Failures++
         }
     }
+    Test-RequiredLiterals -File $file -Literals $sharedRuleLiterals
 }
 
 if ($Failures -ne 0) {

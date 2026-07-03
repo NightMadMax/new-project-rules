@@ -1,5 +1,20 @@
 # Tools
 
+## Script entry points
+
+- Полный каталог скриптов `scripts/` с назначением каждого ведётся в
+  [[INDEX|INDEX]]; команды и матрица тестов — в
+  [[docs/quality/TESTING|TESTING]]. Здесь перечислены только неочевидные
+  runtime-требования и ключевые команды.
+- Семейства скриптов: `bootstrap-new-project.*` (создание проекта),
+  `setup-global-agents.*` и `add-agent-scope.*` (настройка правил),
+  `check-environment.*` и `project-doctor.*` (диагностика),
+  `validate-project.*`, `sync-global-agents.*`, `plan-migration.*`,
+  `standardize-existing-project.*` (контракт и миграции), `test-*` (тесты).
+- Каждый инструмент имеет парные `.sh` и `.ps1` entry points для чистых
+  машин без Python. Исключение: `test-powershell-environment.ps1` и
+  `test-powershell-syntax.ps1` PowerShell-специфичны и sh-пары не имеют.
+
 ## Python development dependencies
 
 - Minimum supported runtime for validator and future migrations: Python `3.9`.
@@ -9,6 +24,10 @@
 - Migration plan: `python scripts/plan_migration.py --plan --target project
   --root <project>` или `--target global`. Apply требует fingerprint из
   проверенного плана и явные `--apply --fingerprint <value> --yes`.
+- Existing-project standardization plan:
+  `python scripts/standardize_existing_project.py --root <project>`; первая
+  версия умеет read-only assessment и безопасный `adopt-in-place` plan/apply
+  по fingerprint для отсутствующих managed files и index updates.
 - Supply-chain checks: `python scripts/check-action-pins.py` и
   `python scripts/test-supply-chain.py`; external Actions разрешены только по
   full commit SHA, Docker actions — по `sha256` digest.

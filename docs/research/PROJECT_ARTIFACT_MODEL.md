@@ -26,12 +26,16 @@ related:
 | Есть чувствительные активы | [[templates/new-project/SECURITY.template|SECURITY template]], `docs/security/` |
 | Есть внешние сервисы | [[templates/new-project/INTEGRATIONS.template|INTEGRATIONS template]] |
 | Есть необычные инструменты | [[templates/new-project/TOOLS.template|TOOLS template]] |
+| Есть обнаруженные дефекты, баги или known issues | [[templates/new-project/DEFECTS.template|DEFECTS template]] |
+| Есть повторяемые проверенные good patterns | [[templates/new-project/PLAYBOOK.template|PLAYBOOK template]] |
 
 Разделение строится не по формату, а по жизненному циклу информации:
 
 - текущее состояние системы — архитектура и интерфейсы;
 - причины выбора — ADR;
 - проверяемые гипотезы — исследования;
+- негативные уроки и известные проблемы — defects;
+- проверенные удачные подходы — playbook;
 - воспроизводимые действия — runbook;
 - произошедшие сбои — postmortem;
 - пользовательские изменения — changelog;

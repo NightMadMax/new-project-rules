@@ -1,0 +1,4 @@
+interface:
+  display_name: "Reflect and Record"
+  short_description: "Turn a mistake or correction into a recorded lesson"
+  default_prompt: "Use $reflect-and-record to reflect on a mistake, generalize the lesson, and record it in the right artifact."

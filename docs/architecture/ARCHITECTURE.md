@@ -2,7 +2,7 @@
 type: architecture
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-02
 source_of_truth: repository
 related:
   - "[[PROJECT]]"
@@ -28,6 +28,12 @@ related:
 Родительская рабочая папка является Obsidian vault. Каждый вложенный проект —
 отдельный git-репозиторий без собственной `.obsidian`. Один набор Markdown-
 файлов используется Obsidian и агентами (Codex, Claude Code) без копирования.
+`.obsidian/` (включая device-specific `workspace.json`) принадлежит уровню
+vault и никогда не коммитится в проектные репозитории; вложенные vault не
+создаются, а шаблонный `.gitignore` защищает от случайного `.obsidian/`, если
+проектную папку всё же откроют как отдельный vault. По этой же причине
+community-решения уровня «vault = repo» (плагин obsidian-git, auto-commit,
+mobile-sync внутри vault) к этой модели неприменимы.
 
 Машиночитаемые источники истины не преобразуются в ручные Markdown-копии.
 

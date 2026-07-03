@@ -56,6 +56,21 @@ AI-ассистента, как не закоммитить лишнее. Это
 выбирать инструменты (приоритет существующего стека; спрашивать перед установкой
 новых зависимостей), как организовывать вложенные инструкции.
 
+## Технически
+
+Набор хранит машиночитаемый контракт стандарта в `config/`, создаёт новые
+проекты через `templates/new-project/` и `scripts/bootstrap-new-project.*`, а
+проверку и эволюцию стандарта выполняет через validator, doctor, sync и
+migration workflow.
+
+Детали команд и их фактическое поведение вынесены в гайды:
+
+- [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]]
+- [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER]]
+- [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE]]
+- [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS]]
+- [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]]
+
 ## Как начать
 
 ```sh

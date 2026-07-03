@@ -13,7 +13,10 @@ related:
 
 ## Руководства
 
+- [[docs/guides/USE_THIS_PROJECT|Как работать с этим проектом]]
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]
+- [[docs/guides/ASSESS_EXISTING_PROJECT|Оценка существующего проекта]]
+- [[docs/guides/STANDARDIZE_EXISTING_PROJECT|Стандартизация существующего проекта]]
 - [[docs/guides/SETUP_NEW_COMPUTER|Подключение нового компьютера]]
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Перенос знаний между проектами]]
 - [[docs/guides/VALIDATE_AND_DIAGNOSE|Валидация проекта и диагностика компьютера]]
@@ -32,11 +35,17 @@ related:
 - [[docs/research/PROJECT_ARTIFACT_MODEL|Модель артефактов проекта]]
 - [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|Обязательная база инструментов проекта в 2026 году]]
 - [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план развития policy-системы]]
+- [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|Рантайм-возможности Codex/Claude Code 2026]]
+- [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|Community-практики Claude Code/Codex]]
+- [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта и направления улучшений — июль 2026]]
 
 ## Качество и ревью
 
 - [[docs/quality/TESTING|Проверка скриптов]]
 - [[docs/quality/DEFECTS|Реестр дефектов]]
+- [[docs/quality/DEFECTS_ARCHIVE|Архив дефектов]]
+- [[docs/quality/PLAYBOOK|Реестр проверенных удачных паттернов]]
+- [[docs/quality/PROMOTION_CANDIDATES|Очередь кандидатов на knowledge promotion]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
 
 ## Безопасность

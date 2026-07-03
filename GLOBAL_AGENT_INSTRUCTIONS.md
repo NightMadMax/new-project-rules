@@ -38,6 +38,33 @@
   via `scripts/add-agent-scope.sh` or `.ps1`). Nested rules must specialize the
   root rules without contradicting them. Both agents combine instruction layers;
   a nearer file is loaded later but does not erase broader instructions.
+- Keep `AGENTS.md` compact. Codex stops appending the instruction chain once it
+  exceeds `project_doc_max_bytes` (32 KiB by default), so a long or verbose file
+  is silently truncated. Prefer short, specific rules and move topic detail into
+  `docs/`.
+- An `AGENTS.md` is concatenated with parent levels, but an `AGENTS.override.md`
+  at a level replaces that level entirely instead of extending it. Use plain
+  `AGENTS.md` to add rules; use `*.override.md` only to deliberately replace
+  them.
+- Do not edit `AGENTS.md` or `CLAUDE.md` in the middle of an agent session: it
+  invalidates the cached prompt prefix and wastes tokens. Record a new rule
+  between sessions, promoting it from a recurring defect or a confirmed practice.
+
+## Rule Authoring
+
+- Keep instruction files compact (target ~150 lines); over-long files get
+  ignored from the bottom. Move detail into `docs/` or skills.
+- Budget the whole instruction chain, not one file: global plus project rules
+  together must stay within ~300 non-empty lines, because models reliably
+  follow only ~150–200 instructions per context.
+- Prefer specific negative instructions ("don't use X — use Y") and exact
+  commands over prose like "write clean code".
+- Lead with the most critical, non-negotiable rules and group them by task
+  ("When writing code", "When reviewing", "When releasing").
+- State the reason, then the rule; avoid vague directives ("be careful") and
+  aspirational rules not reflected in the codebase.
+- Verify a rule sticks by asking the agent to recite it back; if it cannot, the
+  file is too long or the rule is unclear.
 
 ## Tool Selection
 
@@ -58,8 +85,7 @@
   verification quality, do not silently use the weaker workaround. Explain
   what tool is needed, why it is preferable, what will be installed, and ask
   the user for permission before installation.
-- Do not request or perform an installation for a marginal convenience when an
-  available standard tool provides equivalent quality.
+- Do not install for marginal convenience when a standard tool is equivalent.
 - After approval, install through the platform or project package manager,
   verify the installed version, and document project-specific tooling in
   `TOOLS.md` or the appropriate manifest without recording secrets.
@@ -68,8 +94,7 @@
 
 - Edit Markdown files directly in the project folder. They are simultaneously
   repository files and Obsidian notes.
-- Do not use an Obsidian REST API, helper script, synchronization step, or
-  duplicate Markdown copy in the default parent-vault layout.
+- Do not add an Obsidian REST API, helper script, or duplicate Markdown copy.
 - Never store tokens, passwords, private keys, or real credentials in the
   repository, documentation, scripts, or committed shell history.
 - Use Obsidian wikilinks for relationships between Markdown notes. Filenames
@@ -90,15 +115,14 @@
 - Every discovered defect, bug, or known issue must be recorded in
   `docs/quality/DEFECTS.md` immediately upon discovery — never leave it only in
   conversation context, commit messages, or memory.
-- Each entry must include: a short title, current status (`open` / `fixed` /
-  `wontfix`), the date discovered, a brief description, and the root cause when
-  known.
-- When a defect is fixed, update its status and add the fix date and commit
-  reference; do not delete the entry.
+- Each entry must include a short title, the date discovered, and a brief
+  description. The current status is represented by the section where the entry
+  lives: `Open`, `Fixed`, or `Won't Fix`.
+- When a defect is fixed, move the entry to `Fixed` and add the fix date, commit
+  reference, and root cause when known; do not delete the entry.
 - Before starting work on a component, check `DEFECTS.md` for open issues in
   that area to avoid re-introducing or duplicating known problems.
-- If `docs/quality/DEFECTS.md` does not exist when a defect is found, create it
-  using the project defect template.
+- Create a missing `docs/quality/DEFECTS.md` from the project defect template.
 - When `docs/` exists, maintain `docs/README.md` as its connected documentation
   index.
 - Store current architecture in `docs/architecture/ARCHITECTURE.md` and one
@@ -121,6 +145,30 @@
   repurposed.
 - Keep every project artifact inside the project root.
 
+## Pattern Playbook
+
+- Record a verified, reusable successful pattern in `docs/quality/PLAYBOOK.md`
+  once it has proven correct at least twice — the success-side counterpart to
+  the defect log, so the agent repeats the known-good approach instead of
+  rediscovering it.
+- Each entry includes a short title, the date added, the component, the concrete
+  known-good steps, and the evidence (commits/PRs or a passing test).
+- Keep playbook entries project-specific. When a pattern is reusable across
+  projects and free of private context, propose it for Knowledge Promotion
+  instead of leaving it only in the project.
+- Create `docs/quality/PLAYBOOK.md` from the project template the first time a
+  pattern qualifies; do not pre-create it empty.
+
+## Reflexive Learning
+
+- After a mistake or a user correction, before moving on, reflect on the root
+  cause, abstract it beyond the specific case, and record the lesson where it
+  belongs: `docs/quality/DEFECTS.md` for a bug, `docs/quality/PLAYBOOK.md` for a
+  verified good approach, `AGENTS.md` for a project rule (between sessions, not
+  mid-session), or a promotion proposal when the lesson is reusable across
+  projects.
+- Record only abstractable, recurring lessons; skip one-off typos and noise.
+
 ## Knowledge Promotion
 
 - Keep project-specific facts, architecture, defects, decisions, research, and
@@ -140,10 +188,9 @@
 
 ## Operating Rule
 
-- Work directly with Markdown files in the project folder; the parent Obsidian
-  vault indexes those same files.
-- Do not turn each project into a separate vault and do not mirror files to a
-  second vault path.
+- Never run two agents at the same time in one working copy (`.git/index.lock`
+  conflicts, stale reads); run agents in parallel only in separate git
+  worktrees.
 - When a reusable new-project convention changes, update the global agent
   instructions (`~/.codex/AGENTS.md`, imported by `~/.claude/CLAUDE.md`), this
   portable copy, bootstrap documentation, affected templates, and all related

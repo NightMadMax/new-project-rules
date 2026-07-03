@@ -49,6 +49,7 @@ SECRET_PATTERNS = (
 )
 WIKILINK_RE = re.compile(r"\[\[([^\]|#]+)(?:#[^\]|]+)?(?:\|[^\]]+)?\]\]")
 ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+INSTRUCTION_CHAIN_BUDGET = 300  # non-empty lines: global policy + project AGENTS.md
 
 
 class ContractError(Exception):
@@ -332,6 +333,37 @@ def check_policy_contract(root: Path) -> list[Finding]:
     return findings
 
 
+def count_instruction_lines(path: Path) -> Optional[int]:
+    text = read_text(path)
+    if text is None:
+        return None
+    return sum(1 for line in text.splitlines() if line.strip())
+
+
+def check_instruction_chain(root: Path, contract_root: Path, rules_repo: bool) -> list[Finding]:
+    findings: list[Finding] = []
+    global_lines = count_instruction_lines(contract_root / "GLOBAL_AGENT_INSTRUCTIONS.md")
+    if global_lines is None:
+        return findings
+    targets = [root / "AGENTS.md"]
+    if rules_repo:
+        targets.append(root / "templates" / "new-project" / "AGENTS.template.md")
+    for target in targets:
+        project_lines = count_instruction_lines(target)
+        if project_lines is None:
+            continue
+        total = global_lines + project_lines
+        if total > INSTRUCTION_CHAIN_BUDGET:
+            findings.append(Finding(
+                "WARN", "instructions.chain_budget",
+                f"Instruction chain is {total} non-empty lines (global {global_lines} + project {project_lines});"
+                f" the budget is {INSTRUCTION_CHAIN_BUDGET}.",
+                relative(target, root),
+                "Consolidate or trim rules and move detail into docs/ per Rule Authoring.",
+            ))
+    return findings
+
+
 def check_global_rules(contract_root: Path, home: Optional[Path] = None) -> list[Finding]:
     findings: list[Finding] = []
     home = home or Path.home()
@@ -486,6 +518,7 @@ def validate(
         if profile:
             findings.extend(check_project_structure(root, rows, profile))
 
+    findings.extend(check_instruction_chain(root, contract_root, kind == "rules"))
     findings.extend(check_frontmatter(root, files, kind == "rules"))
     findings.extend(check_wikilinks(root, files))
     findings.extend(check_content(root, files, kind == "rules"))

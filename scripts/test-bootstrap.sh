@@ -142,6 +142,7 @@ for profile in minimal software operated all; do
   assert_grep "$dir/AGENTS.md" "Test $profile" "$profile"
   assert_grep "$dir/AGENTS.md" "Always answer the user in Russian" "$profile"
   assert_grep "$dir/.gitignore" "CLAUDE.local.md" "$profile"
+  assert_grep "$dir/.gitignore" ".obsidian/" "$profile"
   if [ "$("$real_git" -C "$dir" symbolic-ref --short HEAD 2>/dev/null)" = main ]; then ok
   else bad "$profile: initial branch is not main"; fi
   if "$real_git" -C "$dir" rev-parse --verify HEAD >/dev/null 2>&1; then ok

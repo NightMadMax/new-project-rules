@@ -57,7 +57,7 @@ Generated project repo     ~/.codex/AGENTS.md
 
 | Threat | Impact | Controls | Residual risk |
 |---|---|---|---|
-| Mutable Action tag/branch перенаправлен на вредоносный commit | Выполнение чужого кода в CI | Полный SHA, `check-action-pins.py`, regression tests, Dependabot | Владелец action может скомпрометировать уже выбранный commit только через Git object collision; review обновлений остаётся обязательным |
+| Mutable Action tag/branch перенаправлен на вредоносный commit | Выполнение чужого кода в CI | Полный SHA, repository `sha_pinning_required`, только GitHub-owned actions, `check-action-pins.py`, regression tests, Dependabot | Review обновлений SHA остаётся обязательным |
 | Workflow получает лишние GitHub права | Изменение repository из CI | Repository default `read`, workflow `contents: read`, `persist-credentials: false`, без secrets | GitHub-hosted runner всё ещё обрабатывает содержимое repository |
 | `pull_request_target` или untrusted interpolation исполняет PR с secrets | Credential exfiltration | Используется `pull_request`, нет secrets и event-field interpolation | Будущие workflow могут нарушить правило; threat model и review должны обновляться |
 | Windows/macOS implementations расходятся | Небезопасный platform-specific output | Ubuntu/Windows CI плюс path-triggered macOS smoke | macOS runner запускается только при значимых путях или вручную |
@@ -80,6 +80,11 @@ Dependabot еженедельно проверяет ecosystem `github-actions` 
 обновления pin. См. [GitHub Dependabot version
 updates](https://docs.github.com/en/code-security/how-tos/secure-your-supply-chain/secure-your-dependencies/configuring-dependabot-version-updates).
 
+Repository Actions policy дополнительно принуждает full SHA и разрешает только
+GitHub-owned actions. Настройка и rollback зафиксированы в [[ACTIONS]]; API
+поддерживает эти controls согласно [GitHub Actions permissions
+reference](https://docs.github.com/en/rest/actions/permissions).
+
 ## Verification и response
 
 - Локально: `python scripts/check-action-pins.py` и
@@ -99,6 +104,7 @@ GitHub API 2026-06-30 вернул `403` для rulesets и classic branch prote
 private repositories требуют GitHub Pro/Team/Enterprise либо public visibility.
 Это соответствует [официальной доступности
 rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets).
-До изменения plan/visibility обязательные CI checks и запрет force-push не могут
-быть принудительно обеспечены платформой; direct push требует локальных проверок
-и последующего подтверждения CI.
+Actions SHA/owner policy включена независимо от repository plan. До изменения
+plan/visibility обязательные CI checks и запрет force-push не могут быть
+принудительно обеспечены платформой; direct push требует локальных проверок и
+последующего подтверждения CI.

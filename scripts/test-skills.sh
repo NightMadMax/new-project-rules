@@ -5,6 +5,18 @@ script_dir=$(CDPATH= cd -P "$(dirname "$0")" && pwd)
 root=$(dirname "$script_dir")
 fail=0
 
+check_required_literals() {
+  file=$1
+  shift
+
+  for literal in "$@"; do
+    if ! grep -Fq "$literal" "$file"; then
+      echo "FAIL: missing required literal '$literal' in $file" >&2
+      fail=$((fail + 1))
+    fi
+  done
+}
+
 check_skill() {
   name=$1
   canonical="$root/.agents/skills/$name/SKILL.md"
@@ -48,7 +60,12 @@ check_skill() {
 
 check_skill setup-new-computer
 check_skill create-new-project
+check_skill assess-existing-project
+check_skill standardize-existing-project
+check_skill harvest-project-lessons
+check_skill apply-promotion-candidate
 check_skill promote-project-knowledge
+check_skill reflect-and-record
 
 for file in \
   "$root/AGENTS.md" \
@@ -61,6 +78,30 @@ do
       fail=$((fail + 1))
     fi
   done
+done
+
+shared_rule_literals='docs/quality/DEFECTS.md
+immediately upon discovery
+section where the entry
+`Open`, `Fixed`, or `Won'"'"'t Fix`
+move the entry to `Fixed`
+docs/quality/PLAYBOOK.md
+raw memory directories.
+validator, script, or skill
+lesson is reusable'
+
+for file in \
+  "$root/AGENTS.md" \
+  "$root/GLOBAL_AGENT_INSTRUCTIONS.md" \
+  "$root/templates/new-project/AGENTS.template.md"
+do
+  old_ifs=$IFS
+  IFS='
+'
+  set -f
+  check_required_literals "$file" $shared_rule_literals
+  set +f
+  IFS=$old_ifs
 done
 
 if [ "$fail" -ne 0 ]; then

@@ -1,4 +1,4 @@
 interface:
   display_name: "Promote Project Knowledge"
-  short_description: "Promote reusable knowledge into project rules"
-  default_prompt: "Use $promote-project-knowledge to turn a reusable lesson into a safe, verified project standard."
+  short_description: "Route a reusable lesson into the right promotion workflow"
+  default_prompt: "Use $promote-project-knowledge to decide whether a lesson should stay in the source project, be harvested as a candidate, or be applied as a checked-in standard change."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Apply Promotion Candidate"
+  short_description: "Turn one approved candidate into checked-in standard artifacts"
+  default_prompt: "Use $apply-promotion-candidate to take one approved promotion candidate and implement it as rules, templates, tests, validators, scripts, guides, or skills."

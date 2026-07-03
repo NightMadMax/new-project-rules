@@ -18,6 +18,33 @@ related:
 Хранить единый переносимый стандарт создания новых проектов для AI-агентов
 (Codex, Claude Code и других AGENTS.md-совместимых), Obsidian и GitHub.
 
+## Краткое техническое описание
+
+Проект предназначен для того, чтобы новый репозиторий можно было создать не как
+разовый набор файлов, а как повторяемый стандарт с проверяемой структурой,
+едиными правилами для агентов и предсказуемой документацией.
+
+На практике он:
+
+- создаёт каркас нового проекта по профилю;
+- задаёт единый источник правил через `AGENTS.md` и импорт в `CLAUDE.md`;
+- поддерживает модель "одна папка проекта = git root = папка внутри общего
+  Obsidian vault";
+- валидирует структуру проекта и среду;
+- оценивает уже существующие проекты относительно стандарта без изменения
+  файлов;
+- помогает безопасно приводить legacy-проекты к стандарту на месте или через
+  новый стандартизированный проект;
+- помогает безопасно эволюционировать стандарт через versioned contracts и
+  migration plans.
+
+Командные сценарии и их технические детали считаются эксплуатационным знанием и
+поддерживаются в [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]],
+[[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER]],
+[[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE]],
+[[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS]] и
+[[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]].
+
 ## Scope
 
 - [[GLOBAL_AGENT_INSTRUCTIONS|глобальные инструкции агента]];
@@ -46,3 +73,13 @@ related:
 - bootstrap создаёт согласованную структуру нового проекта;
 - новый проект не зависит от исходного компьютера;
 - инструкции одинаково трактуют vault, repo и Markdown-файлы.
+
+## Командные сценарии
+
+- Настройка компьютера и глобальных правил: [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER]].
+- Создание проекта и scoped rules: [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]].
+- Оценка существующего проекта: [[docs/guides/ASSESS_EXISTING_PROJECT|ASSESS_EXISTING_PROJECT]].
+- Приведение существующего проекта к стандарту: [[docs/guides/STANDARDIZE_EXISTING_PROJECT|STANDARDIZE_EXISTING_PROJECT]].
+- Диагностика и validator: [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE]].
+- Проверка global policy: [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS]].
+- Migration workflow: [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]].

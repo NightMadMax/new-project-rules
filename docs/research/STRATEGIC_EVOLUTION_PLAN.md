@@ -53,7 +53,7 @@ related:
 | C. Validator и doctor | completed | read-only validator, wrappers, doctor и report-only CI |
 | D. Global sync | completed | managed-block grammar, read-only check/diff и confirmed migration apply |
 | E. Migration engine | completed | manifest, schema, fingerprint, clean guards, backup и atomic project/global apply |
-| F. Supply-chain hardening | repository completed / platform blocked | SHA pins, Dependabot, pin policy, threat model и macOS smoke; ruleset недоступен на текущем GitHub plan |
+| F. Supply-chain hardening | completed with governance gap | SHA pins, enforced Actions policy, Dependabot, threat model и macOS smoke; branch ruleset недоступен на текущем GitHub plan |
 
 ## Целевая архитектура
 

@@ -137,6 +137,22 @@ class ValidatorTests(unittest.TestCase):
         ):
             self.assertIn(expected, codes)
 
+    def test_instruction_chain_budget_warns_past_budget(self):
+        project = self.make_project("minimal")
+        filler = "- rule line\n" * validator.INSTRUCTION_CHAIN_BUDGET
+        (project / "AGENTS.md").write_text("# Agents\n\n" + filler, encoding="utf-8")
+        _, _, findings = self.validate_project(project, "minimal")
+        self.assertIn("instructions.chain_budget", finding_codes(findings))
+
+    def test_instruction_chain_within_budget_stays_silent(self):
+        project = self.make_project("minimal")
+        _, _, findings = self.validate_project(project, "minimal")
+        self.assertNotIn("instructions.chain_budget", finding_codes(findings))
+
+    def test_rules_repository_chain_is_within_budget(self):
+        _, _, findings = validator.validate(ROOT, ROOT, "rules", "auto")
+        self.assertNotIn("instructions.chain_budget", finding_codes(findings))
+
     def test_nested_obsidian_is_an_error(self):
         project = self.make_project("minimal")
         (project / ".obsidian").mkdir()
