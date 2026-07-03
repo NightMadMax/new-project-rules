@@ -2,7 +2,7 @@
 type: testing
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-03
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -15,15 +15,16 @@ related:
 
 | Среда | Проверка |
 |---|---|
-| macOS, системный `sh` | Локальная обязательная проверка перед публикацией |
-| Ubuntu, `sh` | GitHub Actions |
-| Windows PowerShell 5.1 | GitHub Actions |
-| PowerShell 7 | Локально и в GitHub Actions |
-| Python 3.9+ stdlib | Validator, global sync и migration planner tests на Windows и Ubuntu |
+| macOS, системный `sh` | Локальная обязательная проверка перед публикацией и workflow `macos-smoke` |
+| Ubuntu, `sh` | GitHub Actions (`ci`) |
+| Windows PowerShell 5.1 | GitHub Actions (`ci`) |
+| PowerShell 7 | Локально и в GitHub Actions (`ci`, Windows) |
+| Python 3.9+ stdlib | Python regression suites (включая standardization) на Ubuntu, Windows и macOS |
 
-Постоянный macOS runner не используется, поскольку репозиторий приватный. Риск
-различий BSD/GNU закрывается локальным прогоном на macOS и отсутствием
-GNU-специфичных флагов в shell-скриптах.
+Workflow `macos-smoke` запускается на push/PR, затрагивающих workflows,
+`config/`, `scripts/`, `templates/` или `.agents/`, и дублирует shell- и
+Python-suites на macOS runner. Локальный прогон на macOS остаётся обязательным
+перед публикацией.
 
 ## Локальные команды
 
