@@ -25,6 +25,13 @@ sys.modules[SPEC.name] = planner
 SPEC.loader.exec_module(planner)
 
 
+def make_symlink_or_skip(test: unittest.TestCase, link: Path, target: Path) -> None:
+    try:
+        link.symlink_to(target)
+    except (OSError, NotImplementedError) as exc:
+        test.skipTest(f"symlinks are unavailable on this platform: {exc}")
+
+
 def tree_digest(root: Path) -> dict[str, str]:
     result = {}
     for path in sorted(item for item in root.rglob("*") if item.is_file()):
@@ -204,7 +211,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         outside.write_text("external\n", encoding="utf-8")
         project = self.make_project("software")
         (project / "INDEX.md").unlink()
-        (project / "INDEX.md").symlink_to(outside)
+        make_symlink_or_skip(self, project / "INDEX.md", outside)
         (project / "CLAUDE.md").unlink()
         self.git_commit_all(project, "symlink index")
         before_outside = outside.read_text(encoding="utf-8")
@@ -223,7 +230,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         project.mkdir()
         (project / "src").mkdir()
         (project / "src" / "app.py").write_text("print('ok')\n", encoding="utf-8")
-        (project / "src" / "linked-secret.txt").symlink_to(outside)
+        make_symlink_or_skip(self, project / "src" / "linked-secret.txt", outside)
         self.git_init(project)
         destination = self.base / "rebuilt-from-symlink"
         report = planner.assess_project(project, ROOT, "re-bootstrap-from-existing", "software")
@@ -265,6 +272,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
             self.assertEqual(plan.status, "blocked", destination)
             self.assertIn("outside the legacy project root", "\n".join(plan.blockers))
 
+    @unittest.skipIf(os.name == "nt", "POSIX wrapper is exercised on macOS/Linux only")
     def test_wrapper_reports_python_requirement_for_missing_runtime(self):
         env = os.environ.copy()
         env["PATH"] = str(self.base / "empty-path")

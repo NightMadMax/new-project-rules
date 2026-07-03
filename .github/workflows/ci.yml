@@ -38,6 +38,7 @@ jobs:
           python3 scripts/test-agent-sync.py
           python3 scripts/test-migration-planner.py
           python3 scripts/test-supply-chain.py
+          python3 scripts/test-standardize-existing-project.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -73,6 +74,7 @@ jobs:
           python .\scripts\test-agent-sync.py
           python .\scripts\test-migration-planner.py
           python .\scripts\test-supply-chain.py
+          python .\scripts\test-standardize-existing-project.py
       - name: Validator report on Windows
         shell: powershell
         run: |

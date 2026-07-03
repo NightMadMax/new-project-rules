@@ -54,4 +54,5 @@ jobs:
           python3 scripts/test-agent-sync.py
           python3 scripts/test-migration-planner.py
           python3 scripts/test-supply-chain.py
+          python3 scripts/test-standardize-existing-project.py
           python3 scripts/validate-project.py --root . --kind rules --report-only
