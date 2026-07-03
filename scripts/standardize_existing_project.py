@@ -291,6 +291,58 @@ def path_is_empty(path: Path) -> bool:
     return not any(path.iterdir())
 
 
+def find_symlink_component(root: Path, relative_parts: Sequence[str]) -> Optional[Path]:
+    current = root
+    for part in relative_parts:
+        current = current / part
+        if current.is_symlink():
+            return current
+    return None
+
+
+def unsafe_write_reason(root: Path, path: Path) -> Optional[str]:
+    """Return why writing to path inside root is unsafe, or None if safe."""
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return f"planned write escapes the project root: {path}"
+    link = find_symlink_component(root, relative.parts)
+    if link is not None:
+        return f"planned write traverses a symlink: {link.relative_to(root).as_posix()}"
+    return None
+
+
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(65536), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def build_transfer_manifest(
+    source_root: Path, transfer_paths: Sequence[str]
+) -> tuple[list[dict[str, str]], list[str]]:
+    """List every file to copy with its content hash; report unsafe entries."""
+    manifest: list[dict[str, str]] = []
+    problems: list[str] = []
+    for relative in sorted(transfer_paths):
+        source = source_root / relative
+        if source.is_symlink():
+            problems.append(f"transfer path is a symlink and is not copied: {relative}")
+            continue
+        if source.is_dir():
+            for item in sorted(source.rglob("*")):
+                rel = item.relative_to(source_root).as_posix()
+                if item.is_symlink():
+                    problems.append(f"transfer set contains a symlink: {rel}")
+                elif item.is_file():
+                    manifest.append({"path": rel, "sha256": sha256_file(item)})
+        elif source.is_file():
+            manifest.append({"path": relative, "sha256": sha256_file(source)})
+    return manifest, problems
+
+
 def assess_project(root: Path, contract_root: Path, requested_strategy: str, requested_profile: str) -> AssessmentReport:
     if not root.is_dir():
         raise StandardizationConfigError(f"Project root is not a directory: {root}")
@@ -608,6 +660,23 @@ def build_adopt_in_place_plan(root: Path, contract_root: Path, report: Assessmen
         if desired != current:
             files.append(FilePlan(docs_readme, "update", desired, True))
 
+    write_blockers = [
+        reason
+        for file in files
+        if (reason := unsafe_write_reason(root, file.path)) is not None
+    ]
+    if write_blockers:
+        return ApplyPlan(
+            status="blocked",
+            strategy="adopt-in-place",
+            profile=report.candidate_profile,
+            summary="In-place standardization plan is blocked.",
+            files=(),
+            blockers=tuple(dict.fromkeys(write_blockers)),
+            fingerprint="",
+            destination=root,
+        )
+
     payload = {
         "root": str(root),
         "strategy": "adopt-in-place",
@@ -652,8 +721,13 @@ def build_rebootstrap_plan(
         blockers.append("re-bootstrap-from-existing requires --project-name")
     if destination is not None:
         resolved = destination.resolve()
-        if resolved == root:
+        source_resolved = root.resolve()
+        if resolved == source_resolved:
             blockers.append("Destination must differ from the legacy project root")
+        elif resolved.is_relative_to(source_resolved):
+            blockers.append("Destination must be outside the legacy project root")
+        elif source_resolved.is_relative_to(resolved):
+            blockers.append("Destination must not contain the legacy project root")
         elif resolved.exists() and resolved.is_dir() and not path_is_empty(resolved):
             blockers.append("Destination directory must not already contain files")
         elif resolved.exists() and not resolved.is_dir():
@@ -674,6 +748,8 @@ def build_rebootstrap_plan(
         )
         for item in sorted(transfer_paths)
     )
+    transfer_manifest, transfer_problems = build_transfer_manifest(root, transfer_paths)
+    blockers.extend(transfer_problems)
     fingerprint = ""
     if not blockers and destination is not None and project_name is not None:
         payload = {
@@ -683,6 +759,7 @@ def build_rebootstrap_plan(
             "profile": profile,
             "project_name": project_name,
             "transfer_paths": sorted(transfer_paths),
+            "transfer_manifest": transfer_manifest,
         }
         fingerprint = hashlib.sha256(
             json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
@@ -733,6 +810,10 @@ def apply_plan(plan: ApplyPlan) -> list[Path]:
         raise StandardizationApplyError("Cannot apply a blocked plan")
     changed: list[Path] = []
     for file in plan.files:
+        if plan.destination is not None:
+            reason = unsafe_write_reason(plan.destination, file.path)
+            if reason is not None:
+                raise StandardizationApplyError(reason)
         file.path.parent.mkdir(parents=True, exist_ok=True)
         file.path.write_text(file.content, encoding="utf-8")
         changed.append(file.path)
@@ -743,14 +824,28 @@ def copy_transfer_item(source_root: Path, destination_root: Path, relative: str)
     source = source_root / relative
     destination = destination_root / relative
     changed: list[Path] = []
+    if source.is_symlink():
+        raise StandardizationApplyError(f"Refusing to copy symlink transfer path: {relative}")
     if source.is_dir():
-        for item in sorted(path for path in source.rglob("*") if path.is_file()):
+        for item in sorted(source.rglob("*")):
+            if item.is_symlink():
+                raise StandardizationApplyError(
+                    f"Refusing to copy symlink inside transfer set: {item.relative_to(source_root).as_posix()}"
+                )
+            if not item.is_file():
+                continue
             rel = item.relative_to(source_root)
             target = destination_root / rel
+            reason = unsafe_write_reason(destination_root, target)
+            if reason is not None:
+                raise StandardizationApplyError(reason)
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(item, target)
             changed.append(target)
         return changed
+    reason = unsafe_write_reason(destination_root, destination)
+    if reason is not None:
+        raise StandardizationApplyError(reason)
     destination.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(source, destination)
     changed.append(destination)

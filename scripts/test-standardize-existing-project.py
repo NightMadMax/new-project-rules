@@ -199,6 +199,72 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         self.assertFalse((destination / "docs" / "README.md").read_text(encoding="utf-8").startswith("# Legacy"))
         self.assertIn("NEXT METADATA PLAN:", apply.stdout)
 
+    def test_adopt_plan_blocks_symlink_write_target(self):
+        outside = self.base / "outside-target.md"
+        outside.write_text("external\n", encoding="utf-8")
+        project = self.make_project("software")
+        (project / "INDEX.md").unlink()
+        (project / "INDEX.md").symlink_to(outside)
+        (project / "CLAUDE.md").unlink()
+        self.git_commit_all(project, "symlink index")
+        before_outside = outside.read_text(encoding="utf-8")
+        report = planner.assess_project(project, ROOT, "adopt-in-place", "software")
+        plan = planner.build_adopt_in_place_plan(project, ROOT, report)
+        self.assertEqual(plan.status, "blocked")
+        self.assertIn("symlink", "\n".join(plan.blockers))
+        with self.assertRaises(planner.StandardizationApplyError):
+            planner.apply_plan(plan)
+        self.assertEqual(outside.read_text(encoding="utf-8"), before_outside)
+
+    def test_rebootstrap_blocks_symlink_in_transfer_set(self):
+        outside = self.base / "linked-secret.txt"
+        outside.write_text("secret\n", encoding="utf-8")
+        project = self.base / "legacy-symlink"
+        project.mkdir()
+        (project / "src").mkdir()
+        (project / "src" / "app.py").write_text("print('ok')\n", encoding="utf-8")
+        (project / "src" / "linked-secret.txt").symlink_to(outside)
+        self.git_init(project)
+        destination = self.base / "rebuilt-from-symlink"
+        report = planner.assess_project(project, ROOT, "re-bootstrap-from-existing", "software")
+        plan = planner.build_rebootstrap_plan(project, ROOT, report, destination, "Rebuilt")
+        self.assertEqual(plan.status, "blocked")
+        self.assertIn("symlink", "\n".join(plan.blockers))
+        with self.assertRaises(planner.StandardizationApplyError):
+            planner.copy_transfer_item(project, destination, "src")
+        self.assertFalse((destination / "src" / "linked-secret.txt").exists())
+
+    def test_rebootstrap_fingerprint_covers_transfer_content(self):
+        project = self.base / "legacy-fingerprint"
+        project.mkdir()
+        (project / "src").mkdir()
+        (project / "src" / "app.txt").write_text("original\n", encoding="utf-8")
+        self.git_init(project)
+        destination = self.base / "rebuilt-fingerprint"
+
+        def make_plan():
+            report = planner.assess_project(project, ROOT, "re-bootstrap-from-existing", "software")
+            return planner.build_rebootstrap_plan(project, ROOT, report, destination, "Rebuilt")
+
+        first = make_plan()
+        self.assertEqual(first.status, "ready")
+        (project / "src" / "app.txt").write_text("tampered\n", encoding="utf-8")
+        second = make_plan()
+        self.assertEqual(second.status, "ready")
+        self.assertNotEqual(first.fingerprint, second.fingerprint)
+
+    def test_rebootstrap_blocks_destination_inside_source_root(self):
+        project = self.base / "legacy-nested-destination"
+        project.mkdir()
+        (project / "src").mkdir()
+        (project / "src" / "app.py").write_text("print('ok')\n", encoding="utf-8")
+        self.git_init(project)
+        report = planner.assess_project(project, ROOT, "re-bootstrap-from-existing", "software")
+        for destination in (project / "src" / "new-project", project / ".git" / "nested-project"):
+            plan = planner.build_rebootstrap_plan(project, ROOT, report, destination, "Rebuilt")
+            self.assertEqual(plan.status, "blocked", destination)
+            self.assertIn("outside the legacy project root", "\n".join(plan.blockers))
+
     def test_wrapper_reports_python_requirement_for_missing_runtime(self):
         env = os.environ.copy()
         env["PATH"] = str(self.base / "empty-path")
