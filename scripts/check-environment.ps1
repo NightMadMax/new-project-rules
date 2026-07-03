@@ -47,8 +47,16 @@ if (Test-Has "gh") {
     else { Write-Host "  [MISS] gh is not authenticated - run: gh auth login"; $script:Missing++ }
 }
 if ($hasGit) {
+    $transport = ""
+    if (Test-Has "gh") {
+        $transport = (& gh config get git_protocol 2>$null)
+    }
     $helper = (& git config --get credential.helper 2>$null)
-    if ([string]::IsNullOrWhiteSpace($helper)) {
+    if ($transport -eq "ssh" -and [string]::IsNullOrWhiteSpace($helper)) {
+        # SSH transport authenticates with keys; a credential helper is not used.
+        Write-Host "  [ ok ] git transport is SSH (gh git_protocol=ssh); credential helper not required"
+    }
+    elseif ([string]::IsNullOrWhiteSpace($helper)) {
         Write-Host "  [MISS] no git credential helper - configure Git Credential Manager"
         $script:Missing++
     }

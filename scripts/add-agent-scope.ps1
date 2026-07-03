@@ -25,6 +25,20 @@ function Append-Utf8NoBom {
     [System.IO.File]::AppendAllText($Path, $Line + "`n", $Utf8NoBom)
 }
 
+# getcwd returns the physical path on Unix, so this resolves symlinked
+# ancestors such as macOS /var -> /private/var before containment checks.
+function Get-CanonicalExistingPath {
+    param([string]$Path)
+    $original = [System.IO.Directory]::GetCurrentDirectory()
+    try {
+        [System.IO.Directory]::SetCurrentDirectory($Path)
+        return [System.IO.Directory]::GetCurrentDirectory()
+    }
+    finally {
+        [System.IO.Directory]::SetCurrentDirectory($original)
+    }
+}
+
 if (($Directory -split '[\\/]' | Where-Object { $_ -eq '..' }).Count -gt 0) {
     throw "Scope directory must not contain '..' path components."
 }
@@ -50,11 +64,16 @@ $comparison = if ($runningOnWindows) {
 else {
     [System.StringComparison]::Ordinal
 }
-$ProjectPrefix = $ProjectRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
-if (-not $DirectoryFullPath.StartsWith($ProjectPrefix, $comparison)) {
+$CanonicalRoot = Get-CanonicalExistingPath $ProjectRoot
+$CanonicalProbe = Get-CanonicalExistingPath $Probe
+$CanonicalDirectory = [System.IO.Path]::GetFullPath(
+    $CanonicalProbe + $DirectoryFullPath.Substring($Probe.Length)
+)
+$ProjectPrefix = $CanonicalRoot.TrimEnd([char[]]@('\', '/')) + [System.IO.Path]::DirectorySeparatorChar
+if (-not $CanonicalDirectory.StartsWith($ProjectPrefix, $comparison)) {
     throw "Scope directory must be below the project root: $ProjectRoot"
 }
-$RelativeDirectory = $DirectoryFullPath.Substring($ProjectPrefix.Length).Replace('\', '/').TrimEnd('/')
+$RelativeDirectory = $CanonicalDirectory.Substring($ProjectPrefix.Length).Replace('\', '/').TrimEnd('/')
 if ([string]::IsNullOrWhiteSpace($RelativeDirectory)) {
     throw "Scope directory must be below the project root: $ProjectRoot"
 }

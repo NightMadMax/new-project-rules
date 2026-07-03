@@ -40,13 +40,22 @@ if has gh; then
   fi
 fi
 if has git; then
+  transport=""
+  if has gh; then
+    transport=$(gh config get git_protocol 2>/dev/null || true)
+  fi
   helper=$(git config --get credential.helper 2>/dev/null || true)
-  case "$helper" in
-    "") echo "  [MISS] no git credential helper — configure Keychain or Git Credential Manager"
-        missing=$((missing + 1)) ;;
-    store) echo "  [WARN] credential.helper=store saves tokens UNENCRYPTED; prefer Keychain/GCM" ;;
-    *) printf '  [ ok ] credential.helper=%s\n' "$helper" ;;
-  esac
+  if [ "$transport" = "ssh" ] && [ -z "$helper" ]; then
+    # SSH transport authenticates with keys; a credential helper is not used.
+    echo "  [ ok ] git transport is SSH (gh git_protocol=ssh); credential helper not required"
+  else
+    case "$helper" in
+      "") echo "  [MISS] no git credential helper — configure Keychain or Git Credential Manager"
+          missing=$((missing + 1)) ;;
+      store) echo "  [WARN] credential.helper=store saves tokens UNENCRYPTED; prefer Keychain/GCM" ;;
+      *) printf '  [ ok ] credential.helper=%s\n' "$helper" ;;
+    esac
+  fi
 fi
 case "$agent_mode" in
   claude|both)
