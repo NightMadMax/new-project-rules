@@ -4,6 +4,14 @@
 
 ### Исправлено
 
+- Дефект 38: `scripts/add-agent-scope.ps1` сравнивает канонические физические
+  пути, поэтому alias `/var` → `/private/var` на macOS больше не ломает
+  containment-проверку; `test-agent-setup.ps1` проходит на macOS pwsh.
+- Дефект 39: `check-environment.sh`/`.ps1` не требуют credential helper при
+  `gh git_protocol=ssh` — SSH transport аутентифицируется ключами.
+- Дефект 33 закрыт как Won't Fix: pwsh command caching в mock-git секции
+  `test-bootstrap.ps1` — дефект локальной тестовой обвязки на macOS,
+  полностью покрытый Windows CI.
 - Дефект 34: `scripts/test-standardize-existing-project.py` запускается в CI
   на всех платформах (ubuntu и windows jobs `ci`, `macos-smoke`);
   непортабельные тесты получили skip-guards для Windows.
