@@ -4,6 +4,9 @@
 
 ### Исправлено
 
+- Дефект 34: `scripts/test-standardize-existing-project.py` запускается в CI
+  на всех платформах (ubuntu и windows jobs `ci`, `macos-smoke`);
+  непортабельные тесты получили skip-guards для Windows.
 - Дефекты 35–37 и 40 в `scripts/standardize_existing_project.py`: symlink и
   containment guards для всех planned writes и copies (adopt-in-place и
   re-bootstrap), запрет destination внутри legacy root (включая `.git`),
