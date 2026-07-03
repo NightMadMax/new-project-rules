@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-07-02
+last_verified: 2026-07-03
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -18,6 +18,13 @@ related:
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
 | 33 | PowerShell bootstrap-тест падает локально на macOS в mock-git секции | 2026-07-02 | scripts/test-bootstrap.ps1 | Секции mock add/commit и «git status failure detection» падают: pwsh резолвит `git` в уже удалённый `mock-bin` путь из временного PATH (command caching). Воспроизводится на чистом HEAD, профильные проверки проходят; CI (Windows PowerShell 5.1 / pwsh 7) не затронут. |
+| 34 | Standardization regression suite не запускается в CI | 2026-07-03 | .github/workflows/ci.yml, .github/workflows/macos-smoke.yml | `scripts/test-standardize-existing-project.py` указан в локальной матрице [[docs/quality/TESTING|TESTING]] и покрывает plan/apply для adoption/re-bootstrap, но отсутствует во всех GitHub Actions jobs. Регрессии destructive standardization workflow могут пройти зелёный CI. |
+| 35 | Standardization apply пишет через symlink за пределы проекта | 2026-07-03 | scripts/standardize_existing_project.py | `adopt-in-place` не отклоняет symlink destinations. Изолированно подтверждено: tracked `INDEX.md` → внешний файл принят как `status=ready`, fingerprint прошёл, apply изменил внешний target, а post-validator вернул 0 errors. Нужны symlink/containment guards для всех planned writes/copies и regression tests до дальнейшего использования apply. |
+| 36 | Re-bootstrap разыменовывает symlink и копирует внешний файл | 2026-07-03 | scripts/standardize_existing_project.py | `copy_transfer_item()` принимает symlink внутри safe transfer set и вызывает `shutil.copy2()` с follow-symlinks по умолчанию. Изолированно подтверждено: `src/linked-secret.txt` → внешний файл был скопирован в новый проект как обычный файл с внешним содержимым; validator вернул 0 errors. |
+| 37 | Re-bootstrap fingerprint не защищает содержимое transfer set | 2026-07-03 | scripts/standardize_existing_project.py | Fingerprint плана содержит только имена top-level transfer paths, destination/profile/name, но не file manifest и content hashes. Изменение `src/app.txt` после review не изменило fingerprint: apply завершился с exit 0 и перенёс непроверенное новое содержимое. |
+| 38 | PowerShell scoped-agent test падает локально на macOS из-за `/var` и `/private/var` | 2026-07-03 | scripts/add-agent-scope.ps1, scripts/test-agent-setup.ps1 | В PowerShell 7 на macOS временный project root передаётся как `/var/...`, а `git rev-parse --show-toplevel` возвращает `/private/var/...`; строковая containment-проверка ошибочно блокирует валидный вложенный scope. `test-agent-setup.ps1` затем получает отсутствующие AGENTS/CLAUDE и падает. Windows CI не воспроизводит alias путей. |
+| 39 | Environment check требует HTTPS credential helper при SSH Git transport | 2026-07-03 | scripts/check-environment.sh, scripts/check-environment.ps1 | Проверка безусловно считает отсутствие `credential.helper` обязательным MISS. На подтверждённой конфигурации `gh git_protocol=ssh`, `origin=git@github.com:...` и рабочем fetch/push helper не участвует, но environment check завершается с exit 1 и предлагает ненужную настройку Keychain/GCM. Нужно различать HTTPS и SSH transport либо проверять фактическую Git-auth готовность. |
+| 40 | Re-bootstrap разрешает destination внутри legacy repo и `.git` | 2026-07-03 | scripts/standardize_existing_project.py | Guard запрещает только `destination == root`. Планы для `legacy/src/new-project` и `legacy/.git/nested-project` оба вернули `status=ready`; первый пересекается с transfer set, второй создаёт новый repo внутри служебного каталога Git. Нужен запрет любого destination внутри source root и regression tests. |
 
 ## Fixed
 

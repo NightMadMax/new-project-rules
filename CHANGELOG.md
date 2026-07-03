@@ -4,6 +4,10 @@
 
 ### Добавлено
 
+- [[docs/research/PROJECT_AUDIT_2026-07-03|Повторный глубокий аудит проекта]]:
+  полный regression и PowerShell прогон, live GitHub/security verification,
+  проверка внешних ссылок и adversarial fixtures standardization workflow;
+  дефекты 34–40 записаны в [[docs/quality/DEFECTS|DEFECTS]].
 - Шаг «Консолидация журналов» в skill
   [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] и шаблон
   [[templates/new-project/DEFECTS.template|DEFECTS]]: при более чем ~30

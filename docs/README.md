@@ -2,7 +2,7 @@
 type: documentation-index
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-03
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -38,6 +38,7 @@ related:
 - [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|Рантайм-возможности Codex/Claude Code 2026]]
 - [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|Community-практики Claude Code/Codex]]
 - [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта и направления улучшений — июль 2026]]
+- [[docs/research/PROJECT_AUDIT_2026-07-03|Повторный глубокий аудит проекта — 2026-07-03]]
 
 ## Качество и ревью
 
