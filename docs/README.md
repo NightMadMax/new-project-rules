@@ -14,6 +14,7 @@ related:
 ## Руководства
 
 - [[docs/guides/USE_THIS_PROJECT|Как работать с этим проектом]]
+- [[docs/guides/MANUAL_SCRIPTS|Ручной запуск скриптов]]
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]
 - [[docs/guides/ASSESS_EXISTING_PROJECT|Оценка существующего проекта]]
 - [[docs/guides/STANDARDIZE_EXISTING_PROJECT|Стандартизация существующего проекта]]

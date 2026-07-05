@@ -1,5 +1,16 @@
 # Журнал изменений
 
+## Unreleased
+
+### Добавлено
+
+- [[docs/guides/MANUAL_SCRIPTS|Ручной запуск скриптов]]: пользовательский
+  справочник-шпаргалка с точными командами `sh`/`.ps1`, ключевыми флагами и
+  критериями «когда запускать вручную» для каждого семейства скриптов. Тест- и
+  runtime-детали не дублируются (ссылки на [[docs/quality/TESTING|TESTING]] и
+  [[TOOLS|TOOLS]]). Вплетён в [[INDEX]], [[docs/README|docs/README]], [[README]]
+  и [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT]].
+
 ## v1.12.0 — 2026-07-05
 
 ### Добавлено

@@ -19,6 +19,7 @@
 | `requirements-dev.txt` | Python-зависимости для сопровождения Agent Skills |
 | [[docs/README|docs/README.md]] | Индекс отдельной папки документации |
 | [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT.md]] | Пользовательский вход: как работать с проектом и какими фразами ставить задачи агенту |
+| [[docs/guides/MANUAL_SCRIPTS|MANUAL_SCRIPTS.md]] | Справочник по ручному запуску скриптов: команды sh/ps1, флаги и когда запускать вручную |
 | [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT.md]] | Создание проекта вручную или по запросу агенту |
 | [[docs/guides/ASSESS_EXISTING_PROJECT|ASSESS_EXISTING_PROJECT.md]] | Read-only оценка legacy-проекта и decision report без изменения файлов |
 | [[docs/guides/STANDARDIZE_EXISTING_PROJECT|STANDARDIZE_EXISTING_PROJECT.md]] | Выбор стратегии для legacy-проекта: adoption in place или новый проект по стандарту |
