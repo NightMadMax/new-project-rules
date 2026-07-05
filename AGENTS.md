@@ -76,12 +76,12 @@
 ## Documentation Model
 
 - Required core: `README.md`, `AGENTS.md`, `INDEX.md`, and `PROJECT.md`.
-- Keep durable artifacts under `docs/` and reusable files under
-  `templates/new-project/`.
-- Keep `docs/README.md` as the index of the documentation directory.
-- Store one decision per ADR, one investigation per research file, and one code
-  review per review file.
-- Do not create empty project documents without a current purpose.
+- Keep durable artifacts under `docs/` (indexed by `docs/README.md`) and reusable
+  files under `templates/new-project/`.
+- Store one decision per ADR, one investigation per research file, one review per
+  review file; do not create empty documents without a current purpose.
+- Keep user docs current, not one-shot: when you add or change a script or skill,
+  update `docs/guides/USE_THIS_PROJECT.md` or `MANUAL_SCRIPTS.md` in the same task.
 - Treat machine-readable API specifications, lock files, generated SBOM files,
   and `.github/CODEOWNERS` as authoritative.
 - Never commit secrets, tokens, private keys, passwords, or real credentials.
