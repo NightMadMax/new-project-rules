@@ -1,5 +1,16 @@
 # Журнал изменений
 
+## Unreleased
+
+### Добавлено
+
+- Шаблон `README` для новых проектов получил секцию «Источник»: наглядная
+  ссылка на стандарт `new-project-rules` (`NightMadMax/new-project-rules`) с
+  отсылкой к авторитетному `.project-standard.json` за точной версией (repo и
+  commit). Обновлены [[docs/guides/CREATE_NEW_PROJECT|гайд создания проекта]] и
+  skill `create-new-project`; commit источника по-прежнему не дублируется в
+  Markdown.
+
 ## v1.11.0 — 2026-07-03
 
 ### Исправлено

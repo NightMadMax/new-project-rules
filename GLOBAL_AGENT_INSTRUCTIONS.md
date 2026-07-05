@@ -106,6 +106,7 @@
 - Use a two-level model: create a small required core, then add conditional
   artifact sets only when the project needs them.
 - Required core: `README.md`, `AGENTS.md`, `INDEX.md`, and `PROJECT.md`.
+- Record provenance once in `.project-standard.json` (standard `source` and `source_commit`); `README.md` names the standard and links there, never duplicating the commit so migrations cannot desynchronize it.
 - Add `CHANGELOG.md` for projects with user-visible changes or releases.
 - Keep durable documentation under `docs/` instead of accumulating reports in
   the repository root.

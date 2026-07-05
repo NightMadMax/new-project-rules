@@ -16,3 +16,10 @@
   Obsidian vault.
 - Markdown редактируется напрямую, без API, helper и второй копии.
 - Машиночитаемые спецификации остаются первичными источниками истины.
+
+## Источник
+
+- Проект создан по стандарту **new-project-rules**
+  (`NightMadMax/new-project-rules`).
+- Точная версия-источник (repository и commit) зафиксирована в
+  `.project-standard.json`. Не дублируйте её в Markdown — этот файл авторитетен.

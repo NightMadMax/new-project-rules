@@ -39,7 +39,9 @@ description: Создаёт новый проект внутри общего Ob
    - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-new-project.ps1 -Destination <destination> -ProjectName <name> -Profile <profile>`.
 4. Заполнить `PROJECT.md`, `README.md` и `INDEX.md` фактическими данными задачи.
    Удалить неприменимые секции и не создавать условные документы без текущей
-   необходимости.
+   необходимости. Секцию «Источник» в `README.md` оставить: она называет
+   стандарт и отсылает к `.project-standard.json`; commit туда вручную не
+   вписывать — он попадёт в метаданные на шаге 8–9.
 5. Проверить `AGENTS.md`, `CLAUDE.md=@AGENTS.md`, wikilinks, отсутствие
    `.obsidian`, абсолютных machine-specific paths и секретов.
 6. Если доступен Python 3.9+, запустить read-only validator из корня правил:
