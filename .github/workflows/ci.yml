@@ -39,6 +39,7 @@ jobs:
           python3 scripts/test-migration-planner.py
           python3 scripts/test-supply-chain.py
           python3 scripts/test-standardize-existing-project.py
+          python3 scripts/test-compress-project.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -75,6 +76,7 @@ jobs:
           python .\scripts\test-migration-planner.py
           python .\scripts\test-supply-chain.py
           python .\scripts\test-standardize-existing-project.py
+          python .\scripts\test-compress-project.py
       - name: Validator report on Windows
         shell: powershell
         run: |

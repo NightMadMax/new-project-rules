@@ -38,6 +38,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-migration-planner.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
 python3 scripts/check-action-pins.py
 python3 scripts/validate-project.py --root . --kind rules --report-only
@@ -58,6 +59,7 @@ python .\scripts\test-validator.py
 python .\scripts\test-agent-sync.py
 python .\scripts\test-migration-planner.py
 python .\scripts\test-standardize-existing-project.py
+python .\scripts\test-compress-project.py
 python .\scripts\test-supply-chain.py
 python .\scripts\check-action-pins.py
 python .\scripts\validate-project.py --root . --kind rules --report-only

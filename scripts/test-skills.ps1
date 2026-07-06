@@ -72,6 +72,7 @@ Test-Skill "harvest-project-lessons"
 Test-Skill "apply-promotion-candidate"
 Test-Skill "promote-project-knowledge"
 Test-Skill "reflect-and-record"
+Test-Skill "compress-project"
 
 $requiredHeadings = @("## Knowledge Promotion", "## Defect Tracking")
 $sharedRuleLiterals = @(

@@ -21,6 +21,7 @@ related:
 - [[docs/guides/SETUP_NEW_COMPUTER|Подключение нового компьютера]]
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Перенос знаний между проектами]]
 - [[docs/guides/VALIDATE_AND_DIAGNOSE|Валидация проекта и диагностика компьютера]]
+- [[docs/guides/COMPRESS_PROJECT|Компрессия накопившегося «мусора» проекта]]
 - [[docs/guides/SYNC_GLOBAL_AGENTS|Read-only синхронизация глобальных правил]]
 - [[docs/guides/PLAN_MIGRATIONS|Планирование миграций без изменения файлов]]
 

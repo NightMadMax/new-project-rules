@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-07-03
+last_verified: 2026-07-06
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -38,6 +38,7 @@ related:
 | 36 | Re-bootstrap разыменовывает symlink и копирует внешний файл | 2026-07-03 | 2026-07-03 | `3ace8ca` | `copy_transfer_item()` использовал `shutil.copy2()` без проверки symlink. Теперь план блокируется при symlink в transfer set (`build_transfer_manifest()`), а apply дополнительно отказывает копировать symlink и проверяет containment target. |
 | 37 | Re-bootstrap fingerprint не защищает содержимое transfer set | 2026-07-03 | 2026-07-03 | `3ace8ca` | Fingerprint включал только имена top-level paths. В payload добавлен `transfer_manifest` — полный список файлов с sha256 содержимого; изменение файла после review даёт fingerprint mismatch, что покрыто regression test. |
 | 40 | Re-bootstrap разрешает destination внутри legacy repo и `.git` | 2026-07-03 | 2026-07-03 | `3ace8ca` | Guard сравнивал только `destination == root`. Добавлены проверки `is_relative_to` в обе стороны: destination внутри source root (включая `.git`) и source внутри destination блокируются; regression test покрывает оба вложенных пути. |
+| 41 | План компрессии закоммичен с template-плейсхолдером даты, `validate-project` падает | 2026-07-06 | 2026-07-06 | (в этой ветке) | При описании плейсхолдера прозой в план попал сырой литерал `<`+`YYYY-MM-DD`+`>`; правка порогов `4c83ab9` закоммичена без прогона валидатора, и `placeholder.remaining` дошёл до `main`. Формулировки переписаны без сырого литерала; урок — прогонять `validate-project --report-only` перед commit docs и не писать template-плейсхолдеры прозой. |
 
 ## Won't Fix
 

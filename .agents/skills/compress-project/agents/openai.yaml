@@ -1,0 +1,4 @@
+interface:
+  display_name: "Compress Project"
+  short_description: "Compress accumulated project cruft safely, archiving not deleting"
+  default_prompt: "Use $compress-project to report and safely compress accumulated cruft: run the compression script, consolidate docs, and optionally prune agent memory."

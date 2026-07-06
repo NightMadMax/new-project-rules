@@ -117,6 +117,27 @@ Read-only проверка структуры проекта или набора
   `--doctor`, `--report-only`.
 - Когда вручную: быстрая структурная проверка, локально или в CI.
 
+### Компрессия проекта
+
+Уровень-1 уборка накопившегося «мусора»: отчёт по умолчанию, `--apply` делает
+только обратимое. Нацеливается на любой стандартизированный проект через
+`--root`. Подробно: [[docs/guides/COMPRESS_PROJECT|COMPRESS_PROJECT]].
+
+```sh
+./scripts/compress-project.sh --root .
+./scripts/compress-project.sh --root "/path/to/Project" --apply
+```
+
+```powershell
+.\scripts\compress-project.ps1 -Root .
+.\scripts\compress-project.ps1 -Root "C:\path\to\Project" -Apply
+```
+
+- Ключевые флаги: `--apply`, `--today`, `--changelog-max-kb`, `--changelog-keep`,
+  `--fixed-max-age-days`, `--stale-days`.
+- Когда вручную: периодическая уборка или подготовка к релизу. Консолидацию docs
+  и память агентов ведёт скилл `compress-project`, а не скрипт.
+
 ### Глобальная политика агентов
 
 Read-only проверка и secret-safe diff переносимых глобальных инструкций против
@@ -198,6 +219,7 @@ python3 scripts/check-action-pins.py --root .
 | Проверить этот репозиторий правил | `./scripts/validate-project.sh --root . --kind rules` |
 | Проверить чужой проект как `software` | `./scripts/validate-project.sh --root <path> --kind project --profile software` |
 | Диагностика среды и проекта | `./scripts/project-doctor.sh --root . --report-only` |
+| Отчёт о компрессии проекта | `./scripts/compress-project.sh --root .` |
 | Проверить drift глобальных правил | `./scripts/sync-global-agents.sh --diff --report-only` |
 | План миграции без изменений | `./scripts/plan-migration.sh --plan --target project --root <path> --report-only` |
 | Оценить legacy-проект | `./scripts/standardize-existing-project.sh --root <path>` |

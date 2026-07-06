@@ -66,6 +66,7 @@ check_skill harvest-project-lessons
 check_skill apply-promotion-candidate
 check_skill promote-project-knowledge
 check_skill reflect-and-record
+check_skill compress-project
 
 for file in \
   "$root/AGENTS.md" \

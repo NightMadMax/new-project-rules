@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+### Добавлено
+
+- Компрессия проекта (Уровень 1): `scripts/compress-project.py` с обёртками
+  `.sh`/`.ps1` и тестом `test-compress-project` (14 тестов). Отчёт по умолчанию,
+  `--apply` делает только обратимое: перенос `Fixed`-дефектов старше
+  `--fixed-max-age-days` в `DEFECTS_ARCHIVE.md`, гибридный сплит `CHANGELOG.md`
+  (триггер 32 КБ, рез по границам версий, Unreleased + 5 релизов остаются),
+  чистка `__pycache__`/`.DS_Store`/пустого `.trash`; WARN о `last_verified`
+  старше `--stale-days`. Нацеливается на любой проект через `--root`.
+- Скилл `compress-project` (Уровни 2–3): консолидация docs с показом плана и,
+  по `--include-memory`, память агентов строго через отчёт → показ дублей →
+  подтверждение без автоудаления. Зарегистрирован в `test-skills`, добавлены
+  гайд [[docs/guides/COMPRESS_PROJECT]] и план
+  [[docs/research/PROJECT_COMPRESSION_PLAN]]. Тест подключён к CI и
+  macos-smoke.
+
 ### Изменено
 
 - Global migration engine теперь умеет adoption для `unmanaged_conflict`: когда

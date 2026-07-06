@@ -56,6 +56,7 @@
 | [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]] | Перенос одного approved-кандидата в checked-in артефакты стандарта |
 | [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Оркестрация knowledge promotion: local vs harvest vs apply |
 | [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] | Рефлексия ошибки/поправки и запись урока в нужный артефакт |
+| [[.agents/skills/compress-project/SKILL|compress-project]] | Безопасная компрессия накопившегося «мусора»: журналы, docs, память |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |
 | `scripts/bootstrap-new-project.ps1` | Создание проекта в Windows PowerShell |
 | `scripts/setup-global-agents.sh` | Глобальная настройка Codex+Claude (macOS/Linux) |
@@ -74,6 +75,10 @@
 | `scripts/project-doctor.sh` | Environment + project doctor для macOS/Linux |
 | `scripts/project-doctor.ps1` | Environment + project doctor для Windows |
 | `scripts/test-validator.py` | Regression tests validator и exit codes |
+| `scripts/compress-project.py` | Level-1 компрессия проекта (отчёт по умолчанию, `--apply` обратимое) |
+| `scripts/compress-project.sh` | Compression wrapper для macOS/Linux |
+| `scripts/compress-project.ps1` | Compression wrapper для Windows |
+| `scripts/test-compress-project.py` | Regression tests компрессии (сплит, архив, cruft, idempotency) |
 | `scripts/sync_global_agents.py` | Read-only parser и secret-safe global policy check/diff |
 | `scripts/sync-global-agents.sh` | Global policy sync inspection для macOS/Linux |
 | `scripts/sync-global-agents.ps1` | Global policy sync inspection для Windows |

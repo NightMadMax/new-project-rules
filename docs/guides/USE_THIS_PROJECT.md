@@ -273,6 +273,28 @@ Claude Code: `/reflect-and-record`
 
 Подробности: [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]].
 
+### 10. Сжать накопившийся «мусор» проекта
+
+Codex: `$compress-project`
+
+Claude Code: `/compress-project`
+
+Фразы:
+
+> Проект оброс — сделай отчёт о компрессии и покажи, что можно безопасно
+> убрать.
+
+> Проведи компрессию проекта: журналы и docs. Память агентов тоже разбери,
+> но только с показом дублей и без удаления.
+
+Когда использовать:
+
+- журналы, research/audit или навигация разрослись за долгую работу;
+- периодическая уборка или подготовка к релизу.
+
+Только скрипт-отчёт без скилла: `./scripts/compress-project.sh --root .`.
+Подробности: [[docs/guides/COMPRESS_PROJECT|COMPRESS_PROJECT]].
+
 ## Полезные уточнения в запросе
 
 Чтобы агент работал предсказуемо, добавляйте короткие ограничения:
@@ -297,6 +319,7 @@ Claude Code: `/reflect-and-record`
 | Нужно проверить или подтянуть global instructions | sync-global-agents / plan-migration |
 | Нужно вынести lesson в общий стандарт | knowledge portability workflows |
 | Агент ошибся или найден урок, который нельзя терять | `reflect-and-record` |
+| Проект оброс мусором за долгую работу | `compress-project` |
 
 ## Если не хотите помнить названия skill
 
