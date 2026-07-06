@@ -1,5 +1,22 @@
 # Журнал изменений
 
+## Unreleased
+
+### Добавлено
+
+- Интеграция базы Best Practices в создание проекта. Skill
+  [[docs/guides/CREATE_NEW_PROJECT|create-new-project]] на финальном шаге
+  предлагает (opt-in) обновить или установить соседнюю базу `Best Practices` и
+  применяет общие практики (`common`). Шаблон `templates/new-project/AGENTS.template.md`
+  получил компактное правило: при определении стека проекта предложить подтянуть
+  стековые практики через чтение `apply-best-practices/SKILL.md` из базы, а при
+  её отсутствии — установить соседом `../Best Practices`. Решения пользователя
+  фиксируются в `.best-practices.json` (`optout`/`applied`), чтобы отклонённые
+  или уже применённые разделы не предлагались повторно. Реализовано через
+  чтение skill-файла базы (без глобальной установки и без правок репозитория
+  Best Practices). Тесты `test-skills`, `test-bootstrap`, `test-contract` и
+  `validate-project --root . --kind rules` — 0 ошибок / 0 предупреждений.
+
 ## v1.14.0 — 2026-07-05
 
 ### Изменено
