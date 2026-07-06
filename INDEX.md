@@ -41,6 +41,7 @@
 | [[docs/research/PROJECT_AUDIT_2026-07|PROJECT_AUDIT_2026-07.md]] | Аудит проекта июль 2026: консистентность, обновления Codex/Claude Code, рекомендации |
 | [[docs/research/PROJECT_AUDIT_2026-07-03|PROJECT_AUDIT_2026-07-03.md]] | Повторный глубокий аудит: adversarial standardization checks, CI, portability и readiness |
 | [[docs/research/BEST_PRACTICES_INTEGRATION|BEST_PRACTICES_INTEGRATION.md]] | Решения по интеграции базы Best Practices в create-new-project |
+| [[docs/research/PROJECT_HARVEST_2026-07-06|PROJECT_HARVEST_2026-07-06.md]] | Полный harvest checked-in lessons из соседних git-проектов |
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |

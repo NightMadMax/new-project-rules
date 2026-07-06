@@ -17,6 +17,8 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
+| 43 | Promotion backlog создаёт merge-конфликты как единая таблица | 2026-07-06 | `docs/quality/PROMOTION_CANDIDATES.md`, `harvest-project-lessons` | Все кандидаты изменяют один Markdown-файл и одну таблицу. В параллельных PR это общий mutable hotspot; тот же дефект уже материализовался и был исправлен в независимом `Best Practices` переходом на one-file-per-candidate. Нужен отдельный approved/apply workflow, а не исправление внутри harvest. |
+| 44 | Последовательные promotion ID требуют централизованной координации | 2026-07-06 | `docs/quality/PROMOTION_CANDIDATES.md`, `harvest-project-lessons` | Формат `PC-YYYY-NNN` и пример `max + 1` не гарантируют уникальность между независимыми ветками. В `Best Practices` два параллельных автора получили бы один ID; исправление использует collision-resistant suffix и локальную проверку уникальности. |
 
 ## Fixed
 
