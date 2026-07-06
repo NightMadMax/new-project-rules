@@ -46,6 +46,8 @@ class ValidatorTests(unittest.TestCase):
         project = self.temp_path / f"project-{profile}"
         selected = validator.artifacts_for_profile(self.rows, profile)
         for artifact in selected:
+            if artifact.destination == ".project-standard.json":
+                continue
             path = project / artifact.destination
             path.parent.mkdir(parents=True, exist_ok=True)
             if artifact.destination == "CLAUDE.md":
@@ -104,6 +106,7 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         _, profile, findings = self.validate_project(project)
         self.assertEqual(profile, "operated")
+        self.assertNotIn("metadata.missing", finding_codes(findings))
         self.assertFalse([item for item in findings if item.severity == "ERROR"], findings)
 
     def test_explicit_profile_reports_missing_required_file(self):

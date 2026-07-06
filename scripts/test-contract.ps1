@@ -5,6 +5,7 @@ $Bootstrap = Join-Path $PSScriptRoot "bootstrap-new-project.ps1"
 $Manifest = Join-Path $Root "config/profiles.tsv"
 $PolicyContract = Join-Path $Root "config/policy-contract.tsv"
 $Templates = Join-Path $Root "templates/new-project"
+$realGit = (Get-Command git -CommandType Application -ErrorAction Stop | Select-Object -First 1).Source
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("contracttest-" + [System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 $script:Pass = 0
 $script:Fail = 0
@@ -127,6 +128,8 @@ try {
     New-Item -ItemType Directory -Force (Join-Path $fixtureRoot "config") | Out-Null
     New-Item -ItemType Directory -Force (Join-Path $fixtureRoot "templates") | Out-Null
     Copy-Item -LiteralPath $Bootstrap -Destination (Join-Path $fixtureRoot "scripts/bootstrap-new-project.ps1")
+    Copy-Item -LiteralPath (Join-Path $Root "STANDARD_VERSION") -Destination (Join-Path $fixtureRoot "STANDARD_VERSION")
+    Copy-Item -LiteralPath (Join-Path $Root "config/standard-source.txt") -Destination (Join-Path $fixtureRoot "config/standard-source.txt")
     Copy-Item -LiteralPath $Templates -Destination (Join-Path $fixtureRoot "templates") -Recurse
     $fixtureManifest = $manifestLines |
         Where-Object { $_ -notmatch "`tCHANGELOG\.template\.md`t" } |
@@ -139,6 +142,9 @@ try {
         $fixtureManifest,
         (New-Object System.Text.UTF8Encoding($false))
     )
+    & $realGit -C $fixtureRoot init -q
+    & $realGit -C $fixtureRoot add -A
+    & $realGit -C $fixtureRoot -c user.name='Contract Test' -c user.email='contract@example.invalid' commit -qm fixture
     $fixtureDestination = Join-Path $Tmp "manifest-driven"
     try {
         & (Join-Path $fixtureRoot "scripts/bootstrap-new-project.ps1") `

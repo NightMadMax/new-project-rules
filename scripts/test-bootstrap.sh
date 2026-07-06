@@ -131,7 +131,7 @@ for profile in minimal software operated all; do
     continue
   fi
   for f in README.md AGENTS.md CLAUDE.md INDEX.md PROJECT.md \
-    .editorconfig .gitignore .gitattributes; do
+    .editorconfig .gitignore .gitattributes .project-standard.json; do
     assert_file "$dir" "$f" "$profile"
   done
   assert_absent "$dir" ".obsidian" "$profile"
@@ -143,6 +143,10 @@ for profile in minimal software operated all; do
   assert_grep "$dir/AGENTS.md" "Always answer the user in Russian" "$profile"
   assert_grep "$dir/.gitignore" "CLAUDE.local.md" "$profile"
   assert_grep "$dir/.gitignore" ".obsidian/" "$profile"
+  assert_grep "$dir/.project-standard.json" "\"profile\": \"$profile\"" "$profile metadata"
+  assert_grep "$dir/.project-standard.json" '"source": "NightMadMax/new-project-rules"' "$profile metadata"
+  assert_grep "$dir/.project-standard.json" '"created_at": "' "$profile metadata"
+  assert_no_bom "$dir/.project-standard.json" "$profile metadata"
   if [ "$("$real_git" -C "$dir" symbolic-ref --short HEAD 2>/dev/null)" = main ]; then ok
   else bad "$profile: initial branch is not main"; fi
   if "$real_git" -C "$dir" rev-parse --verify HEAD >/dev/null 2>&1; then ok
@@ -257,10 +261,10 @@ for command_name in cat date dirname grep mkdir sed; do
   ln -s "$command_path" "$no_git_bin/$command_name"
 done
 if PATH="$no_git_bin" /bin/sh "$bootstrap" "$tmp/no-git" "No Git" minimal \
-  >"$tmp/no-git.out" 2>&1; then ok
-else bad "missing git: bootstrap should still create files"; fi
+  >"$tmp/no-git.out" 2>&1; then bad "missing git: bootstrap should fail"
+else ok; fi
 assert_absent "$tmp/no-git" ".git" "missing git"
-assert_grep "$tmp/no-git.out" "Git was not found" "missing git"
+assert_grep "$tmp/no-git.out" "Git is required to record project-standard provenance" "missing git"
 
 mkdir -p "$tmp/hidden-only"
 : > "$tmp/hidden-only/.hidden"

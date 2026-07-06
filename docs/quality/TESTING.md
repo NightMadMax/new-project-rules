@@ -77,6 +77,8 @@ Parser-check обязан возвращать ненулевой код, есл
 ## Проверяемые сценарии
 
 - создание всех bootstrap-профилей и точный состав файлов;
+- валидная `.project-standard.json` provenance metadata для каждого нового
+  профиля и явный отказ bootstrap без Git;
 - parity фактических shell/PowerShell outputs с `config/profiles.tsv`;
 - доказательство manifest-driven поведения через изменённую изолированную копию
   contract без правок bootstrap adapters;

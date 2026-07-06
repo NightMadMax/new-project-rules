@@ -145,7 +145,7 @@ try {
         $result = Invoke-Bootstrap $dir "Test $p" $p
         if (-not $result.Success) { Fail "${p}: bootstrap failed: $($result.Output)"; continue }
         foreach ($f in @("README.md", "AGENTS.md", "CLAUDE.md", "INDEX.md", "PROJECT.md",
-                ".editorconfig", ".gitignore", ".gitattributes")) {
+                ".editorconfig", ".gitignore", ".gitattributes", ".project-standard.json")) {
             Assert-File $dir $f $p
         }
         Assert-Absent $dir ".obsidian" $p
@@ -158,6 +158,10 @@ try {
         Assert-Grep (Join-Path $dir "AGENTS.md") "Always answer the user in Russian" $p
         Assert-Grep (Join-Path $dir ".gitignore") "CLAUDE.local.md" $p
         Assert-Grep (Join-Path $dir ".gitignore") ".obsidian/" $p
+        Assert-Grep (Join-Path $dir ".project-standard.json") ('"profile": "' + $p + '"') "$p metadata"
+        Assert-Grep (Join-Path $dir ".project-standard.json") '"source": "NightMadMax/new-project-rules"' "$p metadata"
+        Assert-Grep (Join-Path $dir ".project-standard.json") '"created_at": "' "$p metadata"
+        Assert-NoBom (Join-Path $dir ".project-standard.json") "$p metadata"
         Assert-CleanTree $dir $p
     }
 
@@ -231,7 +235,8 @@ try {
     New-Item -ItemType Directory -Force $env:PATH | Out-Null
     $missingGitDir = Join-Path $Tmp "missing-git"
     $result = Invoke-Bootstrap $missingGitDir "Missing Git" "minimal"
-    if ($result.Success -and $result.Output.Contains("Git was not found")) { Pass } else { Fail "missing git: explicit success message missing" }
+    if (-not $result.Success -and $result.Output.Contains("Git is required to record project-standard provenance")) { Pass }
+    else { Fail "missing git: explicit failure message missing" }
     Assert-Absent $missingGitDir ".git" "missing git"
 
     $env:PATH = $savedEnvironment["PATH"]

@@ -54,7 +54,34 @@ script_dir=$(resolve_script_dir)
 project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
 manifest="$project_rules_root/config/profiles.tsv"
+standard_source_file="$project_rules_root/config/standard-source.txt"
+standard_version_file="$project_rules_root/STANDARD_VERSION"
 tab=$(printf '\t')
+
+command -v git >/dev/null 2>&1 || {
+  echo "Git is required to record project-standard provenance and initialize the project repository." >&2
+  exit 1
+}
+standard_source=$(tr -d '\r\n' < "$standard_source_file") || exit 1
+standard_version=$(tr -d '\r\n' < "$standard_version_file") || exit 1
+source_commit=$(git -C "$project_rules_root" rev-parse --verify HEAD 2>/dev/null) || {
+  echo "Cannot resolve the new-project-rules source commit from $project_rules_root." >&2
+  exit 1
+}
+case "$standard_source" in
+  ''|/*|*/|*/*/*|*[!A-Za-z0-9_./-]*) echo "Invalid standard source: $standard_source" >&2; exit 1 ;;
+  */*) ;;
+esac
+case "$standard_version" in
+  ''|*[!0-9]*|0) echo "Invalid STANDARD_VERSION: $standard_version" >&2; exit 1 ;;
+esac
+[ "${#source_commit}" -eq 40 ] || {
+  echo "Invalid new-project-rules source commit: $source_commit" >&2
+  exit 1
+}
+case "$source_commit" in
+  *[!0-9a-f]*) echo "Invalid new-project-rules source commit: $source_commit" >&2; exit 1 ;;
+esac
 
 profile_rank() {
   case "$1" in
@@ -99,7 +126,7 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
   seen_destinations="$seen_destinations$artifact_destination|"
   if [ "$source" = @generated ]; then
     case "$artifact_destination" in
-      .editorconfig|.gitattributes|.gitignore|CLAUDE.md) ;;
+      .editorconfig|.gitattributes|.gitignore|.project-standard.json|CLAUDE.md) ;;
       *) echo "Unknown generated artifact '$artifact_destination' in $manifest" >&2; exit 1 ;;
     esac
   elif [ ! -f "$templates/$source" ]; then
@@ -187,6 +214,11 @@ indent_style = tab
 EDITORCONFIG
       ;;
     CLAUDE.md) printf '@AGENTS.md\n' > "$destination/$target" ;;
+    .project-standard.json)
+      printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n    "0001-adopt-project-standard"\n  ]\n}\n' \
+        "$standard_version" "$profile" "$standard_source" "$source_commit" "$today" "$today" \
+        > "$destination/$target"
+      ;;
     *) echo "Unknown generated artifact: $target" >&2; exit 1 ;;
   esac
 }
@@ -246,8 +278,7 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
   ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
 done < "$manifest"
 
-if command -v git >/dev/null 2>&1; then
-  if ! git_output=$(git -C "$destination" init 2>&1); then
+if ! git_output=$(git -C "$destination" init 2>&1); then
     printf 'Git initialization failed:\n%s\n' "$git_output" >&2
     exit 1
   fi
@@ -269,9 +300,6 @@ if command -v git >/dev/null 2>&1; then
     echo "Initialized git repository with an initial commit."
   else
     echo "Initialized git repository with staged files; set git user.name and git user.email, then commit the initial state." >&2
-  fi
-else
-  echo "Git was not found; project files were created, but the repository was not initialized." >&2
 fi
 
 echo "Created '$project_name' at $destination using profile '$profile'."

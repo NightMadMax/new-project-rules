@@ -212,7 +212,8 @@ Assessment должен возвращать не свободный текст,
 3. Перенести только safe transfer set: код, тесты и manifests.
 4. Не переносить docs, agent files, secrets и deployment artifacts автоматически.
 5. Прогнать validator для нового проекта.
-6. Построить metadata migration plan для нового проекта.
+6. Проверить, что bootstrap создал актуальную `.project-standard.json`; metadata
+   migration нужна только для старого bootstrap output.
 7. Отдельно перечислить, что осталось в legacy-проекте и что не переносилось.
 
 ## Ограничения первой версии

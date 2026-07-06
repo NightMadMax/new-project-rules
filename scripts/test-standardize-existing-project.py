@@ -63,6 +63,8 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         project = self.base / f"project-{profile}-{len(list(self.base.glob('project-*')))}"
         project.mkdir()
         for destination in self.profiles[profile]:
+            if destination == ".project-standard.json":
+                continue
             path = project / destination
             path.parent.mkdir(parents=True, exist_ok=True)
             if destination == "CLAUDE.md":

@@ -151,7 +151,8 @@ def read_profile_destinations(contract_root: Path) -> dict[str, set[str]]:
             if minimum not in PROFILE_RANKS:
                 raise MigrationConfigError(f"Unknown minimum_profile: {minimum!r}")
             if PROFILE_RANKS[minimum] <= rank:
-                selected.add(row["destination"])
+                if row["destination"] != ".project-standard.json":
+                    selected.add(row["destination"])
         result[profile] = selected
     return result
 

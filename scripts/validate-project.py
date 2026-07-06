@@ -122,7 +122,7 @@ def load_artifacts(contract_root: Path) -> list[Artifact]:
 
     seen: set[str] = set()
     templates = contract_root / "templates" / "new-project"
-    generated = {".editorconfig", ".gitattributes", ".gitignore", "CLAUDE.md"}
+    generated = {".editorconfig", ".gitattributes", ".gitignore", ".project-standard.json", "CLAUDE.md"}
     for row in rows:
         if row.minimum_profile not in PROFILE_RANKS:
             raise ContractError(f"Unknown minimum_profile: {row.minimum_profile}")
@@ -145,11 +145,15 @@ def load_artifacts(contract_root: Path) -> list[Artifact]:
 
 
 def artifacts_for_profile(rows: Sequence[Artifact], profile: str) -> list[Artifact]:
-    return [row for row in rows if PROFILE_RANKS[row.minimum_profile] <= PROFILE_RANKS[profile]]
+    return [
+        row for row in rows
+        if PROFILE_RANKS[row.minimum_profile] <= PROFILE_RANKS[profile]
+        and row.destination != ".project-standard.json"
+    ]
 
 
 def infer_profile(root: Path, rows: Sequence[Artifact]) -> Optional[str]:
-    known = {row.destination for row in rows}
+    known = {row.destination for row in rows if row.destination != ".project-standard.json"}
     present = {item for item in known if (root / item).is_file()}
     matches = []
     for profile in PROFILE_RANKS:

@@ -32,6 +32,12 @@
 
 ### Изменено
 
+- Bootstrap shell/PowerShell теперь создаёт обязательный
+  `.project-standard.json` из manifest-driven контракта: schema, выбранный
+  profile, canonical source, commit репозитория правил и даты фиксируются до
+  initial commit. Git стал обязательным, поскольку без него нельзя одновременно
+  создать отдельный repository и достоверно зафиксировать provenance. Добавлены
+  parity/regression-проверки; закрыт дефект `#45`.
 - Global migration engine теперь умеет adoption для `unmanaged_conflict`: когда
   `~/.codex/AGENTS.md` уже содержит собственные правила пользователя без markers
   (типичный новый компьютер, где велись работы), `plan-migration --target global`

@@ -13,7 +13,23 @@ $ErrorActionPreference = "Stop"
 $RulesRoot = Split-Path -Parent $PSScriptRoot
 $Templates = Join-Path $RulesRoot "templates/new-project"
 $Manifest = Join-Path $RulesRoot "config/profiles.tsv"
+$StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
+$StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
 $ProfileRanks = @{ minimal = 0; software = 1; operated = 2; all = 3 }
+$git = Get-Command git -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+if ($null -eq $git) {
+    throw "Git is required to record project-standard provenance and initialize the project repository."
+}
+$StandardSource = (Get-Content -Raw -Encoding utf8 $StandardSourceFile).Trim()
+$StandardVersion = (Get-Content -Raw -Encoding utf8 $StandardVersionFile).Trim()
+if ($StandardSource -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { throw "Invalid standard source: $StandardSource" }
+if ($StandardVersion -notmatch '^[1-9][0-9]*$') { throw "Invalid STANDARD_VERSION: $StandardVersion" }
+$sourceCommitOutput = @(& $git.Source -C $RulesRoot rev-parse --verify HEAD 2>$null)
+$sourceCommitExitCode = $LASTEXITCODE
+$SourceCommit = if ($sourceCommitOutput.Count -gt 0) { $sourceCommitOutput[0].ToString().Trim() } else { "" }
+if ($sourceCommitExitCode -ne 0 -or $SourceCommit -notmatch '^[0-9a-f]{40}$') {
+    throw "Cannot resolve a valid new-project-rules source commit from $RulesRoot."
+}
 $ExpectedManifestHeader = "minimum_profile`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label"
 $ManifestLines = @(Get-Content -Encoding utf8 $Manifest)
 if ($ManifestLines.Count -lt 2 -or $ManifestLines[0] -cne $ExpectedManifestHeader) {
@@ -21,7 +37,7 @@ if ($ManifestLines.Count -lt 2 -or $ManifestLines[0] -cne $ExpectedManifestHeade
 }
 $Artifacts = @($ManifestLines | ConvertFrom-Csv -Delimiter "`t")
 $SeenDestinations = @{}
-$GeneratedDestinations = @(".editorconfig", ".gitattributes", ".gitignore", "CLAUDE.md")
+$GeneratedDestinations = @(".editorconfig", ".gitattributes", ".gitignore", ".project-standard.json", "CLAUDE.md")
 foreach ($artifact in $Artifacts) {
     if (-not $ProfileRanks.ContainsKey($artifact.minimum_profile)) {
         throw "Unknown minimum_profile '$($artifact.minimum_profile)' in $Manifest"
@@ -125,6 +141,18 @@ function Install-Generated {
             )
         }
         "CLAUDE.md" { Write-Utf8NoBom (Join-Path $Destination $Target) "@AGENTS.md`n" }
+        ".project-standard.json" {
+            $metadata = [ordered]@{
+                schema_version = [int]$StandardVersion
+                profile = $Profile
+                source = $StandardSource
+                source_commit = $SourceCommit
+                created_at = $Today
+                adopted_at = $Today
+                applied_migrations = @("0001-adopt-project-standard")
+            }
+            Write-Utf8NoBom (Join-Path $Destination $Target) (($metadata | ConvertTo-Json -Depth 3) + "`n")
+        }
         default { throw "Unknown generated artifact: $Target" }
     }
 }
@@ -172,7 +200,6 @@ foreach ($artifact in $SelectedArtifacts) {
     Ensure-DocsIndexEntry $artifact.docs_section $artifact.destination $artifact.docs_label
 }
 
-$git = Get-Command git -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($null -ne $git) {
     function Invoke-GitRequired {
         param(
@@ -225,10 +252,6 @@ if ($null -ne $git) {
         Write-Host "Initialized git repository with an initial commit."
     }
 }
-else {
-    Write-Host "Git was not found; project files were created, but the repository was not initialized."
-}
-
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."
 Write-Host "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."
 $BootstrapSucceeded = $true

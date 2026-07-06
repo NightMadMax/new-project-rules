@@ -126,10 +126,15 @@ echo "Manifest drives bootstrap output..."
 fixture="$tmp/rules-fixture"
 mkdir -p "$fixture/scripts" "$fixture/config" "$fixture/templates"
 cp "$bootstrap" "$fixture/scripts/bootstrap-new-project.sh"
+cp "$root/STANDARD_VERSION" "$fixture/STANDARD_VERSION"
+cp "$root/config/standard-source.txt" "$fixture/config/standard-source.txt"
 cp -R "$templates" "$fixture/templates/"
 grep -v "${tab}CHANGELOG.template.md${tab}" "$manifest" \
   | sed "s/Current system architecture/Manifest-owned architecture/; s/${tab}Environments\$/${tab}Manifest Environments/" \
   > "$fixture/config/profiles.tsv"
+git -C "$fixture" init -q
+git -C "$fixture" add -A
+git -C "$fixture" -c user.name='Contract Test' -c user.email='contract@example.invalid' commit -qm fixture
 fixture_destination="$tmp/manifest-driven"
 fixture_home="$tmp/home-manifest-driven"
 mkdir -p "$fixture_home"

@@ -178,7 +178,9 @@ def profile_destinations(rows: Sequence[Artifact]) -> dict[str, set[str]]:
     result: dict[str, set[str]] = {}
     for profile, rank in PROFILE_RANKS.items():
         result[profile] = {
-            row.destination for row in rows if PROFILE_RANKS[row.minimum_profile] <= rank
+            row.destination for row in rows
+            if PROFILE_RANKS[row.minimum_profile] <= rank
+            and row.destination != ".project-standard.json"
         }
     return result
 
