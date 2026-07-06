@@ -15,6 +15,7 @@
 | `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
 | `config/standard-source.txt` | Канонический owner/repository без credentials и локальных путей |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
+| [[CHANGELOG_ARCHIVE|CHANGELOG_ARCHIVE.md]] | Архив старых релизов, перенесённых при компрессии |
 | [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
 | `requirements-dev.txt` | Python-зависимости для сопровождения Agent Skills |
 | [[docs/README|docs/README.md]] | Индекс отдельной папки документации |

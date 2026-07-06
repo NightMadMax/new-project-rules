@@ -42,6 +42,9 @@ CHANGELOG_ARCHIVE_HEADER = (
     "\n"
 )
 
+# Back-reference kept in CHANGELOG.md so the archive is not orphaned.
+CHANGELOG_ARCHIVE_POINTER = "Старые релизы перенесены в [[CHANGELOG_ARCHIVE|архив журнала изменений]].\n"
+
 FIXED_DATE_COLUMN = 3  # `| # | Title | Discovered | Fixed | Commit | Root Cause |`
 
 
@@ -164,6 +167,8 @@ def split_changelog(
     if not moved_versions:
         return None
 
+    if "CHANGELOG_ARCHIVE" not in preamble:
+        preamble = preamble.rstrip("\n") + "\n\n" + CHANGELOG_ARCHIVE_POINTER + "\n"
     new_changelog = preamble + "".join(unreleased) + "".join(kept_versions)
 
     if archive_text is None:

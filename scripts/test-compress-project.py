@@ -74,9 +74,19 @@ class ChangelogTests(unittest.TestCase):
         self.assertIn("## v1.3.0", new_cl)
         self.assertNotIn("## v1.2.0", new_cl)
         self.assertNotIn("## v1.1.0", new_cl)
+        # CHANGELOG keeps a single back-reference to the archive.
+        self.assertIn("CHANGELOG_ARCHIVE", new_cl)
+        self.assertEqual(new_cl.count("CHANGELOG_ARCHIVE"), 1)
         # Archive keeps newest-first order.
         self.assertLess(new_arc.index("v1.2.0"), new_arc.index("v1.1.0"))
         self.assertTrue(new_arc.startswith(compress.CHANGELOG_ARCHIVE_HEADER))
+
+    def test_pointer_is_idempotent(self):
+        with_pointer = "# Журнал изменений\n\n" + compress.CHANGELOG_ARCHIVE_POINTER + "\n" + CHANGELOG.split("\n", 2)[2]
+        new_cl, _, _ = compress.split_changelog(
+            with_pointer, None, max_bytes=150, target_bytes=120, keep=1
+        )
+        self.assertEqual(new_cl.count("CHANGELOG_ARCHIVE"), 1)
 
     def test_no_split_when_small(self):
         self.assertIsNone(
