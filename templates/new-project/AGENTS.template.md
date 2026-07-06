@@ -100,6 +100,18 @@ checkable conditions. Delete this section until the project has real criteria.
   `.github/CODEOWNERS` as authoritative.
 - Never commit secrets or real credentials.
 
+## Best Practices
+
+- When the project's stack becomes clear, offer to pull matching practices from
+  the sibling Best Practices base: read
+  `../Best Practices/.agents/skills/apply-best-practices/SKILL.md` and follow it
+  for that stack. If the base is absent, offer to clone it first, as a sibling
+  in the vault (`git clone git@github.com:NightMadMax/best-practices.git
+  "../Best Practices"`).
+- Everything is opt-in. Record the decision in `.best-practices.json` (`optout`
+  when the user declines, `applied` for delivered sections) and do not re-offer
+  a declined or already-applied section.
+
 ## Knowledge Promotion
 
 - Keep project-specific facts, architecture, defects, decisions, research, and
