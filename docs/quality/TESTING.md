@@ -35,6 +35,7 @@ sh scripts/test-contract.sh
 sh scripts/test-agent-setup.sh
 sh scripts/test-skills.sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-promotion-candidates.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-migration-planner.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
@@ -56,6 +57,7 @@ python3 scripts/standardize_existing_project.py --root . --json
 .\scripts\test-skills.ps1
 $env:PYTHONDONTWRITEBYTECODE = "1"
 python .\scripts\test-validator.py
+python .\scripts\test-promotion-candidates.py
 python .\scripts\test-agent-sync.py
 python .\scripts\test-migration-planner.py
 python .\scripts\test-standardize-existing-project.py

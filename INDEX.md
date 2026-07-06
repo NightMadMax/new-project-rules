@@ -48,6 +48,7 @@
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
 | [[docs/quality/PROMOTION_CANDIDATES|PROMOTION_CANDIDATES.md]] | Очередь кандидатов на перенос lessons в общий стандарт |
+| [[docs/quality/promotion-candidates/README|promotion-candidates/]] | Канонический one-file-per-candidate backlog и команды генератора |
 | [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | [[.agents/skills/setup-new-computer/SKILL|setup-new-computer]] | Универсальный workflow настройки компьютера |
@@ -77,6 +78,8 @@
 | `scripts/project-doctor.sh` | Environment + project doctor для macOS/Linux |
 | `scripts/project-doctor.ps1` | Environment + project doctor для Windows |
 | `scripts/test-validator.py` | Regression tests validator и exit codes |
+| `scripts/promotion_candidates.py` | Генератор collision-resistant candidate ID и schema validator очереди |
+| `scripts/test-promotion-candidates.py` | Regression tests candidate generator, duplicate guard и legacy ID |
 | `scripts/compress-project.py` | Level-1 компрессия проекта (отчёт по умолчанию, `--apply` обратимое) |
 | `scripts/compress-project.sh` | Compression wrapper для macOS/Linux |
 | `scripts/compress-project.ps1` | Compression wrapper для Windows |

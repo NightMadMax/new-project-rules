@@ -17,6 +17,7 @@ from typing import Iterable, Optional, Sequence
 import sync_global_agents as agent_sync
 import project_metadata
 import plan_migration as migration_planner
+import promotion_candidates
 
 
 MIN_PYTHON = (3, 9)
@@ -210,7 +211,9 @@ def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> li
             if not fields.get(required):
                 findings.append(Finding("ERROR", "frontmatter.required", f"Missing frontmatter field '{required}'.", relative(path, root)))
         date = fields.get("last_verified")
-        in_template = rules_repo and relative(path, root).startswith("templates/new-project/")
+        in_template = rules_repo and (
+            relative(path, root).startswith("templates/new-project/") or path.name == "_TEMPLATE.md"
+        )
         if date and not in_template and not ISO_DATE_RE.fullmatch(date):
             findings.append(Finding("ERROR", "frontmatter.date", "last_verified must use YYYY-MM-DD.", relative(path, root)))
     return findings
@@ -494,6 +497,10 @@ def validate(
             if not (root / required).is_file():
                 findings.append(Finding("ERROR", "rules.required", "Required rules-repository artifact is missing.", required))
         findings.extend(check_policy_contract(root))
+        findings.extend(
+            Finding("ERROR", "promotion.candidate", message, path)
+            for path, message in promotion_candidates.validate_candidates(root)
+        )
     else:
         metadata, metadata_findings = load_metadata(root, version, source, project_migrations)
         findings.extend(metadata_findings)

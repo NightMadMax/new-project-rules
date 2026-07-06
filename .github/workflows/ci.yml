@@ -35,6 +35,7 @@ jobs:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
           python3 scripts/test-validator.py
+          python3 scripts/test-promotion-candidates.py
           python3 scripts/test-agent-sync.py
           python3 scripts/test-migration-planner.py
           python3 scripts/test-supply-chain.py
@@ -72,6 +73,7 @@ jobs:
         run: |
           $env:PYTHONDONTWRITEBYTECODE = "1"
           python .\scripts\test-validator.py
+          python .\scripts\test-promotion-candidates.py
           python .\scripts\test-agent-sync.py
           python .\scripts\test-migration-planner.py
           python .\scripts\test-supply-chain.py

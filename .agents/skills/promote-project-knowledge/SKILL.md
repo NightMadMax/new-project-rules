@@ -23,8 +23,8 @@ description: Оркестрирует перенос повторяемого у
    postmortem или воспроизводимый тест. Не считать memory единственным
    подтверждением.
 3. Проверить, что исходное знание сохранено в проекте, где возникло.
-4. Проверить backlog `docs/quality/PROMOTION_CANDIDATES.md`: возможно, lesson
-   уже собран, triaged или approved.
+4. Проверить candidate files в `docs/quality/promotion-candidates/`: возможно,
+   lesson уже собран, triaged или approved.
 
 ## Принять решение
 
@@ -43,7 +43,7 @@ description: Оркестрирует перенос повторяемого у
    promotion, остановиться: знание должно остаться в исходном проекте.
 2. Если кросс-проектный урок есть, но backlog-кандидат ещё не создан или не
    разобран, запускать `harvest-project-lessons`.
-3. Если в `PROMOTION_CANDIDATES.md` уже есть `approved` запись с понятным
+3. Если в candidate directory уже есть `approved` запись с понятным
    `Artifact Type` и `Proposed Target`, запускать
    `apply-promotion-candidate`.
 4. Если кандидат есть, но target выбран плохо или lesson ещё частный, вернуть

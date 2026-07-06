@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-07-03
+last_verified: 2026-07-06
 source_of_truth: repository
 related:
   - "[[AGENTS]]"
@@ -90,7 +90,8 @@ checked-in документации
 1. [[.agents/skills/harvest-project-lessons/SKILL|`harvest-project-lessons`]]
    просматривает соседние git-проекты, извлекает кандидатов из `DEFECTS`,
    `PLAYBOOK`, ADR, research и runbook, а затем нормализует их в
-   [[docs/quality/PROMOTION_CANDIDATES|`PROMOTION_CANDIDATES`]].
+   отдельными файлами в
+   [[docs/quality/promotion-candidates/README|`promotion-candidates/`]].
 2. Review переводит запись в `approved` или `rejected`.
 3. [[.agents/skills/apply-promotion-candidate/SKILL|`apply-promotion-candidate`]]
    берёт один `approved` кандидат и превращает его в конкретные checked-in
@@ -132,7 +133,9 @@ checked-in документации
 
 ## Backlog кандидатов
 
-Рабочая очередь ведётся в [[docs/quality/PROMOTION_CANDIDATES]]. Это не журнал
+Рабочая очередь ведётся по модели «один кандидат — один файл» в
+[[docs/quality/promotion-candidates/README|`promotion-candidates/`]], а
+[[docs/quality/PROMOTION_CANDIDATES]] остаётся стабильной точкой входа. Это не журнал
 дефектов и не playbook, а staging-area между project lessons и checked-in
 standard artifacts.
 
@@ -144,7 +147,9 @@ standard artifacts.
 - `implemented` — перенос выполнен и связан с commit;
 - `rejected` — перенос отклонён.
 
-Кандидат должен указывать не только lesson, но и **форму реализации**:
+Новый ID создаётся генератором и имеет collision-resistant формат
+`PC-YYYY-<12 lowercase hex>`; legacy ID не переименовываются. Кандидат должен
+указывать не только lesson, но и **форму реализации**:
 `rule`, `template`, `test`, `validator`, `script`, `skill` или `guide`.
 Именно эта привязка позволяет второму workflow переносить урок как change set,
 а не как абстрактную заметку.

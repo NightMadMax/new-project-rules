@@ -10,7 +10,8 @@
   `setup-global-agents.*` и `add-agent-scope.*` (настройка правил),
   `check-environment.*` и `project-doctor.*` (диагностика),
   `validate-project.*`, `sync-global-agents.*`, `plan-migration.*`,
-  `standardize-existing-project.*` (контракт и миграции), `test-*` (тесты).
+  `standardize-existing-project.*` (контракт и миграции),
+  `promotion_candidates.py` (promotion backlog), `test-*` (тесты).
 - Каждый инструмент имеет парные `.sh` и `.ps1` entry points для чистых
   машин без Python. Исключение: `test-powershell-environment.ps1` и
   `test-powershell-syntax.ps1` PowerShell-специфичны и sh-пары не имеют.
@@ -19,6 +20,8 @@
 
 - Minimum supported runtime for validator and future migrations: Python `3.9`.
 - Validator command: `python scripts/validate-project.py --root . --kind rules`.
+- Promotion candidate generator/validator:
+  `python scripts/promotion_candidates.py create --help` и `validate`.
 - Global policy inspection: `python scripts/sync_global_agents.py --check` или
   `python scripts/sync_global_agents.py --diff --report-only`.
 - Migration plan: `python scripts/plan_migration.py --plan --target project

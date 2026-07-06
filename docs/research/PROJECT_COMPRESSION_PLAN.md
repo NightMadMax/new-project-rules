@@ -29,7 +29,8 @@ related:
 - `CHANGELOG.md` — уже ~32 КБ; старые версии тянут контекст.
 - `docs/research/`, `docs/reviews/` — датированные одноразовые файлы
   наслаиваются (например, `PROJECT_AUDIT_2026-07*`).
-- `PROMOTION_CANDIDATES.md` — applied/rejected кандидаты не вычищаются.
+- `docs/quality/promotion-candidates/` — implemented/rejected candidate files
+  не вычищаются автоматически.
 - Дрейф навигации — `INDEX.md` / `docs/README.md` ссылаются на
   перемещённые/удалённые файлы; битые wikilinks.
 - Технический мусор — `.DS_Store`, `__pycache__`, пустой `.trash`, временные
@@ -105,7 +106,7 @@ MEMORY.md`. **Без авто-удаления** файлов-фактов; ка
 - Скилл: `.agents/skills/compress-project/SKILL.md` + `agents/openai.yaml`;
   `.claude/skills/compress-project/SKILL.md`.
 - Переносимость: копии в `templates/new-project/`; запись в
-  `docs/quality/PROMOTION_CANDIDATES.md`.
+  `docs/quality/promotion-candidates/`.
 - Документация/регистрация: `docs/guides/COMPRESS_PROJECT.md`; строки в
   `docs/guides/MANUAL_SCRIPTS.md` и `USE_THIS_PROJECT.md`; обновление
   `INDEX.md`, `README.md`, `docs/README.md`, `docs/quality/TESTING.md`; вызов

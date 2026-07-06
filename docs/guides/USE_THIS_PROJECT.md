@@ -241,6 +241,10 @@ Claude Code:
 
 > Примени approved promotion candidate в шаблоны, guides или skills.
 
+Candidate files лежат по одному в
+[[docs/quality/promotion-candidates/README|promotion-candidates/]]; новые ID
+создаёт `scripts/promotion_candidates.py`, а не ручной общий счётчик.
+
 Когда использовать:
 
 - найден повторяемый дефект, правило или удачный workflow;

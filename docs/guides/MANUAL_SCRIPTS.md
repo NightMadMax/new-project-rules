@@ -36,7 +36,8 @@ related:
 
 - У каждого инструмента есть парные `.sh` (macOS/Linux) и `.ps1` (Windows).
 - Python `3.9+` нужен для `validate-project`, `sync-global-agents`,
-  `plan-migration`, `standardize-existing-project` и `check-action-pins`.
+  `plan-migration`, `standardize-existing-project`, promotion candidates и
+  `check-action-pins`.
   Обёртки `.sh`/`.ps1` сами находят `python3`/`python`.
 - PowerShell `7+` нужен для `.ps1`. `gh` (авторизованный) нужен только для
   публикации GitHub-репозитория.
@@ -206,6 +207,19 @@ python3 scripts/check-action-pins.py --root .
 ```
 
 - Когда вручную: проверка pin-политики Actions перед изменением workflow.
+
+### Promotion candidates
+
+Создаёт отдельный candidate file с collision-resistant ID и проверяет всю
+очередь:
+
+```sh
+python3 scripts/promotion_candidates.py create --help
+python3 scripts/promotion_candidates.py validate
+```
+
+- Когда вручную: добавить нормализованный lesson без редактирования общей
+  таблицы или проверить schema/дубли ID перед review.
 
 ### Тесты
 
