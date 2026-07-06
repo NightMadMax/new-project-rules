@@ -30,6 +30,7 @@ related:
 - [[docs/architecture/ARCHITECTURE|Архитектура набора правил]]
 - [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001: двухуровневая документация]]
 - [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002: версионируемый контракт проекта]]
+- [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003: двухъярусная архитектура знаний NPR и Best Practices]]
 - [[docs/architecture/PROJECT_STANDARD_SCHEMA|Schema project standard metadata]]
 
 ## Исследования
@@ -44,6 +45,7 @@ related:
 - [[docs/research/BEST_PRACTICES_INTEGRATION|Интеграция базы Best Practices в создание проекта]]
 - [[docs/research/PROJECT_COMPRESSION_PLAN|План: компрессия проекта (script + skill)]]
 - [[docs/research/PROJECT_HARVEST_2026-07-06|Полный harvest соседних проектов — 2026-07-06]]
+- [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|Архитектура знаний NPR ↔ Best Practices — 2026-07-06]]
 
 ## Качество и ревью
 

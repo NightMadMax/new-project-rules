@@ -81,6 +81,12 @@ do
   done
 done
 
+agents_template="$root/templates/new-project/AGENTS.template.md"
+if ! grep -Fq 'new-project-rules:begin schema=<SCHEMA_VERSION>' "$agents_template"; then
+  echo "FAIL: AGENTS.template.md managed marker must use the <SCHEMA_VERSION> placeholder, not a hardcoded schema" >&2
+  fail=$((fail + 1))
+fi
+
 shared_rule_literals='docs/quality/DEFECTS.md
 immediately upon discovery
 section where the entry

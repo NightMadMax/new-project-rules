@@ -170,7 +170,7 @@ install_template() {
   source_file=$1
   target_file=$2
   mkdir -p "$(dirname "$destination/$target_file")"
-  sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g" \
+  sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g; s|<SCHEMA_VERSION>|$standard_version|g" \
     "$templates/$source_file" > "$destination/$target_file"
 }
 

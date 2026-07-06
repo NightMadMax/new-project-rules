@@ -27,7 +27,7 @@ MIN_PYTHON = (3, 9)
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
 MIGRATION_FIELDS = ("migration_id", "target", "from_schema", "to_schema", "handler", "description")
 PROFILE_FIELDS = ("minimum_profile", "source", "destination", "root_purpose", "docs_section", "docs_label")
-KNOWN_HANDLERS = {"project_metadata", "global_managed_block"}
+KNOWN_HANDLERS = {"project_metadata", "global_managed_block", "project_agents_managed_block"}
 
 
 class MigrationConfigError(Exception):
@@ -111,7 +111,7 @@ def read_migrations(contract_root: Path, standard_version: int) -> list[Migratio
         if migration_id in seen:
             raise MigrationConfigError(f"Duplicate migration_id: {migration_id}")
         seen.add(migration_id)
-        if raw["target"] not in {"project", "global"}:
+        if raw["target"] not in {"project", "global", "project-agents"}:
             raise MigrationConfigError(f"Invalid migration target: {raw['target']!r}")
         if raw["handler"] not in KNOWN_HANDLERS:
             raise MigrationConfigError(f"Unknown migration handler: {raw['handler']!r}")
@@ -330,6 +330,64 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
     )
 
 
+def project_agents_plan(project_root: Path, contract_root: Path, migrations: Sequence[Migration], version: int) -> MigrationPlan:
+    migration = find_migration(migrations, "project-agents", 0, version)
+    destination = project_root / "AGENTS.md"
+    template = contract_root / "templates" / "new-project" / "AGENTS.template.md"
+    try:
+        template_text = template.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise MigrationConfigError(f"Cannot read AGENTS template {template}: {exc}") from exc
+    baseline = agent_sync.extract_managed_region(template_text)
+    if baseline is None:
+        raise MigrationConfigError("AGENTS template has no managed baseline markers")
+
+    state = agent_sync.inspect_state(baseline, destination, version, template)
+    if state.status == "managed_match":
+        return MigrationPlan("project-agents", "up_to_date", None, "Project AGENTS baseline already uses the current managed schema.")
+
+    project_git = inspect_git(project_root)
+    contract_git = inspect_git(contract_root)
+    blockers: list[str] = []
+    if state.status not in {"legacy_exact", "managed_drift"}:
+        if state.status == "unmanaged_conflict":
+            blockers.append("Project AGENTS.md mixes baseline and local rules without markers; run standardize-existing-project first")
+        elif state.status == "missing":
+            blockers.append("Project AGENTS.md is missing")
+        else:
+            blockers.append(f"Project AGENTS baseline state {state.status} requires manual repair through a reviewed migration")
+    if destination.is_symlink():
+        blockers.append("Project AGENTS.md is a symlink; ownership must be resolved manually")
+    if not project_git.repository or not project_git.clean:
+        blockers.append(project_git.detail or "Project repository must be clean and committed")
+    if not contract_git.repository or not contract_git.clean:
+        blockers.append(contract_git.detail or "Rules repository must be clean and committed")
+
+    if state.status == "legacy_exact":
+        changes = (f"wrap matching baseline in schema={version} managed markers", "create timestamped backup before apply")
+    elif state.status == "managed_drift":
+        changes = ("refresh the managed baseline block; local content outside markers is preserved", "create timestamped backup before apply")
+    else:
+        changes = ()
+
+    desired = agent_sync.desired_text(state) if not blockers else None
+    fingerprint = ""
+    preimage = ""
+    if not blockers and desired is not None:
+        active_bytes = None if state.active_text is None else state.active_text.encode("utf-8")
+        fingerprint, preimage = migration_fingerprint(
+            "project-agents", migration.migration_id, destination, active_bytes, desired
+        )
+    return MigrationPlan(
+        "project-agents", "blocked" if blockers else "ready", migration.migration_id,
+        "Adopt or refresh the managed AGENTS baseline without exposing local content.",
+        changes=changes, blockers=tuple(blockers), preview=agent_sync.secret_safe_diff(state),
+        fingerprint=fingerprint, destination=destination, desired_text=desired,
+        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "managed_drift"},
+        required_clean_roots=(contract_root, project_root),
+    )
+
+
 def atomic_write(path: Path, text: str) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.parent / f".{path.name}.tmp.{os.getpid()}.{uuid.uuid4().hex}"
@@ -425,7 +483,7 @@ def build_parser() -> argparse.ArgumentParser:
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--plan", action="store_true", help="Produce a read-only migration plan.")
     mode.add_argument("--apply", action="store_true", help="Apply a freshly revalidated migration plan.")
-    parser.add_argument("--target", choices=("project", "global"), required=True)
+    parser.add_argument("--target", choices=("project", "global", "project-agents"), required=True)
     parser.add_argument("--root", default=".", help="Project root for target=project.")
     parser.add_argument("--home", default=str(Path.home()), help="Home directory for target=global.")
     parser.add_argument("--profile", choices=("auto", *PROFILE_RANKS), default="auto")
@@ -441,6 +499,8 @@ def build_plan(args: argparse.Namespace, contract_root: Path) -> MigrationPlan:
     migrations = read_migrations(contract_root, version)
     if args.target == "project":
         return project_plan(Path(args.root).resolve(), contract_root, args.profile, migrations, version)
+    if args.target == "project-agents":
+        return project_agents_plan(Path(args.root).resolve(), contract_root, migrations, version)
     return global_plan(Path(args.home).resolve(), contract_root, migrations, version)
 
 

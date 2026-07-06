@@ -103,6 +103,22 @@ class AgentSyncTests(unittest.TestCase):
         self.write_active(f"{sync.BEGIN_TEMPLATE.format(schema=2)}\ntext\n{sync.END_MARKER}\n")
         self.assertEqual(self.inspect().status, "unsupported_schema")
 
+    def test_extract_managed_region(self):
+        block = sync.managed_block("- A rule.\n", 1)
+        text = "# Head\n\n## Local\n- local\n\n" + block
+        self.assertEqual(sync.extract_managed_region(text), sync.normalize("- A rule.\n"))
+        self.assertIsNone(sync.extract_managed_region("# No markers here\n"))
+
+    def test_inspect_state_text_match_and_drift(self):
+        baseline = "- A rule.\n"
+        prefix = "## Local\n- local rule\n\n"
+        self.write_active(prefix + sync.managed_block(baseline, 1))
+        self.assertEqual(sync.inspect_state(baseline, self.active, 1).status, "managed_match")
+        self.write_active(prefix + sync.managed_block("- Changed rule.\n", 1))
+        self.assertEqual(sync.inspect_state(baseline, self.active, 1).status, "managed_drift")
+        self.write_active(prefix + "- unmarked baseline\n")
+        self.assertEqual(sync.inspect_state(baseline, self.active, 1).status, "unmanaged_conflict")
+
     def test_cli_exit_codes_and_no_mutation(self):
         contract = self.root / "contract"
         contract.mkdir()

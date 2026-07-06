@@ -46,6 +46,9 @@ class MigrationPlannerTests(unittest.TestCase):
             shutil.copy2(ROOT / "config" / name, self.contract / "config" / name)
         shutil.copy2(ROOT / "STANDARD_VERSION", self.contract / "STANDARD_VERSION")
         shutil.copy2(ROOT / "GLOBAL_AGENT_INSTRUCTIONS.md", self.contract / "GLOBAL_AGENT_INSTRUCTIONS.md")
+        template_dir = self.contract / "templates" / "new-project"
+        template_dir.mkdir(parents=True)
+        shutil.copy2(ROOT / "templates" / "new-project" / "AGENTS.template.md", template_dir / "AGENTS.template.md")
         self.git_init(self.contract)
         self.version = planner.read_standard_version(self.contract)
         self.migrations = planner.read_migrations(self.contract, self.version)
@@ -73,12 +76,55 @@ class MigrationPlannerTests(unittest.TestCase):
 
     def test_manifest_contract(self):
         self.assertEqual({row.migration_id for row in self.migrations}, {
-            "0001-adopt-project-standard", "0002-adopt-global-managed-block"
+            "0001-adopt-project-standard", "0002-adopt-global-managed-block",
+            "0003-adopt-project-agents-managed-block",
         })
         path = self.contract / "config" / "migrations.tsv"
         path.write_text(path.read_text(encoding="utf-8") + path.read_text(encoding="utf-8").splitlines()[1] + "\n", encoding="utf-8")
         with self.assertRaises(planner.MigrationConfigError):
             planner.read_migrations(self.contract, self.version)
+
+    def baseline_text(self) -> str:
+        template = (ROOT / "templates" / "new-project" / "AGENTS.template.md").read_text(encoding="utf-8")
+        return planner.agent_sync.extract_managed_region(template)
+
+    def make_agents_project(self, agents_text: str, commit=True) -> Path:
+        project = self.base / f"agents-{len(list(self.base.glob('agents-*')))}"
+        project.mkdir()
+        (project / "AGENTS.md").write_text(agents_text, encoding="utf-8")
+        self.git_init(project)
+        if not commit:
+            (project / "AGENTS.md").write_text(agents_text + "\n- dirty\n", encoding="utf-8")
+        return project
+
+    def test_project_agents_up_to_date(self):
+        local = "## Project Identity\n\n- Project: `Demo`\n\n"
+        block = planner.agent_sync.managed_block(self.baseline_text(), self.version)
+        project = self.make_agents_project(local + block)
+        plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
+        self.assertEqual(plan.status, "up_to_date")
+
+    def test_project_agents_refresh_drift_is_reviewable_and_read_only(self):
+        local = "## Project Identity\n\n- Project: `Demo`\n\n"
+        drifted = self.baseline_text().replace("Russian", "Klingon")
+        project = self.make_agents_project(local + planner.agent_sync.managed_block(drifted, self.version))
+        before = digest_tree(project)
+        plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
+        self.assertEqual(plan.status, "ready")
+        self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block")
+        self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
+        self.assertTrue(plan.desired_text.startswith(local))
+        self.assertIn("new-project-rules:begin schema=", plan.desired_text)
+        self.assertIn("in Russian", plan.desired_text)
+        self.assertEqual(before, digest_tree(project))
+
+    def test_project_agents_unmanaged_conflict_is_blocked(self):
+        local = "## Project Identity\n\n- Project: `Demo`\n\n"
+        project = self.make_agents_project(local + self.baseline_text())
+        plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
+        self.assertEqual(plan.status, "blocked")
+        self.assertTrue(any("standardize-existing-project" in b for b in plan.blockers))
+        self.assertIsNone(plan.desired_text)
 
     def test_project_plan_is_reviewable_and_read_only(self):
         project = self.make_project("software")

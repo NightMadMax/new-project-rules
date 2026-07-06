@@ -171,6 +171,8 @@ try {
         Assert-NoBom (Join-Path $dir "AGENTS.md") $p
         Assert-Grep (Join-Path $dir "AGENTS.md") "Test $p" $p
         Assert-Grep (Join-Path $dir "AGENTS.md") "Always answer the user in Russian" $p
+        Assert-Grep (Join-Path $dir "AGENTS.md") "new-project-rules:begin schema=1" $p
+        Assert-Grep (Join-Path $dir "AGENTS.md") "new-project-rules:end" $p
         Assert-Grep (Join-Path $dir ".gitignore") "CLAUDE.local.md" $p
         Assert-Grep (Join-Path $dir ".gitignore") ".obsidian/" $p
         Assert-Metadata (Join-Path $dir ".project-standard.json") $p "$p metadata"

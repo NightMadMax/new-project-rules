@@ -141,6 +141,8 @@ for profile in minimal software operated all; do
   assert_no_bom "$dir/AGENTS.md" "$profile"
   assert_grep "$dir/AGENTS.md" "Test $profile" "$profile"
   assert_grep "$dir/AGENTS.md" "Always answer the user in Russian" "$profile"
+  assert_grep "$dir/AGENTS.md" "new-project-rules:begin schema=1" "$profile"
+  assert_grep "$dir/AGENTS.md" "new-project-rules:end" "$profile"
   assert_grep "$dir/.gitignore" "CLAUDE.local.md" "$profile"
   assert_grep "$dir/.gitignore" ".obsidian/" "$profile"
   assert_grep "$dir/.project-standard.json" "\"profile\": \"$profile\"" "$profile metadata"

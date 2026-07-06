@@ -111,7 +111,7 @@ function Install-Template {
     $targetDirectory = Split-Path -Parent $targetPath
     New-Item -ItemType Directory -Force $targetDirectory | Out-Null
     $content = Get-Content -Raw -Encoding utf8 (Join-Path $Templates $Source)
-    $content = $content.Replace("<PROJECT_NAME>", $ProjectName).Replace("<YYYY-MM-DD>", $Today)
+    $content = $content.Replace("<PROJECT_NAME>", $ProjectName).Replace("<YYYY-MM-DD>", $Today).Replace("<SCHEMA_VERSION>", $StandardVersion)
     Write-Utf8NoBom $targetPath $content
 }
 

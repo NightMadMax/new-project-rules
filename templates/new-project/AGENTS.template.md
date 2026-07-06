@@ -1,13 +1,5 @@
 # Agent Instructions
 
-## Communication Language
-
-- Always answer the user in Russian, including research, reviews, plans,
-  progress updates, and final reports.
-- Preserve commands, paths, identifiers, API names, and original error messages
-  when translating them would reduce technical accuracy.
-- Use another language only when the user explicitly requests it.
-
 ## Project Identity
 
 - Project: `<PROJECT_NAME>`
@@ -27,6 +19,22 @@ State the project's definition of done so the agent can self-verify before
 reporting completion: which checks must pass (tests, lint, build), what counts
 as a verified change, and any required review or approval. List concrete,
 checkable conditions. Delete this section until the project has real criteria.
+
+## Standard baseline
+
+The block below is the shared new-project-rules baseline. It is managed by
+migrations — do not edit between the markers. Add this project's own rules in the
+sections above (or in a scoped `AGENTS.md` in a subdirectory); local rules are
+never overwritten by a baseline update.
+
+<!-- new-project-rules:begin schema=<SCHEMA_VERSION> -->
+## Communication Language
+
+- Always answer the user in Russian, including research, reviews, plans,
+  progress updates, and final reports.
+- Preserve commands, paths, identifiers, API names, and original error messages
+  when translating them would reduce technical accuracy.
+- Use another language only when the user explicitly requests it.
 
 ## Markdown Workflow
 
@@ -158,3 +166,4 @@ checkable conditions. Delete this section until the project has real criteria.
   `AGENTS.md` for a project rule (between sessions), or a promotion proposal when
   the lesson is reusable across projects.
 - Record only abstractable, recurring lessons; skip one-off typos and noise.
+<!-- new-project-rules:end -->

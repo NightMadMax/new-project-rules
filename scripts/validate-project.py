@@ -371,6 +371,36 @@ def check_instruction_chain(root: Path, contract_root: Path, rules_repo: bool) -
     return findings
 
 
+def check_project_baseline(root: Path, contract_root: Path, version: int) -> list[Finding]:
+    template = contract_root / "templates" / "new-project" / "AGENTS.template.md"
+    template_text = read_text(template)
+    if template_text is None:
+        return []
+    baseline = agent_sync.extract_managed_region(template_text)
+    if baseline is None:
+        return []
+    agents = root / "AGENTS.md"
+    if not agents.is_file():
+        return []
+    try:
+        state = agent_sync.inspect_state(baseline, agents, version, template)
+    except agent_sync.SyncConfigError:
+        return []
+    if state.status in {"managed_match", "missing"}:
+        return []
+    messages = {
+        "managed_drift": "Project AGENTS.md baseline drifted from the standard.",
+        "unmanaged_conflict": "Project AGENTS.md has no managed markers around the standard baseline.",
+        "legacy_exact": "Project AGENTS.md baseline matches the standard but lacks managed markers.",
+        "malformed": "Project AGENTS.md managed markers are malformed or duplicated.",
+        "unsupported_schema": "Project AGENTS.md managed block schema is unsupported by this rules version.",
+    }
+    level = "ERROR" if state.status in {"malformed", "unsupported_schema"} else "WARN"
+    hint = "Adopt or refresh via plan-migration --target project-agents."
+    message = messages.get(state.status, f"Project AGENTS baseline state {state.status}.")
+    return [Finding(level, "agents.baseline", message, "AGENTS.md", hint)]
+
+
 def check_global_rules(contract_root: Path, home: Optional[Path] = None) -> list[Finding]:
     findings: list[Finding] = []
     home = home or Path.home()
@@ -528,6 +558,7 @@ def validate(
                 ))
         if profile:
             findings.extend(check_project_structure(root, rows, profile))
+        findings.extend(check_project_baseline(root, contract_root, version))
 
     findings.extend(check_instruction_chain(root, contract_root, kind == "rules"))
     findings.extend(check_frontmatter(root, files, kind == "rules"))

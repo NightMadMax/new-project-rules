@@ -63,9 +63,32 @@ def inspect_sync_state(
 ) -> SyncState:
     try:
         with portable_path.open(encoding="utf-8", newline="") as handle:
-            portable_text = normalize(handle.read())
+            portable_text = handle.read()
     except OSError as exc:
         raise SyncConfigError(f"Cannot read portable policy {portable_path}: {exc}") from exc
+    return inspect_state(portable_text, active_path, schema_version, portable_path)
+
+
+def extract_managed_region(text: str) -> Optional[str]:
+    """Return the normalized text between managed markers, or None if absent/ambiguous."""
+    lines = text.splitlines(keepends=True)
+    marker_lines = [line.rstrip("\r\n") for line in lines]
+    begins = [i for i, line in enumerate(marker_lines) if line.startswith("<!-- new-project-rules:begin")]
+    ends = [i for i, line in enumerate(marker_lines) if line == END_MARKER]
+    if len(begins) != 1 or len(ends) != 1 or ends[0] <= begins[0]:
+        return None
+    return normalize("".join(lines[begins[0] + 1:ends[0]]))
+
+
+def inspect_state(
+    portable_text: str,
+    active_path: Path,
+    schema_version: int,
+    portable_path: Optional[Path] = None,
+) -> SyncState:
+    portable_text = normalize(portable_text)
+    if portable_path is None:
+        portable_path = Path("<baseline>")
 
     if not active_path.exists():
         return SyncState("missing", active_path, portable_path, schema_version, portable_text, None)
