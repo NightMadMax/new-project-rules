@@ -79,3 +79,9 @@ validator, script, skill или guide.
 `triaged`. Сначала нужен review и явный перевод выбранной записи в `approved`.
 Рекомендуемый порядок review: file-per-candidate, collision-resistant ID,
 secret-safe profile inspection.
+
+## Follow-up 2026-07-06
+
+Пользователь одобрил первые два кандидата. `PC-2026-625b2fcadaef` и
+`PC-2026-4eb5666c703b` реализованы commit `b459bf3`; дефекты `#43–#44` закрыты.
+`PC-2026-e6f54a0fe78a` остаётся `triaged` и требует отдельного approval.

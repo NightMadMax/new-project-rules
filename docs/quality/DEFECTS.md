@@ -17,8 +17,6 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 43 | Promotion backlog создаёт merge-конфликты как единая таблица | 2026-07-06 | `docs/quality/PROMOTION_CANDIDATES.md`, `harvest-project-lessons` | Все кандидаты изменяют один Markdown-файл и одну таблицу. В параллельных PR это общий mutable hotspot; тот же дефект уже материализовался и был исправлен в независимом `Best Practices` переходом на one-file-per-candidate. Нужен отдельный approved/apply workflow, а не исправление внутри harvest. |
-| 44 | Последовательные promotion ID требуют централизованной координации | 2026-07-06 | `docs/quality/PROMOTION_CANDIDATES.md`, `harvest-project-lessons` | Формат `PC-YYYY-NNN` и пример `max + 1` не гарантируют уникальность между независимыми ветками. В `Best Practices` два параллельных автора получили бы один ID; исправление использует collision-resistant suffix и локальную проверку уникальности. |
 
 ## Fixed
 
@@ -28,6 +26,8 @@ related:
 
 | # | Title | Discovered | Fixed | Commit | Root Cause |
 |---|---|---|---|---|---|
+| 43 | Promotion backlog создаёт merge-конфликты как единая таблица | 2026-07-06 | 2026-07-06 | `b459bf3` | Все кандидаты изменяли один Markdown-файл. Backlog переведён на one-file-per-candidate; стабильный index больше не меняется при добавлении записи, schema удерживается validator и CI. |
+| 44 | Последовательные promotion ID требуют централизованной координации | 2026-07-06 | 2026-07-06 | `b459bf3` | `PC-YYYY-NNN` требовал общего счётчика между ветками. Генератор использует 48-битный hex suffix с retry при локальной коллизии; validator запрещает дубли, legacy ID остаются валидными. |
 | 28 | Активный `~/.codex/AGENTS.md` разошёлся с переносимой копией, managed markers утрачены | 2026-07-02 | 2026-07-02 | см. [[ACTIONS]] | После adoption 2026-06-30 активный файл был перезаписан старой редакцией без markers (вероятно, старый `setup-global-agents` на другом компьютере; root cause подтвердить). Исправлено: user-reviewed копия portable → active, затем migration `0002` (fingerprint `18a73ff1…f063d`), postcondition `managed_match`. |
 | 29 | `docs/README.md` не содержит два research-файла | 2026-07-02 | 2026-07-02 | `7fb88eb` | Секция «Исследования» не пополнялась при добавлении research-файлов; ссылки на AGENT_RUNTIME_CAPABILITIES_2026 и AGENT_COMMUNITY_PRACTICES_2026 добавлены. |
 | 30 | `USE_THIS_PROJECT.md` неполон | 2026-07-02 | 2026-07-02 | `21f3cdf` | Гайд писался до финализации набора skills: секция knowledge promotion не получила Claude Code эквиваленты, а `reflect-and-record` выпал из перечня workflows. Добавлены `/`-вызовы и секция 9 с фразами и таблицей выбора. |

@@ -11,7 +11,7 @@
   `scripts/promotion_candidates.py` с 48-битными collision-resistant ID,
   schema/duplicate validation в основном validator и отдельный regression suite.
   Legacy ID сохранены; skills harvest/apply/promote и пользовательские гайды
-  синхронизированы. Реализуются кандидаты `PC-2026-625b2fcadaef` и
+  синхронизированы. Реализованы кандидаты `PC-2026-625b2fcadaef` и
   `PC-2026-4eb5666c703b`, закрывающие дефекты `#43–#44`.
 - Полный harvest четырёх соседних git-проектов: отчёт
   [[docs/research/PROJECT_HARVEST_2026-07-06]], три очищенных `triaged`
