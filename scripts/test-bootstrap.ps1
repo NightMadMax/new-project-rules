@@ -28,6 +28,21 @@ function Assert-NoBom {
     }
     else { Pass }
 }
+function Assert-Metadata {
+    param($File, $Profile, $Tag)
+    try {
+        $metadata = Get-Content -Raw -Encoding UTF8 $File | ConvertFrom-Json
+        if ($metadata.profile -eq $Profile -and
+                $metadata.source -eq "NightMadMax/new-project-rules" -and
+                $metadata.source_commit -match '^[0-9a-f]{40}$' -and
+                $metadata.created_at -match '^\d{4}-\d{2}-\d{2}$' -and
+                $metadata.adopted_at -match '^\d{4}-\d{2}-\d{2}$') {
+            Pass
+        }
+        else { Fail "${Tag}: metadata fields are invalid" }
+    }
+    catch { Fail "${Tag}: metadata is not valid JSON: $($_.Exception.Message)" }
+}
 function Get-GitTreeState {
     param($Dir)
     $previousErrorActionPreference = $ErrorActionPreference
@@ -158,9 +173,7 @@ try {
         Assert-Grep (Join-Path $dir "AGENTS.md") "Always answer the user in Russian" $p
         Assert-Grep (Join-Path $dir ".gitignore") "CLAUDE.local.md" $p
         Assert-Grep (Join-Path $dir ".gitignore") ".obsidian/" $p
-        Assert-Grep (Join-Path $dir ".project-standard.json") ('"profile": "' + $p + '"') "$p metadata"
-        Assert-Grep (Join-Path $dir ".project-standard.json") '"source": "NightMadMax/new-project-rules"' "$p metadata"
-        Assert-Grep (Join-Path $dir ".project-standard.json") '"created_at": "' "$p metadata"
+        Assert-Metadata (Join-Path $dir ".project-standard.json") $p "$p metadata"
         Assert-NoBom (Join-Path $dir ".project-standard.json") "$p metadata"
         Assert-CleanTree $dir $p
     }
