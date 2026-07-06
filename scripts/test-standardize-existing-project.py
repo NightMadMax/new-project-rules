@@ -34,7 +34,10 @@ def make_symlink_or_skip(test: unittest.TestCase, link: Path, target: Path) -> N
 
 def tree_digest(root: Path) -> dict[str, str]:
     result = {}
-    for path in sorted(item for item in root.rglob("*") if item.is_file()):
+    for path in sorted(
+        item for item in root.rglob("*")
+        if item.is_file() and ".git" not in item.relative_to(root).parts
+    ):
         result[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     return result
 
