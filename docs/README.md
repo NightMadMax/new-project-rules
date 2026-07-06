@@ -41,6 +41,7 @@ related:
 - [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта и направления улучшений — июль 2026]]
 - [[docs/research/PROJECT_AUDIT_2026-07-03|Повторный глубокий аудит проекта — 2026-07-03]]
 - [[docs/research/BEST_PRACTICES_INTEGRATION|Интеграция базы Best Practices в создание проекта]]
+- [[docs/research/PROJECT_COMPRESSION_PLAN|План: компрессия проекта (script + skill)]]
 
 ## Качество и ревью
 

@@ -1,0 +1,122 @@
+---
+type: research
+status: proposed
+owner: project
+last_verified: 2026-07-06
+source_of_truth: repository
+related:
+  - "[[PROJECT]]"
+  - "[[docs/quality/DEFECTS]]"
+  - "[[docs/quality/PROMOTION_CANDIDATES]]"
+  - "[[docs/quality/TESTING]]"
+  - "[[docs/guides/MANUAL_SCRIPTS]]"
+  - "[[docs/guides/VALIDATE_AND_DIAGNOSE]]"
+---
+
+# План: компрессия проекта (script + skill)
+
+## Проблема
+
+При долгой агентной работе в проекте накапливается «мусор»: разросшиеся
+журналы, наслоившиеся одноразовые research/audit, устаревшие промо-кандидаты,
+дрейф навигации и раздутая незакоммиченная память агентов. Нужна переносимая
+возможность периодически «сжимать» проект, не теряя провенанс.
+
+## Инвентарь «мусора»
+
+- `DEFECTS.md` — записи `Fixed` разрастаются (паттерн `DEFECTS_ARCHIVE.md` уже
+  есть, но перенос ручной).
+- `CHANGELOG.md` — уже ~32 КБ; старые версии тянут контекст.
+- `docs/research/`, `docs/reviews/` — датированные одноразовые файлы
+  наслаиваются (например, `PROJECT_AUDIT_2026-07*`).
+- `PROMOTION_CANDIDATES.md` — applied/rejected кандидаты не вычищаются.
+- Дрейф навигации — `INDEX.md` / `docs/README.md` ссылаются на
+  перемещённые/удалённые файлы; битые wikilinks.
+- Технический мусор — `.DS_Store`, `__pycache__`, пустой `.trash`, временные
+  файлы.
+- Память агентов (Codex/Claude) — локальное рабочее состояние, разрастается,
+  вне git.
+- Устаревший frontmatter (`last_verified`), пустые placeholder-документы.
+
+## Архитектура: два слоя (как validate/doctor vs reflect-and-record)
+
+Проект уже разделяет механическую проверку (`validate-project.py`,
+`project-doctor` — read-only, детерминированные) и суждение (скиллы вроде
+`reflect-and-record`). Компрессия строится так же.
+
+### Слой 1 — скрипт `compress-project` (детерминированный)
+
+- `.py` — вся логика; тонкие обёртки `.sh` и `.ps1`.
+- **Dry-run по умолчанию**: печатает отчёт, ничего не меняет без `--apply`.
+- По `--apply` — только **обратимые** операции:
+  - перенос `Fixed`-дефектов в `DEFECTS_ARCHIVE.md` (текст и сквозная нумерация
+    сохраняются);
+  - сплит переросшего `CHANGELOG.md` в `CHANGELOG_ARCHIVE.md` по порогу;
+  - удаление регенерируемого мусора (`__pycache__`, `.DS_Store`, пустой
+    `.trash`);
+  - **отчёт** (без изменений) о битых wikilinks, дрейфе `INDEX.md`,
+    `last_verified` старше N дней.
+- Ничего из провенанса не удаляется — только перемещается/помечается.
+- Тест `test-compress-project.py`.
+
+### Слой 2 — скилл `compress-project` (оркестрация + суждение)
+
+- Канонический `SKILL.md` в `.agents/skills/compress-project/` +
+  `agents/openai.yaml`; тонкий указатель в `.claude/skills/compress-project/`.
+- Поток: запуск валидатора и скрипта в режиме отчёта → показ того, что
+  механически безопасно → консолидация, требующая суждения (слияние
+  устаревших research/audit + архив, чистка applied/rejected промо-кандидатов,
+  починка wikilinks/INDEX) **с показом плана до применения** → обновление
+  `INDEX.md`/`docs/README.md` → фиксация итога и коммит.
+- Первый удачный прогон → запись в `PLAYBOOK.md`.
+
+## Модель трёх уровней и границы по умолчанию
+
+| Уровень | Кто делает | По умолчанию |
+|---|---|---|
+| 1. Отчёт + обратимый архив | скрипт | всегда (dry-run) |
+| 2. Консолидация docs | скилл, с показом плана и подтверждением | да, в скилле |
+| 3. Память агентов | скилл, opt-in `--include-memory` | нет |
+
+**Уровень 3 (память):** запрашивается при оптимизации проекта. Строго
+`отчёт → показ дублей → подтверждение → только слияние дублей и починка индекса
+MEMORY.md`. **Без авто-удаления** файлов-фактов; кандидатов на удаление только
+показываем пользователю для ручного решения.
+
+### Что такое `RAW_MEMORY_PATHS`
+
+Константа в `scripts/validate-project.py` — каталоги сырой памяти агентов:
+`(.codex/memories)`, `(.claude/projects)`, `(.claude/memory)`. Валидатор
+использует её, чтобы гарантировать: эти каталоги **не закоммичены** в проект
+(память — local working state, в git попадает только промотированное знание).
+Поэтому настоящая память живёт **вне git**, и Уровень 3 принципиально опаснее:
+операции необратимы (нет `git revert`), архивировать в репозиторий нельзя.
+Отсюда — только слияние/починка, без автоудаления.
+
+## Файлы к созданию (одна задача, правило синхронности)
+
+- Скрипт: `scripts/compress-project.py` + `.sh` + `.ps1` +
+  `scripts/test-compress-project.py`.
+- Скилл: `.agents/skills/compress-project/SKILL.md` + `agents/openai.yaml`;
+  `.claude/skills/compress-project/SKILL.md`.
+- Переносимость: копии в `templates/new-project/`; запись в
+  `docs/quality/PROMOTION_CANDIDATES.md`.
+- Документация/регистрация: `docs/guides/COMPRESS_PROJECT.md`; строки в
+  `docs/guides/MANUAL_SCRIPTS.md` и `USE_THIS_PROJECT.md`; обновление
+  `INDEX.md`, `README.md`, `docs/README.md`, `docs/quality/TESTING.md`; вызов
+  теста в CI-workflow; запись в `CHANGELOG.md`.
+
+## Порядок реализации
+
+1. Скрипт `compress-project.py` (Уровень 1) + тест; `sh -n` для оболочек.
+2. Скилл `SKILL.md` (Уровни 2–3, флаг `--include-memory`).
+3. Переносимость: копии в templates + промо-кандидат.
+4. Документация + регистрация + CI.
+5. Прогон валидатора, теста, самокомпрессии в dry-run на самом проекте
+   (dogfood).
+6. Коммит + push (Repository Workflow).
+
+## Открытые вопросы
+
+- Порог сплита `CHANGELOG.md` (по размеру КБ или по числу версий).
+- Порог «старого» `last_verified` (N дней) для предупреждения.

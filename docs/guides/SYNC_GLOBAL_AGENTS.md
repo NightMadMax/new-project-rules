@@ -37,7 +37,7 @@ related:
 |---|---|
 | `missing` | Active file отсутствует |
 | `legacy_exact` | Весь active file совпадает с portable policy, но markers отсутствуют |
-| `unmanaged_conflict` | Файл без markers содержит другой текст |
+| `unmanaged_conflict` | Файл без markers содержит собственные правила; managed block дописывается ниже них подтверждаемой миграцией |
 | `managed_match` | Managed block совпадает, внешний текст сохраняется |
 | `managed_drift` | Managed block отличается от portable policy |
 | `malformed` | Marker grammar повреждена или неоднозначна |

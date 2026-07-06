@@ -130,6 +130,9 @@ def desired_text(state: SyncState) -> Optional[str]:
         return block
     if state.status in {"managed_match", "managed_drift"}:
         return state.prefix + block + state.suffix
+    if state.status == "unmanaged_conflict":
+        assert state.active_text is not None
+        return normalize(state.active_text) + "\n" + block
     return None
 
 
@@ -152,7 +155,7 @@ def secret_safe_diff(state: SyncState) -> str:
         return "\n".join(header + [
             f"Active unmanaged policy: {len(state.active_text.splitlines())} line(s), sha256={digest(state.active_text)}.",
             f"Portable policy: {len(state.portable_text.splitlines())} line(s), sha256={digest(state.portable_text)}.",
-            "No automatic plan: ownership cannot be inferred without user review.",
+            "Plan: append managed block below existing content; existing lines are preserved unchanged.",
         ])
     if state.status == "managed_drift":
         active_lines = normalize(state.managed_text or "").splitlines()

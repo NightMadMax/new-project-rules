@@ -63,6 +63,18 @@ class AgentSyncTests(unittest.TestCase):
         self.assertNotIn(secret, report)
         self.assertIn("sha256=", report)
 
+    def test_unmanaged_conflict_desired_text_appends_below_existing(self):
+        existing = "# Local rules\n\n- Keep me.\n"
+        self.write_active(existing)
+        state = self.inspect()
+        self.assertEqual(state.status, "unmanaged_conflict")
+        desired = sync.desired_text(state)
+        assert desired is not None
+        self.assertTrue(desired.startswith(sync.normalize(existing)))
+        self.assertIn(sync.managed_block(self.portable.read_text(encoding="utf-8"), self.schema), desired)
+        self.write_active(desired)
+        self.assertEqual(self.inspect().status, "managed_match")
+
     def test_managed_match_preserves_outside_text(self):
         prefix = "# Local prefix\r\n\r\n"
         suffix = "\r\n# Local suffix\r\n"

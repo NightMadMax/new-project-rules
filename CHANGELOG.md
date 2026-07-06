@@ -1,5 +1,23 @@
 # Журнал изменений
 
+## Unreleased
+
+### Изменено
+
+- Global migration engine теперь умеет adoption для `unmanaged_conflict`: когда
+  `~/.codex/AGENTS.md` уже содержит собственные правила пользователя без markers
+  (типичный новый компьютер, где велись работы), `plan-migration --target global`
+  дописывает managed block **ниже** существующего текста, сохраняя его без
+  изменений, с обязательным timestamped backup и тем же fingerprint/preview
+  контуром. `sync-global-agents` остаётся строго read-only; писатель — только
+  migration engine (см. [[docs/quality/DEFECTS|DEFECTS #28]] о риске обхода
+  review/backup). Ранее `unmanaged_conflict` был `blocked` и требовал ручной
+  расстановки markers. Обновлены `scripts/sync_global_agents.py`,
+  `scripts/plan_migration.py`, регрессионные тесты `test-agent-sync` (8) и
+  `test-migration-planner` (15) — все зелёные; синхронизированы
+  [[docs/guides/PLAN_MIGRATIONS]], [[docs/guides/SYNC_GLOBAL_AGENTS]],
+  [[docs/guides/SETUP_NEW_COMPUTER]] и skill `setup-new-computer`.
+
 ## v1.15.0 — 2026-07-06
 
 ### Добавлено

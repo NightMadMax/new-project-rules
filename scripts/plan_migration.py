@@ -297,7 +297,7 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
     blockers: list[str] = []
     if state.status == "managed_match":
         return MigrationPlan("global", "up_to_date", None, "Global policy already uses the current managed schema.")
-    if state.status not in {"legacy_exact", "missing"}:
+    if state.status not in {"legacy_exact", "missing", "unmanaged_conflict"}:
         blockers.append(f"Global sync state {state.status} does not permit automatic ownership adoption")
     if destination.is_symlink():
         blockers.append("Global policy destination is a symlink; ownership must be resolved manually")
@@ -307,6 +307,8 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
         changes = ("create managed policy file",)
     elif state.status == "legacy_exact":
         changes = ("wrap matching policy in schema=1 managed markers", "create timestamped backup before future apply")
+    elif state.status == "unmanaged_conflict":
+        changes = ("append schema=1 managed block below existing content", "create timestamped backup before apply")
     else:
         changes = ()
     desired = agent_sync.desired_text(state)
@@ -322,7 +324,7 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
         "Adopt managed ownership without exposing active policy content.",
         changes=changes, blockers=tuple(blockers), preview=agent_sync.secret_safe_diff(state),
         fingerprint=fingerprint, destination=destination, desired_text=desired,
-        preimage_digest=preimage, backup_required=state.status == "legacy_exact",
+        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "unmanaged_conflict"},
         required_clean_roots=(contract_root,),
     )
 

@@ -201,16 +201,43 @@ class MigrationPlannerTests(unittest.TestCase):
         self.assertFalse(plan.destination.exists())
         self.assertEqual(list(project.glob("..project-standard.json.tmp.*")), [])
 
-    def test_global_conflict_redacts_active_content(self):
+    def test_global_conflict_plan_appends_and_redacts_active_content(self):
         home = self.base / "conflict-home"
         active = home / ".codex" / "AGENTS.md"
         active.parent.mkdir(parents=True)
         secret = "github_pat_" + "S" * 30
         active.write_text(secret + "\n", encoding="utf-8")
+        before = active.read_bytes()
         plan = planner.global_plan(home, self.contract, self.migrations, self.version)
         report = planner.format_plan(plan)
-        self.assertEqual(plan.status, "blocked")
+        self.assertEqual(plan.status, "ready")
+        self.assertTrue(plan.backup_required)
+        self.assertIn("append", report)
         self.assertNotIn(secret, report)
+        self.assertEqual(before, active.read_bytes())
+
+    def test_global_conflict_apply_preserves_existing_content_and_backs_up(self):
+        home = self.base / "conflict-apply-home"
+        active = home / ".codex" / "AGENTS.md"
+        active.parent.mkdir(parents=True)
+        personal = "# My personal global rules\n\n- Keep this untouched.\n"
+        active.write_text(personal, encoding="utf-8")
+        before = active.read_bytes()
+        plan = planner.global_plan(home, self.contract, self.migrations, self.version)
+        result = planner.apply_plan(plan)
+        self.assertTrue(result.changed)
+        self.assertIsNotNone(result.backup)
+        assert result.backup is not None
+        self.assertEqual(result.backup.read_bytes(), before)
+        updated = active.read_text(encoding="utf-8")
+        self.assertTrue(updated.startswith(personal))
+        state = planner.agent_sync.inspect_sync_state(
+            self.contract / "GLOBAL_AGENT_INSTRUCTIONS.md", active, self.version
+        )
+        self.assertEqual(state.status, "managed_match")
+        repeated = planner.global_plan(home, self.contract, self.migrations, self.version)
+        self.assertEqual(repeated.status, "up_to_date")
+        self.assertFalse(planner.apply_plan(repeated).changed)
 
     def test_global_symlink_destination_is_blocked(self):
         home = self.base / "symlink-home"
