@@ -13,6 +13,7 @@ related:
 
 ## Руководства
 
+- [[docs/guides/USER_GUIDE|Руководство пользователя]]
 - [[docs/guides/USE_THIS_PROJECT|Как работать с этим проектом]]
 - [[docs/guides/MANUAL_SCRIPTS|Ручной запуск скриптов]]
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]
