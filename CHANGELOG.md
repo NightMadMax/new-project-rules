@@ -15,6 +15,8 @@
 - [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план]] актуализирован
   для schema `2`, active GitHub ruleset и следующего продуктового этапа с
   consumer-метриками; закрыт дефект №52.
+- Global managed policy основного компьютера обновлена migration `0005` до
+  schema `2`; backup и postcondition `managed_match` записаны в [[ACTIONS]].
 
 ### Известные проблемы
 
