@@ -19,6 +19,11 @@ REQUIRED_SKILLS = {
     ".agents/skills/harvest-practice-candidates/SKILL.md",
     ".agents/skills/review-practice-candidates/SKILL.md",
 }
+REQUIRED_CONSUMER_INTERFACE_FILES = {
+    "docs/architecture/decisions/ADR-0006-versioned-consumer-manifest.md",
+    "docs/reference/PRACTICE_SCHEMA.md",
+    "scripts/practice_report.py",
+}
 
 
 def load_contract(path: Path) -> Dict[str, object]:
@@ -67,6 +72,12 @@ def validate_contract(data: Mapping[str, object]) -> List[str]:
     missing_skills = REQUIRED_SKILLS - set(required_files)
     if missing_skills:
         problems.append(f"required_files misses skills: {', '.join(sorted(missing_skills))}")
+    missing_interface = REQUIRED_CONSUMER_INTERFACE_FILES - set(required_files)
+    if missing_interface:
+        problems.append(
+            "required_files misses consumer interface: "
+            + ", ".join(sorted(missing_interface))
+        )
     for path, digest in required_files.items():
         if not isinstance(path, str) or path.startswith("/") or ".." in Path(path).parts:
             problems.append(f"unsafe required file path: {path!r}")

@@ -35,6 +35,13 @@ class BestPracticesContractTests(unittest.TestCase):
         changed["required_files"].pop(".agents/skills/apply-best-practices/SKILL.md")
         self.assertTrue(any("misses skills" in item for item in checker.validate_contract(changed)))
 
+    def test_missing_consumer_interface_is_rejected(self):
+        changed = json.loads(json.dumps(self.contract))
+        changed["required_files"].pop("scripts/practice_report.py")
+        self.assertTrue(
+            any("misses consumer interface" in item for item in checker.validate_contract(changed))
+        )
+
     def test_trial_promotion_source_is_rejected(self):
         changed = json.loads(json.dumps(self.contract))
         changed["promotion_source"]["required_status"] = "trial"
@@ -65,7 +72,7 @@ class BestPracticesContractTests(unittest.TestCase):
                 check=True,
             )
             required = {}
-            for relative in checker.REQUIRED_SKILLS:
+            for relative in checker.REQUIRED_SKILLS | checker.REQUIRED_CONSUMER_INTERFACE_FILES:
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("skill\n", encoding="utf-8")
@@ -110,7 +117,7 @@ class BestPracticesContractTests(unittest.TestCase):
             subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
             subprocess.run(["git", "remote", "add", "origin", "git@github.com:NightMadMax/best-practices.git"], cwd=root, check=True)
             required = {}
-            for relative in checker.REQUIRED_SKILLS:
+            for relative in checker.REQUIRED_SKILLS | checker.REQUIRED_CONSUMER_INTERFACE_FILES:
                 path = root / relative
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_text("skill\n", encoding="utf-8")

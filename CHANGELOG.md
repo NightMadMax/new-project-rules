@@ -20,6 +20,9 @@
 - Standardization assessment теперь различает `consumer-project` и
   `rules-repository`: self-assessment стандарта возвращает `not_applicable`, а
   все consumer plan/apply блокируются до mutation; закрыт дефект №51.
+- BP compatibility pin обновлён до merge A1 schema 2; contract теперь закрепляет
+  не только skills, но также ADR, reference и исполняемый consumer manifest
+  loader.
 
 ## v1.16.0 — 2026-07-07
 

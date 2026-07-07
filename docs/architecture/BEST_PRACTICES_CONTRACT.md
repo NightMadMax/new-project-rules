@@ -14,9 +14,9 @@ related:
 
 `config/best-practices-contract.json` закрепляет совместимую версию BP без
 сетевой зависимости CI. Он хранит repository identity, commit SHA, обязательные
-skills и hashes, разрешённый status `accepted`, promotion source, retired
-routes, active routing surfaces, governance expectation и hash/последствия
-ADR-0003.
+skills, consumer manifest interface и hashes, разрешённый status `accepted`,
+promotion source, retired routes, active routing surfaces, governance
+expectation и hash/последствия ADR-0003.
 
 CI: `python3 scripts/test-best-practices-contract.py`.
 
