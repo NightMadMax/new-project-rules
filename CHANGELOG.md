@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Поэтапный [[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07|план исправления
+  связки NPR и Best Practices]]: GitHub governance, доставка BP hardening,
+  устранение stale routes, исполняемый cross-repo contract, version/migration
+  NPR, наполнение BP и consumer pilot с измеримыми outcomes.
 - Двухъярусная архитектура знаний ([[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003]]):
   NPR — client-read-only конституция, Best Practices — единственный обратный
   поток опыта; роли администратор/пользователь. Baseline проекта обёрнут в
