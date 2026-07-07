@@ -75,15 +75,20 @@ description: Создаёт новый проект внутри общего Ob
      git@github.com:NightMadMax/best-practices.git "../Best Practices"` из корня
      проекта (цель задаётся явно, чтобы совпадала со ссылкой `../Best Practices`
      в правиле нового проекта).
-3. Если пользователь явно отказался, записать `{ "schema_version": 1, "optout":
-   true }` в `.best-practices.json` в корне проекта, **закоммитить файл** (чтобы
-   отказ сохранился между машинами) и пропустить остальное — при отказе больше
-   не предлагать.
+3. Если пользователь явно отказался, выполнить из корня стандарта
+   `python3 scripts/best_practices_manifest.py --project <destination>
+   --set-global optout`, проверить schema 2 manifest, **закоммитить файл**
+   (чтобы отказ сохранился между машинами) и пропустить остальное — при отказе
+   больше не предлагать. Не создавать schema 1 и не писать legacy-поля
+   `optout`/`applied` вручную.
 4. Если база доступна и пользователь согласен, прочитать
    `<база>/.agents/skills/apply-best-practices/SKILL.md` и выполнить его **только
-   для `common`** (стек нового проекта ещё не определён). Изменения внести
-   отдельным осмысленным commit и push; применённые разделы записать в
-   `.best-practices.json` (`applied`).
+   для `common`** (стек нового проекта ещё не определён). Перед этим выполнить
+   `python3 scripts/best_practices_manifest.py --project <destination>
+   --set-global ask`. Изменения внести отдельным осмысленным commit и push;
+   outcomes отдельных практик записывает только canonical
+   `practice_report.py` из Best Practices в `practices`, без section-level
+   `applied`.
 5. Напомнить пользователю: когда определится стек проекта, повторно подтянуть
    стековые практики — это уже описано правилом в `AGENTS.md` нового проекта.
 6. Не менять стандарт `new-project-rules`; применять практики только в целевом

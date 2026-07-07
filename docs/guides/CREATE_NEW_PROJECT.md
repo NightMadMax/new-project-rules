@@ -137,8 +137,18 @@ Best Practices — только с вашего согласия:
 
 При согласии сразу применяются общие практики (`common`); стековые (`1c`, `web`)
 подтягиваются позже, когда определится стек проекта. Решение фиксируется в
-`.best-practices.json` в корне проекта (`optout` — вы отказались, `applied` —
-какие разделы уже применены), чтобы предложение не повторялось без нужды.
+`.best-practices.json` schema 2 в корне проекта: `preferences.global` и
+`preferences.sections` содержат `ask`/`optout`, а `practices` — outcomes
+отдельных практик, записанные canonical tooling Best Practices. Legacy-поля
+верхнего уровня `optout` и секционное `applied` не создаются.
+
+Для записи решения create workflow использует переносимый writer стандарта:
+
+```sh
+python3 scripts/best_practices_manifest.py \
+  --project "/path/to/project" \
+  --set-global optout
+```
 
 ## Проверка результата
 

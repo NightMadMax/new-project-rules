@@ -11,6 +11,7 @@
   `check-environment.*` и `project-doctor.*` (диагностика),
   `validate-project.*`, `sync-global-agents.*`, `plan-migration.*`,
   `standardize-existing-project.*` (контракт и миграции),
+  `best_practices_manifest.py` (schema 2 consumer preferences),
   `promotion_candidates.py` (promotion backlog), `test-*` (тесты).
 - Каждый инструмент имеет парные `.sh` и `.ps1` entry points для чистых
   машин без Python. Исключение: `test-powershell-environment.ps1` и
@@ -31,6 +32,9 @@
   `python scripts/standardize_existing_project.py --root <project>`; первая
   версия умеет read-only assessment и безопасный `adopt-in-place` plan/apply
   по fingerprint для отсутствующих managed files и index updates.
+- Best Practices consumer preferences:
+  `python scripts/best_practices_manifest.py --project <project> --set-global
+  ask|optout`; existing schema 1 намеренно блокируется до явной миграции.
 - Supply-chain checks: `python scripts/check-action-pins.py` и
   `python scripts/test-supply-chain.py`; external Actions разрешены только по
   full commit SHA, Docker actions — по `sha256` digest.
