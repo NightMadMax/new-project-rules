@@ -117,3 +117,26 @@ jobs:
       - name: PowerShell test environment isolation
         shell: powershell
         run: .\scripts\test-powershell-environment.ps1
+
+  cross-repo-e2e:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: NightMadMax/best-practices
+          ref: 1444f53cc1616d39cd25715fba980354d2b9e75f
+          path: .external/best-practices
+          persist-credentials: false
+      - name: Verify pinned checkout and consumer E2E
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python scripts/check_best_practices_contract.py --best-practices-root .external/best-practices
+          python scripts/test-best-practices-e2e.py --best-practices-root .external/best-practices

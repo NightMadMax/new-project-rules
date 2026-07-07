@@ -20,6 +20,11 @@ expectation и hash/последствия ADR-0003.
 
 CI: `python3 scripts/test-best-practices-contract.py`.
 
+CI дополнительно checkout'ит `source_commit` в изолированный каталог и запускает
+`scripts/test-best-practices-e2e.py`: NPR writer создаёт preferences, а реальный
+BP `practice_report.py` загружает их, применяет optout и записывает outcome.
+Gate выполняется на Ubuntu, Windows и macOS.
+
 Перед promotion:
 
 ```sh
