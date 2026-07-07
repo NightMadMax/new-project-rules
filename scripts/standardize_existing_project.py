@@ -20,6 +20,15 @@ import hashlib
 
 MIN_PYTHON = (3, 9)
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
+TARGET_CONSUMER_PROJECT = "consumer-project"
+TARGET_RULES_REPOSITORY = "rules-repository"
+RULES_REPOSITORY_MARKERS = (
+    "STANDARD_VERSION",
+    "config/profiles.tsv",
+    "scripts/validate-project.py",
+    "templates/new-project",
+    ".agents/skills",
+)
 PROFILE_FIELDS = (
     "minimum_profile",
     "source",
@@ -93,6 +102,7 @@ class GitState:
 @dataclass(frozen=True)
 class AssessmentReport:
     root: Path
+    target_kind: str
     requested_strategy: str
     requested_profile: str
     status: str
@@ -198,6 +208,12 @@ def inspect_git(path: Path) -> GitState:
     clean = not status.stdout.strip()
     detail = "" if clean else "Git working tree is not clean"
     return GitState(True, True, clean, detail)
+
+
+def detect_target_kind(root: Path) -> str:
+    if all((root / marker).exists() for marker in RULES_REPOSITORY_MARKERS):
+        return TARGET_RULES_REPOSITORY
+    return TARGET_CONSUMER_PROJECT
 
 
 def existing_managed(root: Path, known: set[str]) -> set[str]:
@@ -348,10 +364,40 @@ def build_transfer_manifest(
 def assess_project(root: Path, contract_root: Path, requested_strategy: str, requested_profile: str) -> AssessmentReport:
     if not root.is_dir():
         raise StandardizationConfigError(f"Project root is not a directory: {root}")
+    target_kind = detect_target_kind(root)
+    git_state = inspect_git(root)
+    if target_kind == TARGET_RULES_REPOSITORY:
+        blocker = (
+            "The canonical rules repository is not a consumer-project "
+            "standardization target; use rules validation and architecture audit workflows"
+        )
+        return AssessmentReport(
+            root=root,
+            target_kind=target_kind,
+            requested_strategy=requested_strategy,
+            requested_profile=requested_profile,
+            status="not_applicable",
+            recommended_strategy="not-applicable",
+            candidate_profile=None,
+            safe_to_adopt_in_place=False,
+            safe_to_rebootstrap=False,
+            blocking_issues=(blocker,),
+            files_to_create=(),
+            files_to_merge=(),
+            files_to_review_manually=(),
+            proposed_transfer_set=(),
+            adopt_blockers=(blocker,),
+            rebootstrap_blockers=(blocker,),
+            git_repository=git_state.repository,
+            clean_git_tree=git_state.clean,
+            nested_obsidian=False,
+            conflicting_claude=False,
+            exact_profiles=(),
+            missing_by_profile={},
+        )
     rows = load_artifacts(contract_root)
     destinations = profile_destinations(rows)
     present = existing_managed(root, set().union(*destinations.values()))
-    git_state = inspect_git(root)
     candidate_profile, exact_profiles, missing_by_profile, profile_blockers = detect_candidate_profile(
         present, destinations, requested_profile
     )
@@ -421,6 +467,7 @@ def assess_project(root: Path, contract_root: Path, requested_strategy: str, req
 
     return AssessmentReport(
         root=root,
+        target_kind=target_kind,
         requested_strategy=requested_strategy,
         requested_profile=requested_profile,
         status=status,
@@ -447,6 +494,7 @@ def assess_project(root: Path, contract_root: Path, requested_strategy: str, req
 def report_as_dict(report: AssessmentReport) -> dict[str, object]:
     return {
         "root": str(report.root),
+        "target_kind": report.target_kind,
         "requested_strategy": report.requested_strategy,
         "requested_profile": report.requested_profile,
         "status": report.status,
@@ -472,6 +520,7 @@ def report_as_dict(report: AssessmentReport) -> dict[str, object]:
 
 def format_report(report: AssessmentReport) -> str:
     lines = [
+        f"target_kind={report.target_kind}",
         f"status={report.status}",
         f"recommended_strategy={report.recommended_strategy}",
         f"candidate_profile={report.candidate_profile or 'unknown'}",
@@ -614,6 +663,8 @@ def project_name_from_root(root: Path) -> str:
 
 def build_adopt_in_place_plan(root: Path, contract_root: Path, report: AssessmentReport) -> ApplyPlan:
     blockers: list[str] = []
+    if report.target_kind != TARGET_CONSUMER_PROJECT:
+        blockers.append("Rules repositories cannot use consumer-project standardization plans")
     if report.recommended_strategy != "adopt-in-place" and report.requested_strategy != "adopt-in-place":
         blockers.append("Assessment does not recommend adopt-in-place for this project")
     if not report.safe_to_adopt_in_place:
@@ -715,6 +766,8 @@ def build_rebootstrap_plan(
     project_name: Optional[str],
 ) -> ApplyPlan:
     blockers: list[str] = []
+    if report.target_kind != TARGET_CONSUMER_PROJECT:
+        blockers.append("Rules repositories cannot use consumer-project standardization plans")
     if not report.safe_to_rebootstrap:
         blockers.extend(report.rebootstrap_blockers)
     if destination is None:
@@ -735,7 +788,12 @@ def build_rebootstrap_plan(
         elif resolved.exists() and not resolved.is_dir():
             blockers.append("Destination exists and is not a directory")
 
-    profile = report.candidate_profile or (report.requested_profile if report.requested_profile != "auto" else "software")
+    if report.target_kind != TARGET_CONSUMER_PROJECT:
+        profile = "unknown"
+    else:
+        profile = report.candidate_profile or (
+            report.requested_profile if report.requested_profile != "auto" else "software"
+        )
     transfer_paths = []
     for item in report.proposed_transfer_set:
         if item == "docs":

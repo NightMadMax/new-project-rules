@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-07
 source_of_truth: repository
 related:
   - "[[docs/guides/ASSESS_EXISTING_PROJECT|ASSESS_EXISTING_PROJECT]]"
@@ -30,6 +30,12 @@ related:
 Workflow должен сначала опираться на отдельный assessment через
 [[docs/guides/ASSESS_EXISTING_PROJECT|ASSESS_EXISTING_PROJECT]], и только после
 этого менять файлы.
+
+Workflow предназначен только для consumer projects. Канонический
+`new-project-rules` определяется как `target_kind=rules-repository`, получает
+`status=not_applicable` и не допускается к `adopt-in-place`,
+`re-bootstrap-from-existing`, plan или apply. Для самого стандарта используются
+rules validator и архитектурный audit.
 
 ## Рекомендуемый способ: попросить агента
 
@@ -178,6 +184,7 @@ python3 scripts/standardize_existing_project.py --root "/path/to/project" --json
 
 Assessment должен возвращать не свободный текст, а понятную структуру решения:
 
+- `target_kind`
 - `recommended_strategy`
 - `candidate_profile`
 - `safe_to_adopt_in_place`
@@ -227,3 +234,6 @@ Assessment должен возвращать не свободный текст,
 - `re-bootstrap-from-existing` уже умеет bootstrap нового проекта и safe-set
   apply, но содержательные docs, agent files и deployment-конфиги всё ещё
   требуют отдельного review.
+- rules repository и его полные копии исключены из consumer-project workflow;
+  один случайный файл `STANDARD_VERSION` в обычном проекте это исключение не
+  активирует.

@@ -115,6 +115,9 @@ Parser-check обязан возвращать ненулевой код, есл
 - decision report для legacy-проекта, рекомендации `adopt-in-place` /
   `re-bootstrap-from-existing`, conflict detection для `CLAUDE.md` и nested
   `.obsidian`, а также отсутствие mutation у standardization planner;
+- распознавание `rules-repository`, отчёт `not_applicable`, отсутствие profile
+  inference и блокировка всех consumer plan/apply до mutation; одиночный
+  `STANDARD_VERSION` в consumer project не считается rules repository;
 - fingerprinted `adopt-in-place` apply только для safe files, rejection при
   mismatch fingerprint и обновление index links без перезаписи сложных docs;
 - `re-bootstrap-from-existing` plan/apply, bootstrap нового проекта, перенос
