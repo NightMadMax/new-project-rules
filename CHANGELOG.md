@@ -4,7 +4,24 @@
 
 ## Unreleased
 
-_Нет изменений._
+### Добавлено
+
+- Единое [[docs/guides/USER_GUIDE|пользовательское руководство]] по установке,
+  Obsidian vault, безопасным запросам агенту и основным workflow; альтернативный
+  черновик устранён, навигация обновлена.
+
+### Изменено
+
+- [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план]] актуализирован
+  для schema `2`, active GitHub ruleset и следующего продуктового этапа с
+  consumer-метриками; закрыт дефект №52.
+- Global managed policy основного компьютера обновлена migration `0005` до
+  schema `2`; backup и postcondition `managed_match` записаны в [[ACTIONS]].
+
+### Известные проблемы
+
+- Self-assessment rules repository ошибочно применяет consumer profiles;
+  дефект №51 зарегистрирован для фазы 1.
 
 ## v1.16.0 — 2026-07-07
 

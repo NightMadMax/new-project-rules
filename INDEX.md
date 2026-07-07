@@ -19,6 +19,7 @@
 | [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
 | `requirements-dev.txt` | Python-зависимости для сопровождения Agent Skills |
 | [[docs/README|docs/README.md]] | Индекс отдельной папки документации |
+| [[docs/guides/USER_GUIDE|USER_GUIDE.md]] | Основное пользовательское руководство: установка, ежедневные сценарии и безопасные запросы агенту |
 | [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT.md]] | Пользовательский вход: как работать с проектом и какими фразами ставить задачи агенту |
 | [[docs/guides/MANUAL_SCRIPTS|MANUAL_SCRIPTS.md]] | Справочник по ручному запуску скриптов: команды sh/ps1, флаги и когда запускать вручную |
 | [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT.md]] | Создание проекта вручную или по запросу агенту |
@@ -37,7 +38,7 @@
 | [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003]] | Двухъярусная архитектура знаний: роли, маршрутизация, managed/unmanaged, судьба скиллов |
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |
 | [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|MUST_HAVE_PROJECT_TOOLING_2026.md]] | Исследование обязательной базы инструментов в 2026 году |
-| [[docs/research/STRATEGIC_EVOLUTION_PLAN|STRATEGIC_EVOLUTION_PLAN.md]] | Proposed-план contract, validator, sync и migrations |
+| [[docs/research/STRATEGIC_EVOLUTION_PLAN|STRATEGIC_EVOLUTION_PLAN.md]] | Реализованный план policy-системы и следующий продуктовый этап |
 | [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|AGENT_RUNTIME_CAPABILITIES_2026.md]] | Рантайм-возможности Codex/Claude Code и план улучшений правил |
 | [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|AGENT_COMMUNITY_PRACTICES_2026.md]] | Community-практики Claude Code/Codex и кандидаты на внедрение |
 | [[docs/research/PROJECT_AUDIT_2026-07|PROJECT_AUDIT_2026-07.md]] | Аудит проекта июль 2026: консистентность, обновления Codex/Claude Code, рекомендации |
