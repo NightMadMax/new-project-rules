@@ -98,6 +98,24 @@ related:
 - Когда вручную: подключение нового Mac/Windows, проверка обязательной базы
   инструментов. `check-environment` read-only.
 
+### Best Practices consumer manifest
+
+Создаёт или обновляет только preferences в schema 2 manifest; существующие
+practice outcomes сохраняются. Schema 1 нужно сначала мигрировать отдельным
+workflow Best Practices.
+
+```sh
+python3 scripts/best_practices_manifest.py --project "/path/to/Project" --set-global optout
+python3 scripts/best_practices_manifest.py --project "/path/to/Project" --set-section python ask
+```
+
+```powershell
+python .\scripts\best_practices_manifest.py --project "C:\Projects\Project" --set-global optout
+```
+
+- Когда вручную: зафиксировать global/section opt-in или opt-out без изменения
+  outcomes. Результат нужно проверить и закоммитить в consumer repository.
+
 ### Валидация и диагностика
 
 Read-only проверка структуры проекта или набора правил и общая диагностика

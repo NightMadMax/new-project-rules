@@ -42,6 +42,7 @@ jobs:
           python3 scripts/test-standardize-existing-project.py
           python3 scripts/test-compress-project.py
           python3 scripts/test-best-practices-contract.py
+          python3 scripts/test-best-practices-manifest.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -81,6 +82,7 @@ jobs:
           python .\scripts\test-standardize-existing-project.py
           python .\scripts\test-compress-project.py
           python .\scripts\test-best-practices-contract.py
+          python .\scripts\test-best-practices-manifest.py
       - name: Validator report on Windows
         shell: powershell
         run: |

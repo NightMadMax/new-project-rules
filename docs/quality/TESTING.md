@@ -42,6 +42,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-best-practices-contract.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-best-practices-manifest.py
 python3 scripts/check-action-pins.py
 python3 scripts/validate-project.py --root . --kind rules --report-only
 python3 scripts/sync_global_agents.py --check --report-only
@@ -65,6 +66,7 @@ python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-compress-project.py
 python .\scripts\test-supply-chain.py
 python .\scripts\test-best-practices-contract.py
+python .\scripts\test-best-practices-manifest.py
 python .\scripts\check-action-pins.py
 python .\scripts\validate-project.py --root . --kind rules --report-only
 python .\scripts\sync_global_agents.py --check --report-only
@@ -134,6 +136,8 @@ Parser-check обязан возвращать ненулевой код, есл
   local actions и отказ от mutable tags/branches;
 - pinned compatibility contract Best Practices: schema, repository identity,
   required skills, accepted promotion source, commit и file hashes;
+- schema 2 consumer writer: global/section preferences, сохранение outcomes,
+  отказ от неявной schema 1 migration и symlink safety;
 - path-triggered/manual macOS smoke для shell, bootstrap, contract, skills и
   Python policy suites;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;

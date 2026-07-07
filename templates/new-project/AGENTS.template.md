@@ -116,9 +116,11 @@ never overwritten by a baseline update.
   for that stack. If the base is absent, offer to clone it first, as a sibling
   in the vault (`git clone git@github.com:NightMadMax/best-practices.git
   "../Best Practices"`).
-- Everything is opt-in. Record the decision in `.best-practices.json` (`optout`
-  when the user declines, `applied` for delivered sections) and do not re-offer
-  a declined or already-applied section.
+- Everything is opt-in. Use schema 2 `.best-practices.json`: record global or
+  section `ask`/`optout` under `preferences`, and record each delivered
+  practice under `practices` through the canonical Best Practices tooling.
+  Never write legacy top-level `optout` or section-level `applied`; do not
+  re-offer opted-out sections or already-recorded practices.
 
 ## Knowledge Promotion
 

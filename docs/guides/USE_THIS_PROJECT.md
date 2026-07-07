@@ -85,8 +85,9 @@ Claude Code: `/create-new-project`
 
 На финальном шаге агент предлагает (opt-in) подтянуть практики из соседней базы
 Best Practices: общие (`common`) — сразу, стековые — когда определится стек. При
-необходимости он обновит базу или установит её, если её нет; ваш отказ
-фиксируется в `.best-practices.json`, чтобы не спрашивать повторно.
+необходимости он обновит базу или установит её, если её нет; решение
+фиксируется в schema 2 `.best-practices.json` (`preferences` для opt-in/opt-out,
+`practices` для outcomes), чтобы не спрашивать повторно.
 
 Подробности: [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT]].
 
