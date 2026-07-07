@@ -1,0 +1,26 @@
+{
+  "practices": {
+    "PC-2026-001": {
+      "notes": "Repository-wide secret checks and credential policy are already enforced.",
+      "outcome": "already-compliant",
+      "practice_path": "practices/common/PC-2026-001-keep-credentials-out-of-repository.md",
+      "recorded_at": "2026-07-07",
+      "source_commit": "2c13cff58e5b2907336cf142b749217d558c7851"
+    },
+    "PC-2026-850607ffdb29": {
+      "notes": "Pinned Best Practices contract and negative tests run in CI.",
+      "outcome": "applied",
+      "practice_path": "practices/tools/PC-2026-850607ffdb29-pinned-cross-repo-contract.md",
+      "recorded_at": "2026-07-07",
+      "source_commit": "2c13cff58e5b2907336cf142b749217d558c7851"
+    },
+    "PC-2026-d94e563cc365": {
+      "notes": "Sequential schema 0→1→2 migration graph is implemented and regression-tested in v1.16.0.",
+      "outcome": "applied",
+      "practice_path": "practices/common/PC-2026-d94e563cc365-sequential-migration-graph.md",
+      "recorded_at": "2026-07-07",
+      "source_commit": "2c13cff58e5b2907336cf142b749217d558c7851"
+    }
+  },
+  "schema_version": 1
+}
