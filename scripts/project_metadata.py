@@ -1,4 +1,4 @@
-"""Shared schema-1 validation and rendering for .project-standard.json."""
+"""Shared validation and rendering for .project-standard.json."""
 
 from __future__ import annotations
 
@@ -69,7 +69,7 @@ def build_legacy_metadata(
     profile: str,
     source: str,
     source_commit: str,
-    migration_id: str,
+    migration_ids: Sequence[str],
     adopted_at: Optional[str] = None,
 ) -> dict:
     return {
@@ -79,5 +79,5 @@ def build_legacy_metadata(
         "source_commit": source_commit,
         "created_at": None,
         "adopted_at": adopted_at or date.today().isoformat(),
-        "applied_migrations": [migration_id],
+        "applied_migrations": list(migration_ids),
     }

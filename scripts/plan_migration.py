@@ -123,6 +123,9 @@ def read_migrations(contract_root: Path, standard_version: int) -> list[Migratio
         if from_schema < 0 or to_schema <= from_schema or to_schema > standard_version:
             raise MigrationConfigError(f"Invalid schema transition for {migration_id}")
         rows.append(Migration(migration_id, raw["target"], from_schema, to_schema, raw["handler"], raw["description"]))
+    for target in ("project", "global", "project-agents"):
+        for start in range(standard_version):
+            find_migration_path(rows, target, start, standard_version)
     return rows
 
 
@@ -131,6 +134,38 @@ def find_migration(rows: Sequence[Migration], target: str, from_schema: int, to_
     if len(matches) != 1:
         raise MigrationConfigError(f"Expected exactly one {target} migration {from_schema}->{to_schema}")
     return matches[0]
+
+
+def find_migration_path(
+    rows: Sequence[Migration], target: str, from_schema: int, to_schema: int
+) -> tuple[Migration, ...]:
+    if from_schema == to_schema:
+        return ()
+    current = from_schema
+    path: list[Migration] = []
+    visited: set[int] = set()
+    while current != to_schema:
+        if current in visited:
+            raise MigrationConfigError(f"Cycle in {target} migration path {from_schema}->{to_schema}")
+        visited.add(current)
+        outgoing = [
+            row for row in rows
+            if row.target == target and row.from_schema == current and row.to_schema <= to_schema
+        ]
+        if len(outgoing) != 1:
+            raise MigrationConfigError(
+                f"Expected exactly one next {target} migration from schema {current}; found {len(outgoing)}"
+            )
+        migration = outgoing[0]
+        path.append(migration)
+        current = migration.to_schema
+    return tuple(path)
+
+
+def migration_path_id(path: Sequence[Migration]) -> str:
+    if not path:
+        raise MigrationConfigError("Migration path must not be empty")
+    return "+".join(item.migration_id for item in path)
 
 
 def read_profile_destinations(contract_root: Path) -> dict[str, set[str]]:
@@ -244,12 +279,49 @@ def project_plan(project_root: Path, contract_root: Path, profile_arg: str, migr
         except OSError as exc:
             raise MigrationConfigError(f"Cannot read standard source: {exc}") from exc
         known_project = [row.migration_id for row in migrations if row.target == "project"]
-        issues = project_metadata.validate_metadata(metadata, version, source, known_project)
-        if not issues:
+        schema = metadata.get("schema_version") if isinstance(metadata, dict) else None
+        if not isinstance(schema, int) or isinstance(schema, bool) or schema < 1 or schema > version:
+            issues = project_metadata.validate_metadata(metadata, version, source, known_project)
+            return MigrationPlan("project", "blocked", None, "Existing project metadata is not valid for the current schema.", blockers=tuple(issues))
+        issues = project_metadata.validate_metadata(metadata, schema, source, known_project)
+        expected_history = [item.migration_id for item in find_migration_path(migrations, "project", 0, schema)]
+        if metadata.get("applied_migrations") != expected_history:
+            issues.append(
+                "applied_migrations must exactly match the deterministic migration path "
+                f"for schema {schema}: {', '.join(expected_history)}"
+            )
+        if issues:
+            return MigrationPlan("project", "blocked", None, "Existing project metadata is not valid for its declared schema.", blockers=tuple(issues))
+        if schema == version:
             return MigrationPlan("project", "up_to_date", None, "Project already uses the current standard schema.")
-        return MigrationPlan("project", "blocked", None, "Existing project metadata is not valid for the current schema.", blockers=tuple(issues))
+        path = find_migration_path(migrations, "project", schema, version)
+        migration_id = migration_path_id(path)
+        project_git = inspect_git(project_root)
+        contract_git = inspect_git(contract_root)
+        blockers: list[str] = []
+        if not project_git.repository or not project_git.clean:
+            blockers.append(project_git.detail or "Project Git state is not ready")
+        if not contract_git.repository or not contract_git.clean or not contract_git.commit:
+            blockers.append(contract_git.detail or "Rules repository must be clean and committed")
+        desired_metadata = dict(metadata)
+        desired_metadata["schema_version"] = version
+        desired_metadata["source_commit"] = contract_git.commit
+        desired_metadata["applied_migrations"] = list(metadata.get("applied_migrations", [])) + [item.migration_id for item in path]
+        preview = json.dumps(desired_metadata, ensure_ascii=False, indent=2) + "\n"
+        fingerprint = preimage = ""
+        current = read_bytes_optional(metadata_path)
+        if not blockers:
+            fingerprint, preimage = migration_fingerprint("project", migration_id, metadata_path, current, preview)
+        return MigrationPlan(
+            "project", "blocked" if blockers else "ready", migration_id,
+            f"Upgrade project metadata schema {schema} -> {version} atomically.",
+            changes=tuple(item.description for item in path), blockers=tuple(blockers), preview=preview,
+            fingerprint=fingerprint, destination=metadata_path, desired_text=preview,
+            preimage_digest=preimage, required_clean_roots=(project_root, contract_root),
+        )
 
-    migration = find_migration(migrations, "project", 0, version)
+    path = find_migration_path(migrations, "project", 0, version)
+    migration_id = migration_path_id(path)
     profiles = read_profile_destinations(contract_root)
     profile, blockers = infer_profile(project_root, profiles, profile_arg)
     project_git = inspect_git(project_root)
@@ -268,7 +340,7 @@ def project_plan(project_root: Path, contract_root: Path, profile_arg: str, migr
         preview = ""
     else:
         metadata = project_metadata.build_legacy_metadata(
-            version, profile, source, contract_git.commit, migration.migration_id
+            version, profile, source, contract_git.commit, [item.migration_id for item in path]
         )
         preview = json.dumps(metadata, ensure_ascii=False, indent=2) + "\n"
     status = "blocked" if blockers else "ready"
@@ -277,10 +349,10 @@ def project_plan(project_root: Path, contract_root: Path, profile_arg: str, migr
     preimage = ""
     if status == "ready":
         fingerprint, preimage = migration_fingerprint(
-            "project", migration.migration_id, destination, None, preview
+            "project", migration_id, destination, None, preview
         )
     return MigrationPlan(
-        "project", status, migration.migration_id,
+        "project", status, migration_id,
         "Create explicit metadata for a legacy project without changing project content.",
         changes=("create .project-standard.json",), blockers=tuple(blockers), preview=preview,
         fingerprint=fingerprint, destination=destination, desired_text=preview or None,
@@ -289,7 +361,6 @@ def project_plan(project_root: Path, contract_root: Path, profile_arg: str, migr
 
 
 def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration], version: int) -> MigrationPlan:
-    migration = find_migration(migrations, "global", 0, version)
     destination = home / ".codex" / "AGENTS.md"
     state = agent_sync.inspect_sync_state(
         contract_root / "GLOBAL_AGENT_INSTRUCTIONS.md", destination, version
@@ -298,7 +369,10 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
     blockers: list[str] = []
     if state.status == "managed_match":
         return MigrationPlan("global", "up_to_date", None, "Global policy already uses the current managed schema.")
-    if state.status not in {"legacy_exact", "missing", "unmanaged_conflict"}:
+    from_schema = state.managed_schema if state.status == "managed_upgrade" else 0
+    path = find_migration_path(migrations, "global", from_schema or 0, version)
+    migration_id = migration_path_id(path)
+    if state.status not in {"legacy_exact", "missing", "unmanaged_conflict", "managed_upgrade", "managed_drift"}:
         blockers.append(f"Global sync state {state.status} does not permit automatic ownership adoption")
     if destination.is_symlink():
         blockers.append("Global policy destination is a symlink; ownership must be resolved manually")
@@ -307,9 +381,13 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
     if state.status == "missing":
         changes = ("create managed policy file",)
     elif state.status == "legacy_exact":
-        changes = ("wrap matching policy in schema=1 managed markers", "create timestamped backup before future apply")
+        changes = (f"wrap matching policy in schema={version} managed markers", "create timestamped backup before future apply")
     elif state.status == "unmanaged_conflict":
-        changes = ("append schema=1 managed block below existing content", "create timestamped backup before apply")
+        changes = (f"append schema={version} managed block below existing content", "create timestamped backup before apply")
+    elif state.status == "managed_upgrade":
+        changes = (f"upgrade managed marker schema {from_schema} -> {version}", "refresh managed policy content", "create timestamped backup before apply")
+    elif state.status == "managed_drift":
+        changes = ("refresh managed policy content", "create timestamped backup before apply")
     else:
         changes = ()
     desired = agent_sync.desired_text(state)
@@ -318,20 +396,19 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
     if not blockers and desired is not None:
         active_bytes = None if state.active_text is None else state.active_text.encode("utf-8")
         fingerprint, preimage = migration_fingerprint(
-            "global", migration.migration_id, destination, active_bytes, desired
+            "global", migration_id, destination, active_bytes, desired
         )
     return MigrationPlan(
-        "global", "blocked" if blockers else "ready", migration.migration_id,
+        "global", "blocked" if blockers else "ready", migration_id,
         "Adopt managed ownership without exposing active policy content.",
         changes=changes, blockers=tuple(blockers), preview=agent_sync.secret_safe_diff(state),
         fingerprint=fingerprint, destination=destination, desired_text=desired,
-        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "unmanaged_conflict"},
+        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "unmanaged_conflict", "managed_upgrade", "managed_drift"},
         required_clean_roots=(contract_root,),
     )
 
 
 def project_agents_plan(project_root: Path, contract_root: Path, migrations: Sequence[Migration], version: int) -> MigrationPlan:
-    migration = find_migration(migrations, "project-agents", 0, version)
     destination = project_root / "AGENTS.md"
     template = contract_root / "templates" / "new-project" / "AGENTS.template.md"
     try:
@@ -346,10 +423,14 @@ def project_agents_plan(project_root: Path, contract_root: Path, migrations: Seq
     if state.status == "managed_match":
         return MigrationPlan("project-agents", "up_to_date", None, "Project AGENTS baseline already uses the current managed schema.")
 
+    from_schema = state.managed_schema if state.status == "managed_upgrade" else 0
+    path = find_migration_path(migrations, "project-agents", from_schema or 0, version)
+    migration_id = migration_path_id(path)
+
     project_git = inspect_git(project_root)
     contract_git = inspect_git(contract_root)
     blockers: list[str] = []
-    if state.status not in {"legacy_exact", "managed_drift"}:
+    if state.status not in {"legacy_exact", "managed_drift", "managed_upgrade"}:
         if state.status == "unmanaged_conflict":
             blockers.append("Project AGENTS.md mixes baseline and local rules without markers; run standardize-existing-project first")
         elif state.status == "missing":
@@ -365,7 +446,7 @@ def project_agents_plan(project_root: Path, contract_root: Path, migrations: Seq
 
     if state.status == "legacy_exact":
         changes = (f"wrap matching baseline in schema={version} managed markers", "create timestamped backup before apply")
-    elif state.status == "managed_drift":
+    elif state.status in {"managed_drift", "managed_upgrade"}:
         changes = ("refresh the managed baseline block; local content outside markers is preserved", "create timestamped backup before apply")
     else:
         changes = ()
@@ -376,14 +457,14 @@ def project_agents_plan(project_root: Path, contract_root: Path, migrations: Seq
     if not blockers and desired is not None:
         active_bytes = None if state.active_text is None else state.active_text.encode("utf-8")
         fingerprint, preimage = migration_fingerprint(
-            "project-agents", migration.migration_id, destination, active_bytes, desired
+            "project-agents", migration_id, destination, active_bytes, desired
         )
     return MigrationPlan(
-        "project-agents", "blocked" if blockers else "ready", migration.migration_id,
+        "project-agents", "blocked" if blockers else "ready", migration_id,
         "Adopt or refresh the managed AGENTS baseline without exposing local content.",
         changes=changes, blockers=tuple(blockers), preview=agent_sync.secret_safe_diff(state),
         fingerprint=fingerprint, destination=destination, desired_text=desired,
-        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "managed_drift"},
+        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "managed_drift", "managed_upgrade"},
         required_clean_roots=(contract_root, project_root),
     )
 

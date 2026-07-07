@@ -50,6 +50,7 @@
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07.md]] | Финальный review GitHub ruleset и CODEOWNERS для защиты NPR main |
 | [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07.md]] | Финальный review pinned cross-repo contract NPR ↔ Best Practices |
+| [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07.md]] | Review schema 2 и последовательного migration graph |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |

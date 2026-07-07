@@ -23,7 +23,7 @@ related:
 Управляемая область ограничена единственной парой markers:
 
 ```text
-<!-- new-project-rules:begin schema=1 -->
+<!-- new-project-rules:begin schema=2 -->
 ...portable policy...
 <!-- new-project-rules:end -->
 ```

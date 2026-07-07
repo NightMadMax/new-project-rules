@@ -31,6 +31,7 @@ class SyncState:
     prefix: str = ""
     suffix: str = ""
     detail: str = ""
+    managed_schema: Optional[int] = None
 
 
 class SyncConfigError(Exception):
@@ -121,19 +122,22 @@ def inspect_state(
             "malformed", active_path, portable_path, schema_version, portable_text, active_text,
             detail="end marker appears before begin marker",
         )
-    if block_schema != schema_version:
+    if block_schema > schema_version:
         return SyncState(
             "unsupported_schema", active_path, portable_path, schema_version, portable_text, active_text,
-            detail=f"managed_schema={block_schema}, supported_schema={schema_version}",
+            detail=f"managed_schema={block_schema}, supported_schema={schema_version}", managed_schema=block_schema,
         )
 
     managed_text = normalize("".join(lines[begin_index + 1:end_index]))
     prefix = "".join(lines[:begin_index])
     suffix = "".join(lines[end_index + 1:])
-    status = "managed_match" if managed_text == portable_text else "managed_drift"
+    if block_schema < schema_version:
+        status = "managed_upgrade"
+    else:
+        status = "managed_match" if managed_text == portable_text else "managed_drift"
     return SyncState(
         status, active_path, portable_path, schema_version, portable_text, active_text,
-        managed_text=managed_text, prefix=prefix, suffix=suffix,
+        managed_text=managed_text, prefix=prefix, suffix=suffix, managed_schema=block_schema,
     )
 
 
@@ -151,7 +155,7 @@ def desired_text(state: SyncState) -> Optional[str]:
     block = managed_block(state.portable_text, state.schema_version)
     if state.status in {"missing", "legacy_exact"}:
         return block
-    if state.status in {"managed_match", "managed_drift"}:
+    if state.status in {"managed_match", "managed_drift", "managed_upgrade"}:
         return state.prefix + block + state.suffix
     if state.status == "unmanaged_conflict":
         assert state.active_text is not None
@@ -167,6 +171,12 @@ def secret_safe_diff(state: SyncState) -> str:
     header = [f"status={state.status}", f"active={state.active_path}", f"portable={state.portable_path}"]
     if state.status == "managed_match":
         return "\n".join(header + ["No managed-policy differences."])
+    if state.status == "managed_upgrade":
+        return "\n".join(header + [
+            f"Plan: upgrade managed schema {state.managed_schema} -> {state.schema_version}; content is redacted.",
+            f"Managed block: {len((state.managed_text or '').splitlines())} line(s), sha256={digest(state.managed_text or '')}.",
+            f"Portable policy: {len(state.portable_text.splitlines())} line(s), sha256={digest(state.portable_text)}.",
+        ])
     if state.status == "missing":
         lines = normalize(state.portable_text).splitlines()
         return "\n".join(header + [f"Plan: create managed block with {len(lines)} line(s), sha256={digest(state.portable_text)}."])

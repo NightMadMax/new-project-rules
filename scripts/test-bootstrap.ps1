@@ -5,6 +5,7 @@
 $ErrorActionPreference = "Stop"
 $ScriptDir = $PSScriptRoot
 $Bootstrap = Join-Path $ScriptDir "bootstrap-new-project.ps1"
+$StandardVersion = (Get-Content -Raw (Join-Path (Split-Path $ScriptDir -Parent) "STANDARD_VERSION")).Trim()
 $Tmp = Join-Path ([System.IO.Path]::GetTempPath()) ("bstest-" + [System.Guid]::NewGuid().ToString("N").Substring(0, 8))
 New-Item -ItemType Directory -Force $Tmp | Out-Null
 
@@ -32,11 +33,13 @@ function Assert-Metadata {
     param($File, $Profile, $Tag)
     try {
         $metadata = Get-Content -Raw -Encoding UTF8 $File | ConvertFrom-Json
-        if ($metadata.profile -eq $Profile -and
+        if ($metadata.schema_version -eq [int]$StandardVersion -and
+                $metadata.profile -eq $Profile -and
                 $metadata.source -eq "NightMadMax/new-project-rules" -and
                 $metadata.source_commit -match '^[0-9a-f]{40}$' -and
                 $metadata.created_at -match '^\d{4}-\d{2}-\d{2}$' -and
-                $metadata.adopted_at -match '^\d{4}-\d{2}-\d{2}$') {
+                $metadata.adopted_at -match '^\d{4}-\d{2}-\d{2}$' -and
+                (($metadata.applied_migrations -join ',') -eq '0001-adopt-project-standard,0004-upgrade-project-standard-v2')) {
             Pass
         }
         else { Fail "${Tag}: metadata fields are invalid" }
@@ -171,7 +174,7 @@ try {
         Assert-NoBom (Join-Path $dir "AGENTS.md") $p
         Assert-Grep (Join-Path $dir "AGENTS.md") "Test $p" $p
         Assert-Grep (Join-Path $dir "AGENTS.md") "Always answer the user in Russian" $p
-        Assert-Grep (Join-Path $dir "AGENTS.md") "new-project-rules:begin schema=1" $p
+        Assert-Grep (Join-Path $dir "AGENTS.md") "new-project-rules:begin schema=$StandardVersion" $p
         Assert-Grep (Join-Path $dir "AGENTS.md") "new-project-rules:end" $p
         Assert-Grep (Join-Path $dir ".gitignore") "CLAUDE.local.md" $p
         Assert-Grep (Join-Path $dir ".gitignore") ".obsidian/" $p

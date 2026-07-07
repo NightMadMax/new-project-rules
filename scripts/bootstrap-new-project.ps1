@@ -15,6 +15,7 @@ $Templates = Join-Path $RulesRoot "templates/new-project"
 $Manifest = Join-Path $RulesRoot "config/profiles.tsv"
 $StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
 $StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
+$MigrationsManifest = Join-Path $RulesRoot "config/migrations.tsv"
 $ProfileRanks = @{ minimal = 0; software = 1; operated = 2; all = 3 }
 $git = Get-Command git -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
 if ($null -eq $git) {
@@ -24,6 +25,21 @@ $StandardSource = (Get-Content -Raw -Encoding utf8 $StandardSourceFile).Trim()
 $StandardVersion = (Get-Content -Raw -Encoding utf8 $StandardVersionFile).Trim()
 if ($StandardSource -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') { throw "Invalid standard source: $StandardSource" }
 if ($StandardVersion -notmatch '^[1-9][0-9]*$') { throw "Invalid STANDARD_VERSION: $StandardVersion" }
+$MigrationRows = @(Get-Content -Encoding utf8 $MigrationsManifest | ConvertFrom-Csv -Delimiter "`t")
+$ProjectMigrationIds = @()
+$MigrationSchema = 0
+while ($MigrationSchema -lt [int]$StandardVersion) {
+    $Next = @($MigrationRows | Where-Object {
+            $_.target -eq "project" -and [int]$_.from_schema -eq $MigrationSchema
+        })
+    if ($Next.Count -ne 1) { throw "Invalid project migration path from schema $MigrationSchema" }
+    $ToSchema = [int]$Next[0].to_schema
+    if ($ToSchema -le $MigrationSchema -or $ToSchema -gt [int]$StandardVersion) {
+        throw "Invalid project migration transition $MigrationSchema->$ToSchema"
+    }
+    $ProjectMigrationIds += $Next[0].migration_id
+    $MigrationSchema = $ToSchema
+}
 $sourceCommitOutput = @(& $git.Source -C $RulesRoot rev-parse --verify HEAD 2>$null)
 $sourceCommitExitCode = $LASTEXITCODE
 $SourceCommit = if ($sourceCommitOutput.Count -gt 0) { $sourceCommitOutput[0].ToString().Trim() } else { "" }
@@ -149,7 +165,7 @@ function Install-Generated {
                 source_commit = $SourceCommit
                 created_at = $Today
                 adopted_at = $Today
-                applied_migrations = @("0001-adopt-project-standard")
+                applied_migrations = @($ProjectMigrationIds)
             }
             Write-Utf8NoBom (Join-Path $Destination $Target) (($metadata | ConvertTo-Json -Depth 3) + "`n")
         }

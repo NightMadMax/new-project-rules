@@ -6,6 +6,11 @@
 
 ### Добавлено
 
+- Standard schema `2` и последовательный migration graph `0 → 1 → 2` для
+  project metadata, global policy и project AGENTS. Один fingerprinted atomic
+  apply доводит target до текущей schema, сохраняет точную migration history,
+  backup и unmanaged text; missing/ambiguous graph и forged history блокируются
+  regression tests.
 - Исполняемый pinned compatibility contract NPR ↔ Best Practices: offline
   schema/ADR regression suite и проверка реального checkout по repository,
   commit, hashes, accepted status и retired routes; promotion skill требует

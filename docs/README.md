@@ -61,6 +61,7 @@ related:
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
 - [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|Финальный review фазы 2: защита NPR main]]
 - [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|Финальный review фазы 4: cross-repo contract]]
+- [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|Финальный review фазы 5: sequential migrations]]
 
 ## Безопасность
 
