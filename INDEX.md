@@ -47,6 +47,7 @@
 | [[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07|NPR_BP_HARVEST_ANALYSIS_2026-07-07.md]] | Совместный функциональный harvest-анализ NPR и Best Practices: зрелость, GitHub-state, разрывы и приоритеты |
 | [[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07|NPR_BP_REMEDIATION_PLAN_2026-07-07.md]] | Поэтапный план исправления связки NPR и Best Practices с gates, проверками и Definition of Done |
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
+| [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07.md]] | Финальный review GitHub ruleset и CODEOWNERS для защиты NPR main |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |

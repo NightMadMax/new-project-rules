@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- GitHub governance для default branch: `.github/CODEOWNERS`, regression test
+  high-trust surfaces и active ruleset `Protect main` (`id: 18603924`) с PR/
+  review gate, strict `shell`/`powershell` checks и защитой истории; дефект №48
+  закрыт, результат подтверждён [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|phase-2 review]].
 - Поэтапный [[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07|план исправления
   связки NPR и Best Practices]]: GitHub governance, доставка BP hardening,
   устранение stale routes, исполняемый cross-repo contract, version/migration

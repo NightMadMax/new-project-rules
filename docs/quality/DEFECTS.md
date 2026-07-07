@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-07-06
+last_verified: 2026-07-07
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -17,7 +17,6 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 48 | `new-project-rules/main` не защищён на GitHub | 2026-07-07 | GitHub governance | GitHub API возвращает `Branch not protected`, repository rulesets отсутствуют. Это противоречит maintainer-only архитектуре NPR и позволяет обойти review/required checks прямым push. |
 | 49 | Нет исполняемого cross-repository контракта NPR ↔ BP | 2026-07-07 | Knowledge pipeline | Локальные suites не проверяют существование skills/маршрутов соседнего репозитория, закреплённый source commit, допустимый статус BP-практики и совместимость версий; поэтому BP сохранил ссылки на удалённый `harvest-project-lessons`. |
 | 50 | `STANDARD_VERSION` не отражает новый managed knowledge contract | 2026-07-07 | Versioning / migrations | Managed project baseline и двухъярусная knowledge architecture уже находятся в `main`/`Unreleased`, но `STANDARD_VERSION` остаётся `1`; ADR-0003 требует version bump и migration entry при изменении шаблона и состава skills. |
 
@@ -29,6 +28,7 @@ related:
 
 | # | Title | Discovered | Fixed | Commit | Root Cause |
 |---|---|---|---|---|---|
+| 48 | `new-project-rules/main` не защищён на GitHub | 2026-07-07 | 2026-07-07 | GitHub ruleset `18603924`; [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|review]] | Governance оставался только документацией после прежнего `403`. Добавлены CODEOWNERS и regression test, затем включён active ruleset: PR + 1 approval + Code Owner review + resolved threads, strict `shell`/`powershell`, запрет deletion/non-fast-forward. API postcondition: `main.protected=true`. |
 | 47 | Standardization tree digest читает transient `.git` locks | 2026-07-06 | 2026-07-06 | (в этой ветке) | Test helper включал внутренности `.git` в проверку отсутствия mutation. На macOS runner с Python 3.14 Git maintenance успевал удалить `objects/maintenance.lock` между `is_file()` и `read_bytes()`, вызывая flaky `FileNotFoundError`. Digest теперь проверяет только project artifacts и исключает `.git`, состояние которого тестируется отдельными Git assertions. |
 | 46 | PowerShell metadata test зависит от whitespace `ConvertTo-Json` | 2026-07-06 | 2026-07-06 | (в этой ветке) | Новый regression test сравнивал JSON как строку с форматированием PowerShell 7, тогда как Windows PowerShell 5.1 добавляет другое число пробелов после `:`. Проверка переведена на `ConvertFrom-Json` и семантическую валидацию полей, дат и commit SHA. |
 | 45 | Bootstrap не создаёт `.project-standard.json` | 2026-07-06 | 2026-07-06 | (в этой ветке) | Manifest и оба bootstrap-адаптера создавали документы и git repository, но пропускали обязательную provenance metadata. Новый проект сразу считался legacy, хотя README называл metadata источником истины. Metadata добавлена как manifest-driven generated artifact; shell/PowerShell фиксируют schema, profile, source, source commit и даты, а без Git bootstrap теперь явно отказывает. |

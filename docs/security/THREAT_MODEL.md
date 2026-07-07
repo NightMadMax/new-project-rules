@@ -100,10 +100,10 @@ reference](https://docs.github.com/en/rest/actions/permissions).
 
 ## Governance state
 
-Проверка 2026-07-07 показала, что repository rulesets доступны. До включения
-ruleset `main` остаётся незапрещённым для direct push; это записано как дефект
-№48. `.github/CODEOWNERS` задаёт владельца всех файлов и отдельно перечисляет
-высокодоверенные governance surfaces. После применения ruleset API postcondition
-должен подтвердить pull request gate, review, conversation resolution, required
-checks, deletion и non-fast-forward protection. Actions SHA/owner policy
-остаётся независимым дополнительным control.
+Проверка 2026-07-07 подтвердила active ruleset `Protect main` (`id: 18603924`):
+PR, один approval, Code Owner review, resolved threads, strict checks `shell` и
+`powershell`, запрет deletion/non-fast-forward; branch API возвращает
+`main.protected=true`. `.github/CODEOWNERS` задаёт владельца всех файлов и явно
+перечисляет высокодоверенные governance surfaces. Administrator bypass остаётся
+осознанной trust boundary. Actions SHA/owner policy действует как независимый
+дополнительный control.

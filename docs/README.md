@@ -58,6 +58,7 @@ related:
 - [[docs/quality/PROMOTION_CANDIDATES|Очередь кандидатов на knowledge promotion]]
 - [[docs/quality/promotion-candidates/README|Файлы promotion candidates и генератор ID]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
+- [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|Финальный review фазы 2: защита NPR main]]
 
 ## Безопасность
 
