@@ -17,6 +17,9 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
+| 48 | `new-project-rules/main` не защищён на GitHub | 2026-07-07 | GitHub governance | GitHub API возвращает `Branch not protected`, repository rulesets отсутствуют. Это противоречит maintainer-only архитектуре NPR и позволяет обойти review/required checks прямым push. |
+| 49 | Нет исполняемого cross-repository контракта NPR ↔ BP | 2026-07-07 | Knowledge pipeline | Локальные suites не проверяют существование skills/маршрутов соседнего репозитория, закреплённый source commit, допустимый статус BP-практики и совместимость версий; поэтому BP сохранил ссылки на удалённый `harvest-project-lessons`. |
+| 50 | `STANDARD_VERSION` не отражает новый managed knowledge contract | 2026-07-07 | Versioning / migrations | Managed project baseline и двухъярусная knowledge architecture уже находятся в `main`/`Unreleased`, но `STANDARD_VERSION` остаётся `1`; ADR-0003 требует version bump и migration entry при изменении шаблона и состава skills. |
 
 ## Fixed
 

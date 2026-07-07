@@ -46,6 +46,7 @@ related:
 - [[docs/research/PROJECT_COMPRESSION_PLAN|План: компрессия проекта (script + skill)]]
 - [[docs/research/PROJECT_HARVEST_2026-07-06|Полный harvest соседних проектов — 2026-07-06]]
 - [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|Архитектура знаний NPR ↔ Best Practices — 2026-07-06]]
+- [[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07|Совместный harvest-анализ NPR и Best Practices — 2026-07-07]]
 
 ## Качество и ревью
 

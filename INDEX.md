@@ -44,6 +44,7 @@
 | [[docs/research/BEST_PRACTICES_INTEGRATION|BEST_PRACTICES_INTEGRATION.md]] | Решения по интеграции базы Best Practices в create-new-project |
 | [[docs/research/PROJECT_HARVEST_2026-07-06|PROJECT_HARVEST_2026-07-06.md]] | Полный harvest checked-in lessons из соседних git-проектов |
 | [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06.md]] | Архитектура знаний между new-project-rules и Best Practices: дублирование, маршрутизация, SSOT |
+| [[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07|NPR_BP_HARVEST_ANALYSIS_2026-07-07.md]] | Совместный функциональный harvest-анализ NPR и Best Practices: зрелость, GitHub-state, разрывы и приоритеты |
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
