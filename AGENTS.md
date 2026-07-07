@@ -19,18 +19,17 @@
 - Keep `INDEX.md` updated when files change name, location, or purpose.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths do not create Obsidian graph connections.
 - `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains `@AGENTS.md` so Claude Code reads the same file; never duplicate rules there.
-- For scoped subdirectory instructions, create an adjacent `AGENTS.md`/`CLAUDE.md` pair. Scoped rules must specialize broader rules without contradicting them. An `AGENTS.override.md` replaces a level entirely; plain `AGENTS.md` is concatenated with parent levels.
+- For scoped subdirectory instructions, create an adjacent `AGENTS.md`/`CLAUDE.md` pair. A nearer `AGENTS.md` specializes or overrides broader rules for its subtree. An `AGENTS.override.md` replaces the instruction file at that directory level; plain `AGENTS.md` is concatenated with parent levels.
 - Keep `AGENTS.md` compact: Codex truncates the instruction chain past `project_doc_max_bytes` (32 KiB by default). Move topic detail into `docs/`.
-- Do not edit `AGENTS.md` or `CLAUDE.md` mid-session; it invalidates the cached prompt prefix. Record new rules between sessions.
+- Instruction-file changes apply to new sessions. After changing them, start a new session and verify the loaded instruction sources.
 
 ## Rule Authoring
 
-- Keep instruction files compact (target ~150 lines); over-long files get ignored from the bottom. Move detail into `docs/` or skills.
-- Budget the whole chain: global plus project rules together must stay within ~300 non-empty lines; `scripts/validate-project.py` warns past the budget.
+- Keep instruction files compact; Codex stops adding files when the combined chain reaches `project_doc_max_bytes` (32 KiB by default). Move detail into `docs/` or skills.
 - Prefer specific negative instructions ("don't use X — use Y") and exact commands over prose like "write clean code".
 - Lead with the most critical, non-negotiable rules and group them by task.
 - State the reason, then the rule; avoid vague directives and aspirational rules not reflected in the codebase.
-- Verify a rule sticks by asking the agent to recite it back; if it cannot, the file is too long or the rule is unclear.
+- Verify changed rules in a new session with `codex --ask-for-approval never "Summarize the current instructions."`; for nested scopes add `codex --cd <directory>` and check the loaded sources and precedence.
 
 ## Repository Workflow
 

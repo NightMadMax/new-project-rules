@@ -163,8 +163,14 @@ git remote -v
 - ветка `main` отслеживает `origin/main`;
 - `CLAUDE.md` содержит только `@AGENTS.md`;
 - `AGENTS.md` требует отвечать пользователю на русском языке;
+- instruction chain не превышает документированный `project_doc_max_bytes`, а
+  scoped rules могут специализировать или переопределять root rules только в
+  своём поддереве;
 - `INDEX.md` содержит wikilinks на Markdown-заметки;
 - папка проекта видна внутри общего Obsidian vault и не содержит `.obsidian`.
+
+Если менялись instruction-файлы, проверяйте их в новой сессии Codex командой
+`codex --cd "/path/to/New Project" --ask-for-approval never "Summarize the current instructions."`.
 
 Когда документы заполнены и Git tree чистый, постройте reviewable metadata plan:
 

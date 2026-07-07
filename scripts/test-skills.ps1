@@ -86,10 +86,9 @@ $sharedRuleLiterals = @(
     'reusable engineering practice'
 )
 foreach ($file in @(
-        (Join-Path $Root "AGENTS.md"),
-        (Join-Path $Root "GLOBAL_AGENT_INSTRUCTIONS.md"),
-        (Join-Path $Root "templates/new-project/AGENTS.template.md")
-    )) {
+    (Join-Path $Root "AGENTS.md"),
+    (Join-Path $Root "templates/new-project/AGENTS.template.md")
+)) {
     $text = Get-Content -Raw -Encoding UTF8 $file
     foreach ($heading in $requiredHeadings) {
         if ($text -notmatch [regex]::Escape($heading)) {

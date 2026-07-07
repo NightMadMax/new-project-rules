@@ -69,7 +69,6 @@ check_skill compress-project
 
 for file in \
   "$root/AGENTS.md" \
-  "$root/GLOBAL_AGENT_INSTRUCTIONS.md" \
   "$root/templates/new-project/AGENTS.template.md"
 do
   for heading in '## Knowledge Promotion' '## Defect Tracking'; do
@@ -98,7 +97,6 @@ reusable engineering practice'
 
 for file in \
   "$root/AGENTS.md" \
-  "$root/GLOBAL_AGENT_INSTRUCTIONS.md" \
   "$root/templates/new-project/AGENTS.template.md"
 do
   old_ifs=$IFS

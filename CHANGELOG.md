@@ -12,6 +12,11 @@
 
 ### Изменено
 
+- Глобальная agent policy сокращена до универсальных правил из аудита
+  2026-07-07; проектные defect/playbook/promotion процессы оставлены в
+  `AGENTS.md`, шаблоне нового проекта и skills. Удалены неподтверждённые
+  численные лимиты и validator `instructions.chain_budget`; nested rules и
+  проверка новых instruction sources приведены к фактической модели Codex.
 - [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план]] актуализирован
   для schema `2`, active GitHub ruleset и следующего продуктового этапа с
   consumer-метриками; закрыт дефект №52.

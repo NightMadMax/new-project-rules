@@ -102,5 +102,7 @@ description: Создаёт новый проект внутри общего Ob
    `origin/main`.
 3. Убедиться, что папка проекта находится внутри общего Obsidian vault, но сама
    не является vault.
-4. Сообщить путь, профиль, GitHub URL, commit и результаты проверок. Явно
+4. Проверить instruction sources в новом процессе:
+   `codex --cd <destination> --ask-for-approval never "Summarize the current instructions."`.
+5. Сообщить путь, профиль, GitHub URL, commit и результаты проверок. Явно
    перечислить оставшиеся ручные действия или блокеры.

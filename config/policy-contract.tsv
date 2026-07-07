@@ -1,8 +1,6 @@
 file	required_literal
 AGENTS.md	## Defect Tracking
 AGENTS.md	## Knowledge Promotion
-GLOBAL_AGENT_INSTRUCTIONS.md	## Defect Tracking
-GLOBAL_AGENT_INSTRUCTIONS.md	## Knowledge Promotion
 templates/new-project/AGENTS.template.md	## Defect Tracking
 templates/new-project/AGENTS.template.md	## Knowledge Promotion
 CLAUDE.md	@AGENTS.md
