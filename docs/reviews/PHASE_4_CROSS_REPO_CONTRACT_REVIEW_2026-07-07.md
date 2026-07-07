@@ -46,9 +46,11 @@ promotion skill, CI integration и документация архитектур
 - live BP checkout verification: passed;
 - project validator: `0 error(s), 0 warning(s)`;
 - action pin check: passed;
-- GitHub `shell`, `powershell`, `smoke` должны пройти перед merge.
+- GitHub PR №4: `shell`, `powershell`, `smoke` passed;
+- merge commit: `ee4677a`;
+- post-merge contract suite и live BP verification: passed.
 
 ## Verdict
 
-**Approve после успешного CI.** Реализация закрывает локально проверяемую часть
-cross-repo contract и добавляет обязательный broad audit gate из PLAYBOOK.
+**Approved и merged.** Реализация закрывает исполняемый cross-repo contract и
+добавляет обязательный broad audit gate из PLAYBOOK.
