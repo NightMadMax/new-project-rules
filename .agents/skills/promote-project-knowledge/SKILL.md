@@ -32,9 +32,14 @@ Best Practices, а не этот skill.
 
 1. Найти корень `new-project-rules`, прочитать `AGENTS.md` и
    `docs/guides/AI_KNOWLEDGE_PORTABILITY.md`.
-2. Найти исходную практику в соседней базе `Best Practices` (`accepted`, с
-   provenance и evidence).
-3. Проверить candidate files в `docs/quality/promotion-candidates/`: возможно,
+2. Прочитать `config/best-practices-contract.json`: promotion допускается
+   только из закреплённой `promotion_source` на полном `source_commit`.
+3. Запустить `python3 scripts/check_best_practices_contract.py
+   --best-practices-root "../Best Practices"`. Проверка обязана подтвердить
+   repository identity, commit, hashes, статус `accepted`, отсутствие retired
+   routes и неизменность последствий ADR. При расхождении сначала обновить pin
+   отдельным reviewable изменением; promotion не продолжать.
+4. Проверить candidate files в `docs/quality/promotion-candidates/`: возможно,
    затвердевание уже оформлено кандидатом.
 
 ## Принять решение
@@ -52,7 +57,8 @@ Best Practices, а не этот skill.
 1. Оформить затвердевание кандидатом `PC-...` в
    `docs/quality/promotion-candidates/` со статусом `approved`, заполненными
    `Artifact Type` и `Proposed Target` и ссылкой на исходную практику Best
-   Practices.
+   Practices. В `source`/`evidence` записать repository, точный practice path и
+   полный `source_commit` из compatibility contract.
 2. Запустить `apply-promotion-candidate` — он превратит кандидата в конкретное
    checked-in изменение стандарта (rule, template, test, validator, script,
    guide или skill).

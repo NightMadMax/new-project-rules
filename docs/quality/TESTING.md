@@ -41,6 +41,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-migration-planner.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-best-practices-contract.py
 python3 scripts/check-action-pins.py
 python3 scripts/validate-project.py --root . --kind rules --report-only
 python3 scripts/sync_global_agents.py --check --report-only
@@ -63,6 +64,7 @@ python .\scripts\test-migration-planner.py
 python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-compress-project.py
 python .\scripts\test-supply-chain.py
+python .\scripts\test-best-practices-contract.py
 python .\scripts\check-action-pins.py
 python .\scripts\validate-project.py --root . --kind rules --report-only
 python .\scripts\sync_global_agents.py --check --report-only
@@ -127,6 +129,8 @@ Parser-check обязан возвращать ненулевой код, есл
   contract suites, включая отсутствие пустых identity variables;
 - full 40-hex pins для external Actions, `sha256` для Docker actions, разрешение
   local actions и отказ от mutable tags/branches;
+- pinned compatibility contract Best Practices: schema, repository identity,
+  required skills, accepted promotion source, commit и file hashes;
 - path-triggered/manual macOS smoke для shell, bootstrap, contract, skills и
   Python policy suites;
 - точные импорты `CLAUDE.md` и отсутствие дублей в `INDEX.md`;
