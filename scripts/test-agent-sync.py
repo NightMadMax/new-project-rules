@@ -97,6 +97,19 @@ class AgentSyncTests(unittest.TestCase):
         self.assertNotIn(secret, report)
         self.assertIn("Changed ranges (content redacted)", report)
 
+    def test_older_managed_schema_is_upgradeable_and_secret_safe(self):
+        secret = "gh" + "p_" + "X" * 30
+        block = sync.managed_block(f"# Old\n{secret}\n", self.schema)
+        self.write_active(block)
+        state = sync.inspect_state(self.portable.read_text(encoding="utf-8"), self.active, self.schema + 1)
+        self.assertEqual(state.status, "managed_upgrade")
+        self.assertEqual(state.managed_schema, self.schema)
+        report = sync.secret_safe_diff(state)
+        self.assertNotIn(secret, report)
+        desired = sync.desired_text(state)
+        assert desired is not None
+        self.assertIn(f"schema={self.schema + 1}", desired)
+
     def test_malformed_and_unsupported_markers(self):
         self.write_active(f"{sync.END_MARKER}\n{sync.BEGIN_TEMPLATE.format(schema=1)}\n")
         self.assertEqual(self.inspect().status, "malformed")

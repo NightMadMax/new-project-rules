@@ -130,6 +130,7 @@ try {
     Copy-Item -LiteralPath $Bootstrap -Destination (Join-Path $fixtureRoot "scripts/bootstrap-new-project.ps1")
     Copy-Item -LiteralPath (Join-Path $Root "STANDARD_VERSION") -Destination (Join-Path $fixtureRoot "STANDARD_VERSION")
     Copy-Item -LiteralPath (Join-Path $Root "config/standard-source.txt") -Destination (Join-Path $fixtureRoot "config/standard-source.txt")
+    Copy-Item -LiteralPath (Join-Path $Root "config/migrations.tsv") -Destination (Join-Path $fixtureRoot "config/migrations.tsv")
     Copy-Item -LiteralPath $Templates -Destination (Join-Path $fixtureRoot "templates") -Recurse
     $fixtureManifest = $manifestLines |
         Where-Object { $_ -notmatch "`tCHANGELOG\.template\.md`t" } |

@@ -2,3 +2,6 @@ migration_id	target	from_schema	to_schema	handler	description
 0001-adopt-project-standard	project	0	1	project_metadata	Adopt explicit project profile and standard provenance metadata
 0002-adopt-global-managed-block	global	0	1	global_managed_block	Wrap matching global policy in managed ownership markers
 0003-adopt-project-agents-managed-block	project-agents	0	1	project_agents_managed_block	Wrap matching project AGENTS baseline in managed ownership markers
+0004-upgrade-project-standard-v2	project	1	2	project_metadata	Upgrade project provenance metadata to standard schema 2
+0005-upgrade-global-managed-block-v2	global	1	2	global_managed_block	Refresh global managed policy and marker schema to 2
+0006-upgrade-project-agents-managed-block-v2	project-agents	1	2	project_agents_managed_block	Refresh project AGENTS baseline and marker schema to 2

@@ -54,6 +54,7 @@ script_dir=$(resolve_script_dir)
 project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
 manifest="$project_rules_root/config/profiles.tsv"
+migrations_manifest="$project_rules_root/config/migrations.tsv"
 standard_source_file="$project_rules_root/config/standard-source.txt"
 standard_version_file="$project_rules_root/STANDARD_VERSION"
 tab=$(printf '\t')
@@ -75,6 +76,21 @@ esac
 case "$standard_version" in
   ''|*[!0-9]*|0) echo "Invalid STANDARD_VERSION: $standard_version" >&2; exit 1 ;;
 esac
+project_migration_ids=$(awk -F "$tab" -v current="$standard_version" '
+  NR > 1 && $2 == "project" { count[$3]++; next_schema[$3]=$4; migration_id[$3]=$1 }
+  END {
+    schema=0
+    while (schema < current) {
+      if (count[schema] != 1 || next_schema[schema] <= schema || next_schema[schema] > current) exit 2
+      print migration_id[schema]
+      schema=next_schema[schema]
+    }
+    if (schema != current) exit 2
+  }
+' "$migrations_manifest") || {
+  echo "Invalid project migration path 0->$standard_version in $migrations_manifest" >&2
+  exit 1
+}
 [ "${#source_commit}" -eq 40 ] || {
   echo "Invalid new-project-rules source commit: $source_commit" >&2
   exit 1
@@ -215,9 +231,17 @@ EDITORCONFIG
       ;;
     CLAUDE.md) printf '@AGENTS.md\n' > "$destination/$target" ;;
     .project-standard.json)
-      printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n    "0001-adopt-project-standard"\n  ]\n}\n' \
-        "$standard_version" "$profile" "$standard_source" "$source_commit" "$today" "$today" \
-        > "$destination/$target"
+      {
+        printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n' \
+          "$standard_version" "$profile" "$standard_source" "$source_commit" "$today" "$today"
+        first_migration=1
+        printf '%s\n' "$project_migration_ids" | while IFS= read -r migration_id; do
+          [ -n "$migration_id" ] || continue
+          if [ "$first_migration" -eq 1 ]; then first_migration=0; else printf ',\n'; fi
+          printf '    "%s"' "$migration_id"
+        done
+        printf '\n  ]\n}\n'
+      } > "$destination/$target"
       ;;
     *) echo "Unknown generated artifact: $target" >&2; exit 1 ;;
   esac

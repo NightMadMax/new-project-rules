@@ -28,6 +28,7 @@ resolve_script_dir() {
 
 script_dir=$(resolve_script_dir)
 bootstrap="$script_dir/bootstrap-new-project.sh"
+standard_version=$(cat "$script_dir/../STANDARD_VERSION") || exit 1
 
 if [ "${BOOTSTRAP_TEST_RESOLVER_PROBE:-0}" = 1 ]; then
   [ -f "$bootstrap" ] || exit 1
@@ -141,12 +142,14 @@ for profile in minimal software operated all; do
   assert_no_bom "$dir/AGENTS.md" "$profile"
   assert_grep "$dir/AGENTS.md" "Test $profile" "$profile"
   assert_grep "$dir/AGENTS.md" "Always answer the user in Russian" "$profile"
-  assert_grep "$dir/AGENTS.md" "new-project-rules:begin schema=1" "$profile"
+  assert_grep "$dir/AGENTS.md" "new-project-rules:begin schema=$standard_version" "$profile"
   assert_grep "$dir/AGENTS.md" "new-project-rules:end" "$profile"
   assert_grep "$dir/.gitignore" "CLAUDE.local.md" "$profile"
   assert_grep "$dir/.gitignore" ".obsidian/" "$profile"
   assert_grep "$dir/.project-standard.json" "\"profile\": \"$profile\"" "$profile metadata"
   assert_grep "$dir/.project-standard.json" '"source": "NightMadMax/new-project-rules"' "$profile metadata"
+  assert_grep "$dir/.project-standard.json" '"0001-adopt-project-standard"' "$profile metadata"
+  assert_grep "$dir/.project-standard.json" '"0004-upgrade-project-standard-v2"' "$profile metadata"
   assert_grep "$dir/.project-standard.json" '"created_at": "' "$profile metadata"
   assert_no_bom "$dir/.project-standard.json" "$profile metadata"
   if [ "$("$real_git" -C "$dir" symbolic-ref --short HEAD 2>/dev/null)" = main ]; then ok
