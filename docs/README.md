@@ -66,6 +66,7 @@ related:
 - [[docs/reviews/A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07|Code review A3: schema 2 consumer writer]]
 - [[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07|Code review A4: cross-repo consumer E2E]]
 - [[docs/reviews/A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07|Review A5: миграция NPR consumer manifest]]
+- [[docs/reviews/A6_CONSUMER_CONTRACT_CLOSEOUT_2026-07-07|Финальный review A6: consumer contract closeout]]
 
 ## Безопасность
 
