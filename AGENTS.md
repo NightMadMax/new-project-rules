@@ -71,10 +71,10 @@
 
 - Keep project-specific facts, architecture, defects, decisions, research, and operational knowledge in the project where they originated.
 - Treat Codex and Claude generated memory as local working state, not as a version-controlled source of truth. Never commit raw memory directories.
-- Promote a lesson into `new-project-rules` only when it is reusable across projects, independent of private business context, and expressible as a rule, template, test, validator, script, or skill.
-- Before promotion, record the source project or artifact, supporting evidence, intended scope, and verification date. Remove secrets, personal data, private identifiers, and machine-specific paths.
-- Preserve the original project record. Promote an abstracted conclusion rather than copying raw incident, defect, conversation, or memory text.
-- When applicability is uncertain, keep the knowledge in the source project and propose promotion for user review instead of changing the shared standard.
+- Share a reusable engineering practice (how to build well for a stack, tool, or prompt) as a candidate to the sibling Best Practices base via pull request, not into this standard. Record the source and evidence; remove secrets, personal data, private identifiers, and machine-specific paths.
+- The shared `new-project-rules` standard is maintainer-authored and read-only for users; changing it is a maintainer-only act that hardens an accepted Best Practices practice into a rule, template, test, validator, script, or skill.
+- A defect in the standard's own tooling is an ordinary issue or pull request, not a knowledge promotion.
+- For a cross-cutting engineering rule (secrets out of the repository, portable scripts, tool choice), keep the imperative here and its rationale in Best Practices; do not copy the rationale.
 
 ## Pattern Playbook
 

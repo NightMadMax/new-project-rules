@@ -94,7 +94,7 @@ move the entry to `Fixed`
 docs/quality/PLAYBOOK.md
 raw memory directories.
 validator, script, or skill
-lesson is reusable'
+reusable engineering practice'
 
 for file in \
   "$root/AGENTS.md" \

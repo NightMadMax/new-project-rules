@@ -83,7 +83,7 @@ $sharedRuleLiterals = @(
     'docs/quality/PLAYBOOK.md',
     'raw memory directories.',
     'validator, script, or skill',
-    'lesson is reusable'
+    'reusable engineering practice'
 )
 foreach ($file in @(
         (Join-Path $Root "AGENTS.md"),

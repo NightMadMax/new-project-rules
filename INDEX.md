@@ -25,7 +25,7 @@
 | [[docs/guides/ASSESS_EXISTING_PROJECT|ASSESS_EXISTING_PROJECT.md]] | Read-only оценка legacy-проекта и decision report без изменения файлов |
 | [[docs/guides/STANDARDIZE_EXISTING_PROJECT|STANDARDIZE_EXISTING_PROJECT.md]] | Выбор стратегии для legacy-проекта: adoption in place или новый проект по стандарту |
 | [[docs/guides/SETUP_NEW_COMPUTER|SETUP_NEW_COMPUTER.md]] | Настройка нового macOS/Windows-компьютера |
-| [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY.md]] | Правила promotion знаний из проектов в общий стандарт |
+| [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY.md]] | Двухъярусная модель знаний: опыт → Best Practices, стандарт NPR — maintainer-only |
 | [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE.md]] | Read-only validator, doctor и exit codes |
 | [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS.md]] | Managed-block states, secret-safe check и diff глобальных правил |
 | [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS.md]] | Read-only project/global migration plans и preconditions |
@@ -49,7 +49,7 @@
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
-| [[docs/quality/PROMOTION_CANDIDATES|PROMOTION_CANDIDATES.md]] | Очередь кандидатов на перенос lessons в общий стандарт |
+| [[docs/quality/PROMOTION_CANDIDATES|PROMOTION_CANDIDATES.md]] | Maintainer-only очередь затвердевания практик Best Practices в правила NPR |
 | [[docs/quality/promotion-candidates/README|promotion-candidates/]] | Канонический one-file-per-candidate backlog и команды генератора |
 | [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
