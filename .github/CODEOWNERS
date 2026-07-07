@@ -1,0 +1,11 @@
+# Default owner for the reusable project standard and all governance surfaces.
+* @NightMadMax
+
+# Explicit high-trust surfaces retained for review clarity.
+/.github/ @NightMadMax
+/.agents/ @NightMadMax
+/config/ @NightMadMax
+/scripts/ @NightMadMax
+/templates/ @NightMadMax
+/AGENTS.md @NightMadMax
+/GLOBAL_AGENT_INSTRUCTIONS.md @NightMadMax

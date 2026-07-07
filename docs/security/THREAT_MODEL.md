@@ -2,7 +2,7 @@
 type: threat-model
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-07
 source_of_truth: repository
 related:
   - "[[docs/architecture/ARCHITECTURE]]"
@@ -61,12 +61,12 @@ Generated project repo     ~/.codex/AGENTS.md
 | Workflow получает лишние GitHub права | Изменение repository из CI | Repository default `read`, workflow `contents: read`, `persist-credentials: false`, без secrets | GitHub-hosted runner всё ещё обрабатывает содержимое repository |
 | `pull_request_target` или untrusted interpolation исполняет PR с secrets | Credential exfiltration | Используется `pull_request`, нет secrets и event-field interpolation | Будущие workflow могут нарушить правило; threat model и review должны обновляться |
 | Windows/macOS implementations расходятся | Небезопасный platform-specific output | Ubuntu/Windows CI плюс path-triggered macOS smoke | macOS runner запускается только при значимых путях или вручную |
-| Bootstrap/template подменяет инструкции будущих проектов | Массовое распространение вредоносной policy | Contract tests, validator, skill parity, Git history, отдельные migrations | Branch protection недоступна на текущем private/free plan |
+| Bootstrap/template подменяет инструкции будущих проектов | Массовое распространение вредоносной policy | Contract tests, validator, skill parity, Git history, отдельные migrations, `.github/CODEOWNERS` | Администратор может осознанно применить ruleset bypass |
 | Global migration перезаписывает локальный текст или symlink | Потеря правил/ownership | Managed markers, fingerprint, clean source, symlink guard, exact backup, atomic replace, idempotence | Rollback остаётся ручным осознанным действием |
 | Project migration пишет поверх пользовательской metadata | Потеря provenance | Existing metadata/symlink блокируют adoption; clean tree; один unstaged JSON; atomic write | Пользователь может закоммитить preview без review |
 | Секрет попадает в repository или diagnostic output | Credential compromise | Secret/path validator, redacted structural diff, no credentials in metadata, read-only CI token | Pattern scan не заменяет dedicated secret scanning |
 | Локальный project lesson автоматически становится global rule | Policy poisoning | [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Knowledge Promotion]] требует evidence, scope и validation | Ошибка человеческого review остаётся возможной |
-| Force-push или deletion переписывает `main` | Потеря audit trail | Git history и GitHub remote; ruleset рекомендован | Rulesets/classic protection недоступны для private repo на текущем GitHub plan |
+| Force-push или deletion переписывает `main` | Потеря audit trail | Git history, GitHub remote, CODEOWNERS и repository ruleset для default branch | Администраторский bypass остаётся сознательной trust boundary |
 
 ## Dependency policy
 
@@ -98,13 +98,12 @@ reference](https://docs.github.com/en/rest/actions/permissions).
 - При ошибочной global migration восстановить exact backup из [[ACTIONS]],
   затем повторить sync check и doctor.
 
-## Governance gap
+## Governance state
 
-GitHub API 2026-06-30 вернул `403` для rulesets и classic branch protection:
-private repositories требуют GitHub Pro/Team/Enterprise либо public visibility.
-Это соответствует [официальной доступности
-rulesets](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-rulesets/about-rulesets).
-Actions SHA/owner policy включена независимо от repository plan. До изменения
-plan/visibility обязательные CI checks и запрет force-push не могут быть
-принудительно обеспечены платформой; direct push требует локальных проверок и
-последующего подтверждения CI.
+Проверка 2026-07-07 показала, что repository rulesets доступны. До включения
+ruleset `main` остаётся незапрещённым для direct push; это записано как дефект
+№48. `.github/CODEOWNERS` задаёт владельца всех файлов и отдельно перечисляет
+высокодоверенные governance surfaces. После применения ruleset API postcondition
+должен подтвердить pull request gate, review, conversation resolution, required
+checks, deletion и non-fast-forward protection. Actions SHA/owner policy
+остаётся независимым дополнительным control.
