@@ -6,6 +6,16 @@
 
 ### Добавлено
 
+- Двухъярусная архитектура знаний ([[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003]]):
+  NPR — client-read-only конституция, Best Practices — единственный обратный
+  поток опыта; роли администратор/пользователь. Baseline проекта обёрнут в
+  managed-маркеры (schema через `<SCHEMA_VERSION>`), локальные правила снаружи и
+  сохраняются; `validate-project` предупреждает о дрейфе baseline,
+  `plan-migration --target project-agents` адаптирует и обновляет его. Скилл
+  `harvest-project-lessons` удалён (обратный поток ушёл в Best Practices);
+  `promote-project-knowledge` и `apply-promotion-candidate` стали maintainer-only
+  (затвердевание практики Best Practices в правило NPR). Гайды `USE_THIS_PROJECT`
+  и `AI_KNOWLEDGE_PORTABILITY` переписаны под роли.
 - Promotion backlog переведён на one-file-per-candidate: добавлены каталог
   [[docs/quality/promotion-candidates/README|promotion-candidates]], генератор
   `scripts/promotion_candidates.py` с 48-битными collision-resistant ID,
@@ -186,7 +196,7 @@
   [[docs/quality/DEFECTS|DEFECTS]], рекомендации приоритизированы.
 - [[docs/quality/PROMOTION_CANDIDATES|Backlog promotion candidates]] как
   staging area между project lessons и checked-in standard artifacts.
-- Skills [[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]]
+- Skills `harvest-project-lessons` (позже удалён, см. Unreleased)
   и [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]]
   для двухшагового knowledge-promotion workflow: сначала harvesting и triage,
   затем реализация approved-кандидата в правила, шаблоны, тесты, guides или

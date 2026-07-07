@@ -57,9 +57,8 @@
 | [[.agents/skills/create-new-project/SKILL|create-new-project]] | Универсальный workflow создания проекта |
 | [[.agents/skills/assess-existing-project/SKILL|assess-existing-project]] | Read-only оценка существующего проекта относительно стандарта |
 | [[.agents/skills/standardize-existing-project/SKILL|standardize-existing-project]] | Выбор и выполнение стратегии стандартизации существующего проекта |
-| [[.agents/skills/harvest-project-lessons/SKILL|harvest-project-lessons]] | Сбор и triage promotion-кандидатов из соседних проектов |
-| [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]] | Перенос одного approved-кандидата в checked-in артефакты стандарта |
-| [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Оркестрация knowledge promotion: local vs harvest vs apply |
+| [[.agents/skills/apply-promotion-candidate/SKILL|apply-promotion-candidate]] | Maintainer-only: перенос одного approved-кандидата в checked-in артефакты стандарта |
+| [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Maintainer-only: затвердевание вызревшей практики Best Practices в правило NPR |
 | [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] | Рефлексия ошибки/поправки и запись урока в нужный артефакт |
 | [[.agents/skills/compress-project/SKILL|compress-project]] | Безопасная компрессия накопившегося «мусора»: журналы, docs, память |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |

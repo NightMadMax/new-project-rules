@@ -1,4 +1,0 @@
-interface:
-  display_name: "Harvest Project Lessons"
-  short_description: "Collect and triage promotion candidates from nearby projects"
-  default_prompt: "Use $harvest-project-lessons to scan nearby repositories, extract reusable lessons, and normalize them into promotion candidates without changing the shared standard."

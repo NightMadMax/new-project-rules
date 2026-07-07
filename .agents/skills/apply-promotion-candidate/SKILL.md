@@ -1,6 +1,6 @@
 ---
 name: apply-promotion-candidate
-description: Берёт один approved promotion candidate и переносит его в конкретные артефакты new-project-rules: rules, templates, tests, validators, scripts, guides или skills.
+description: Maintainer-only. Берёт один approved promotion candidate и переносит его в конкретные артефакты new-project-rules: rules, templates, tests, validators, scripts, guides или skills. Применяется администратором стандарта, обычно при затвердевании практики Best Practices.
 ---
 
 # Применение кандидата на promotion

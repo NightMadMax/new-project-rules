@@ -218,37 +218,33 @@ Claude Code: `/standardize-existing-project`
 
 Подробности: [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]].
 
-### 8. Перенести знания в общий стандарт
+### 8. Поделиться удачным приёмом (через Best Practices)
 
-Codex:
+Опыт из вашей работы уходит в соседнюю базу **Best Practices**, а не в стандарт
+напрямую. Стандарт `new-project-rules` для вас read-only — его правила меняет
+только администратор
+([[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003]]).
 
-- `$promote-project-knowledge`
-- `$harvest-project-lessons`
-- `$apply-promotion-candidate`
+Как поделиться (роль — пользователь):
 
-Claude Code:
-
-- `/promote-project-knowledge`
-- `/harvest-project-lessons`
-- `/apply-promotion-candidate`
+- удачный приём по 1С, вебу, инструменту или промпту оформляется **кандидатом в
+  Best Practices** через `harvest-practice-candidates` и Pull Request;
+- после review практика становится доступной всем через `apply-best-practices`.
 
 Фразы:
 
-> Посмотри, есть ли в проекте повторяемый lesson, который нужно поднять в
-> `new-project-rules`.
+> Собери из этого проекта кандидатов для базы Best Practices.
 
-> Собери кандидатов на promotion из проекта `<path>` и подготовь shortlist.
-
-> Примени approved promotion candidate в шаблоны, guides или skills.
-
-Candidate files лежат по одному в
-[[docs/quality/promotion-candidates/README|promotion-candidates/]]; новые ID
-создаёт `scripts/promotion_candidates.py`, а не ручной общий счётчик.
+> Подготовь кандидата в Best Practices по этому приёму и открой PR.
 
 Когда использовать:
 
-- найден повторяемый дефект, правило или удачный workflow;
-- знание должно жить не только в одном проекте.
+- нашли повторяемый удачный приём или грабли, полезные не только здесь.
+
+Только для администратора стандарта: `promote-project-knowledge` и
+`apply-promotion-candidate` затвердевают вызревшую практику Best Practices в
+обязательное правило NPR (candidate files — по одному в
+[[docs/quality/promotion-candidates/README|promotion-candidates/]]).
 
 Подробности:
 [[docs/guides/AI_KNOWLEDGE_PORTABILITY|AI_KNOWLEDGE_PORTABILITY]].

@@ -1,6 +1,6 @@
 ---
 name: promote-project-knowledge
-description: Оркестрирует перенос повторяемого урока в общий стандарт new-project-rules: решает, нужен ли сначала harvesting кандидатов, можно ли применить существующий candidate или lesson должен остаться в исходном проекте.
+description: Maintainer-only. Затвердевает уже принятую, вызревшую практику соседней базы Best Practices в обязательное правило стандарта new-project-rules через apply-promotion-candidate. Не для рядовых пользователей — они делятся опытом только кандидатами в Best Practices.
 ---
 
 Относительно этого файла полностью прочитать и выполнить канонический skill

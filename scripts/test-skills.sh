@@ -62,7 +62,6 @@ check_skill setup-new-computer
 check_skill create-new-project
 check_skill assess-existing-project
 check_skill standardize-existing-project
-check_skill harvest-project-lessons
 check_skill apply-promotion-candidate
 check_skill promote-project-knowledge
 check_skill reflect-and-record
