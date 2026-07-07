@@ -79,3 +79,10 @@ commit SHA, checkout не сохраняет credentials, workflow token read-on
 предлагает обновления SHA через PR. Ubuntu/Windows дают основной regression
 gate; macOS smoke запускается вручную и при изменениях core paths. Угрозы и
 residual risks описаны в [[docs/security/THREAT_MODEL]].
+
+Связь с Best Practices удерживает
+[[docs/architecture/BEST_PRACTICES_CONTRACT|pinned compatibility contract]].
+Локальный CI без сети проверяет schema и ADR consequences, а maintainer перед
+promotion сверяет соседний checkout по repository, commit, hashes, accepted
+status и отсутствию retired routes. После структурных фаз GitHub governance
+проверяется через API согласно [[docs/quality/PLAYBOOK|PLAYBOOK]].

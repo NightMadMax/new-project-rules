@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Исполняемый pinned compatibility contract NPR ↔ Best Practices: offline
+  schema/ADR regression suite и проверка реального checkout по repository,
+  commit, hashes, accepted status и retired routes; promotion skill требует
+  этот gate до создания кандидата.
 - GitHub governance для default branch: `.github/CODEOWNERS`, regression test
   high-trust surfaces и active ruleset `Protect main` (`id: 18603924`) с PR/
   review gate, strict `shell`/`powershell` checks и защитой истории; дефект №48

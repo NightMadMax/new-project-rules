@@ -28,6 +28,7 @@ related:
 ## Архитектура и решения
 
 - [[docs/architecture/ARCHITECTURE|Архитектура набора правил]]
+- [[docs/architecture/BEST_PRACTICES_CONTRACT|Compatibility contract NPR ↔ Best Practices]]
 - [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001: двухуровневая документация]]
 - [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002: версионируемый контракт проекта]]
 - [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003: двухъярусная архитектура знаний NPR и Best Practices]]
@@ -59,6 +60,7 @@ related:
 - [[docs/quality/promotion-candidates/README|Файлы promotion candidates и генератор ID]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
 - [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|Финальный review фазы 2: защита NPR main]]
+- [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|Финальный review фазы 4: cross-repo contract]]
 
 ## Безопасность
 

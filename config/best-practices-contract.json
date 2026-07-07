@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "repository": "NightMadMax/best-practices",
+  "source_commit": "e29e862a9a1dc27468cd4827d991ea54bf1d37c2",
+  "supported_practice_statuses": ["accepted"],
+  "retired_routes": ["harvest-project-lessons"],
+  "active_routing_surfaces": [
+    "README.md",
+    ".agents/skills/harvest-practice-candidates/SKILL.md"
+  ],
+  "governance": {
+    "default_branch": "main",
+    "requires_protection": true
+  },
+  "npr_decision": {
+    "path": "docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture.md",
+    "sha256": "a46496ac9582dcfbdb2ac36f3bb7113f3c57d267074bde1449056fd151e46a5d",
+    "required_literals": [
+      "`harvest-project-lessons` — удалить",
+      "`promote-project-knowledge` —",
+      "`apply-promotion-candidate` — оставить"
+    ]
+  },
+  "required_files": {
+    ".agents/skills/apply-best-practices/SKILL.md": "ec70ee05454b45cbf0287faa8d70f026d144ebbe7b21c1abb9fccd62dd525ce0",
+    ".agents/skills/harvest-practice-candidates/SKILL.md": "b2f936e076ef00dd0e7534f8e1dcca108593df74a9d4156b264cc99cdc85ce1a",
+    ".agents/skills/review-practice-candidates/SKILL.md": "0392ca2b63f2b1d868cab5803eb7c2968640569dd2718c9edc1c50be06c42d42",
+    "practices/common/PC-2026-001-keep-credentials-out-of-repository.md": "74a7d7c763f36108cda098a3a2a7e4873d6823df2587fcd5ea258524d375e44f"
+  },
+  "promotion_source": {
+    "id": "PC-2026-001",
+    "path": "practices/common/PC-2026-001-keep-credentials-out-of-repository.md",
+    "required_status": "accepted"
+  }
+}
