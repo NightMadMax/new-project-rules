@@ -23,16 +23,21 @@ bootstrap/adoption.
 2. Ничего не изменять до конца workflow.
 3. Проверить repository state, core docs, `CLAUDE.md`, `docs/README.md`,
    nested `.obsidian`, conflicts и dirty tree.
-4. При наличии runtime выполнить read-only checks:
+4. Сначала определить `target_kind`. Канонический rules repository с
+   `STANDARD_VERSION`, `config/profiles.tsv`, validator, templates и skills не
+   является consumer project: вернуть `status=not_applicable`, не назначать
+   профиль и направить пользователя к rules validator/architecture audit.
+5. При наличии runtime выполнить read-only checks:
    - macOS/Linux: `./scripts/validate-project.sh ...`,
      `./scripts/project-doctor.sh ...`,
      `./scripts/standardize-existing-project.sh --root <target>`;
    - Windows: `.\scripts\validate-project.ps1 ...`,
      `.\scripts\project-doctor.ps1 ...`,
      `.\scripts\standardize-existing-project.ps1 -Root <target>`.
-5. При необходимости machine-readable output вызвать
+6. При необходимости machine-readable output вызвать
    `python scripts/standardize_existing_project.py --root <target> --json`.
-6. Вернуть decision report с полями:
+7. Вернуть decision report с полями:
+   - `target_kind`
    - `recommended_strategy`
    - `candidate_profile`
    - `safe_to_adopt_in_place`
@@ -57,3 +62,5 @@ bootstrap/adoption.
 2. Не изменять текущий проект даже если strategy выглядит очевидной.
 3. Если пользователь хочет переходить к изменениям, передать результат workflow
    `standardize-existing-project`.
+4. Никогда не предлагать `adopt-in-place` или `re-bootstrap-from-existing` для
+   самого rules repository.

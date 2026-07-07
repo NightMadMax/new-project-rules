@@ -90,6 +90,79 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         self.assertFalse(report.blocking_issues)
         self.assertEqual(before, tree_digest(project))
 
+    def test_rules_repository_assessment_is_not_applicable_and_read_only(self):
+        before = tree_digest(ROOT)
+        report = planner.assess_project(ROOT, ROOT, "auto", "auto")
+        self.assertEqual(report.target_kind, "rules-repository")
+        self.assertEqual(report.status, "not_applicable")
+        self.assertEqual(report.recommended_strategy, "not-applicable")
+        self.assertIsNone(report.candidate_profile)
+        self.assertFalse(report.safe_to_adopt_in_place)
+        self.assertFalse(report.safe_to_rebootstrap)
+        self.assertIn("not a consumer-project", "\n".join(report.blocking_issues))
+        self.assertEqual(before, tree_digest(ROOT))
+
+    def test_rules_repository_blocks_all_standardization_plans(self):
+        report = planner.assess_project(ROOT, ROOT, "auto", "auto")
+        adopt = planner.build_adopt_in_place_plan(ROOT, ROOT, report)
+        rebuilt = planner.build_rebootstrap_plan(
+            ROOT,
+            ROOT,
+            report,
+            self.base / "should-not-exist",
+            "Invalid Rules Copy",
+        )
+        self.assertEqual(adopt.status, "blocked")
+        self.assertEqual(rebuilt.status, "blocked")
+        self.assertEqual(adopt.profile, "unknown")
+        self.assertEqual(rebuilt.profile, "unknown")
+        self.assertIn("Rules repositories", "\n".join(adopt.blockers))
+        self.assertIn("Rules repositories", "\n".join(rebuilt.blockers))
+
+    def test_rules_repository_cli_json_reports_not_applicable(self):
+        command = [sys.executable, str(MODULE_PATH), "--root", str(ROOT), "--json"]
+        result = subprocess.run(command, capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual(payload["target_kind"], "rules-repository")
+        self.assertEqual(payload["status"], "not_applicable")
+        self.assertEqual(payload["recommended_strategy"], "not-applicable")
+
+    def test_rules_repository_cli_plan_and_apply_are_blocked(self):
+        commands = (
+            ["--strategy", "adopt-in-place", "--plan-adopt"],
+            [
+                "--strategy", "re-bootstrap-from-existing",
+                "--plan-rebootstrap",
+                "--destination", str(self.base / "rebuilt-rules"),
+                "--project-name", "Invalid Rules Copy",
+            ],
+            [
+                "--strategy", "adopt-in-place",
+                "--apply",
+                "--fingerprint", "0" * 64,
+                "--yes",
+            ],
+        )
+        before = tree_digest(ROOT)
+        for arguments in commands:
+            result = subprocess.run(
+                [sys.executable, str(MODULE_PATH), "--root", str(ROOT), *arguments],
+                capture_output=True,
+                text=True,
+            )
+            self.assertEqual(result.returncode, 1, (arguments, result.stdout, result.stderr))
+            self.assertIn("Rules repositories", result.stdout)
+        self.assertEqual(before, tree_digest(ROOT))
+
+    def test_standard_version_alone_does_not_mark_consumer_as_rules_repository(self):
+        project = self.make_project("minimal")
+        (project / "STANDARD_VERSION").write_text("2\n", encoding="utf-8")
+        self.git_commit_all(project, "add unrelated standard version file")
+        report = planner.assess_project(project, ROOT, "auto", "auto")
+        self.assertEqual(report.target_kind, "consumer-project")
+        self.assertEqual(report.recommended_strategy, "adopt-in-place")
+
     def test_rebootstrap_is_recommended_for_non_repo_and_missing_core(self):
         project = self.base / "legacy-folder"
         project.mkdir()

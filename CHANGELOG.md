@@ -17,11 +17,9 @@
   consumer-метриками; закрыт дефект №52.
 - Global managed policy основного компьютера обновлена migration `0005` до
   schema `2`; backup и postcondition `managed_match` записаны в [[ACTIONS]].
-
-### Известные проблемы
-
-- Self-assessment rules repository ошибочно применяет consumer profiles;
-  дефект №51 зарегистрирован для фазы 1.
+- Standardization assessment теперь различает `consumer-project` и
+  `rules-repository`: self-assessment стандарта возвращает `not_applicable`, а
+  все consumer plan/apply блокируются до mutation; закрыт дефект №51.
 
 ## v1.16.0 — 2026-07-07
 

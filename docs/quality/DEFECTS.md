@@ -17,7 +17,6 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 51 | Assessment классифицирует rules repository как consumer project | 2026-07-07 | `standardize_existing_project.py` | Self-assessment канонического `new-project-rules` выбирает профиль `software` и рекомендует `re-bootstrap-from-existing`, потому что planner не различает rules repository и consumer project. Требуется отдельная граница применимости и regression-тест; исправление запланировано на фазу 1. |
 
 ## Fixed
 
@@ -27,6 +26,7 @@ related:
 
 | # | Title | Discovered | Fixed | Commit | Root Cause |
 |---|---|---|---|---|---|
+| 51 | Assessment классифицирует rules repository как consumer project | 2026-07-07 | 2026-07-07 | (в этой ветке) | Planner применял consumer profile inference к любому дереву. Добавлен строгий `target_kind=rules-repository` по совокупности пяти markers, `not_applicable` report и запрет всех consumer plan/apply; regression покрывает read-only JSON, прямые builders, CLI plan/apply и отрицательный consumer fixture. |
 | 52 | Стратегический план сообщает устаревшие schema и GitHub governance | 2026-07-07 | 2026-07-07 | (в этой ветке) | Статус реализации дублировался вручную и не был обновлён после schema `2` и включения ruleset. План актуализирован, следующий этап отделён от завершённых A–F; навигация больше не называет его proposed-планом. |
 | 50 | `STANDARD_VERSION` не отражает новый managed knowledge contract | 2026-07-07 | 2026-07-07 | PR №6, merge `3dc5e0a`; [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|review]] | Version оставалась `1`, а planner поддерживал только одиночный `0 → current`. Введена schema `2` и детерминированный graph `0 → 1 → 2` для metadata/global/project-agents; exact history, bootstrap parity, atomic apply, backups и schema-1 upgrades покрыты regression и трёхплатформенным CI. |
 | 49 | Нет исполняемого cross-repository контракта NPR ↔ BP | 2026-07-07 | 2026-07-07 | PR №4, merge `ee4677a`; [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|review]] | Репозитории тестировали себя независимо. Добавлен pinned offline contract и live checkout gate: repository/commit/hashes, accepted promotion source, retired routes и ADR consequences; suite подключён к Ubuntu, Windows и macOS CI. Broad governance verification выполнена по обновлённому PLAYBOOK-паттерну. |

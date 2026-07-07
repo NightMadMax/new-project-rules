@@ -2,7 +2,7 @@
 type: guide
 status: active
 owner: project
-last_verified: 2026-06-30
+last_verified: 2026-07-07
 source_of_truth: repository
 related:
   - "[[docs/guides/STANDARDIZE_EXISTING_PROJECT|STANDARDIZE_EXISTING_PROJECT]]"
@@ -39,6 +39,13 @@ Assessment:
 4. определяет `candidate_profile` или помечает его как неоднозначный;
 5. строит decision report для будущего workflow стандартизации.
 
+Перед profile inference planner определяет `target_kind`. Если target является
+каноническим rules repository (одновременно присутствуют `STANDARD_VERSION`,
+`config/profiles.tsv`, validator, templates и skills), assessment возвращает
+`status=not_applicable` и `recommended_strategy=not-applicable`. Rules
+repository проверяется через validator и архитектурный audit; consumer-project
+стратегии к нему неприменимы.
+
 ## Команды
 
 macOS/Linux:
@@ -61,6 +68,7 @@ python3 scripts/standardize_existing_project.py --root "/path/to/project" --json
 
 ## Что должно быть в отчёте
 
+- `target_kind` (`consumer-project` или `rules-repository`)
 - `recommended_strategy`
 - `candidate_profile`
 - `safe_to_adopt_in_place`
@@ -78,6 +86,7 @@ python3 scripts/standardize_existing_project.py --root "/path/to/project" --json
 - не обновляет `INDEX.md` и `docs/README.md`;
 - не пишет `.project-standard.json`;
 - не переносит код в новый проект.
+- не строит adopt/re-bootstrap plan для rules repository.
 
 Следующий шаг после assessment:
 [[docs/guides/STANDARDIZE_EXISTING_PROJECT|STANDARDIZE_EXISTING_PROJECT]].
