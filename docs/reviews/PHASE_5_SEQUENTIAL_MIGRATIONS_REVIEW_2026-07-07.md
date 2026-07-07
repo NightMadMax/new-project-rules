@@ -33,12 +33,13 @@ future migration ID. Блокирующих замечаний после исп
 
 ## Verification gate
 
-- bootstrap/contract/agent sync/migration/validator suites должны пройти;
-- full NPR regression должен пройти до merge;
-- CI `shell`, `powershell`, `smoke` обязателен;
-- post-merge plan/apply smoke для schema-1 fixtures обязателен.
+- full NPR regression: passed, включая 158 bootstrap, 70 contract, 47 agent
+  setup, 22 migration tests и остальные suites;
+- PR №6 CI: `shell`, `powershell`, `smoke` passed;
+- merge commit: `3dc5e0a`;
+- post-merge: 22 migration tests и 158 bootstrap checks passed.
 
 ## Verdict
 
-**Approve после полного regression и CI.** Последовательная модель сохраняет
-обратную совместимость и не ослабляет atomic/fingerprint safety.
+**Approved и merged.** Последовательная модель сохраняет обратную совместимость
+и не ослабляет atomic/fingerprint safety.

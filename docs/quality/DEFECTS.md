@@ -17,7 +17,6 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
-| 50 | `STANDARD_VERSION` не отражает новый managed knowledge contract | 2026-07-07 | Versioning / migrations | Managed project baseline и двухъярусная knowledge architecture уже находятся в `main`/`Unreleased`, но `STANDARD_VERSION` остаётся `1`; ADR-0003 требует version bump и migration entry при изменении шаблона и состава skills. |
 
 ## Fixed
 
@@ -27,6 +26,7 @@ related:
 
 | # | Title | Discovered | Fixed | Commit | Root Cause |
 |---|---|---|---|---|---|
+| 50 | `STANDARD_VERSION` не отражает новый managed knowledge contract | 2026-07-07 | 2026-07-07 | PR №6, merge `3dc5e0a`; [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|review]] | Version оставалась `1`, а planner поддерживал только одиночный `0 → current`. Введена schema `2` и детерминированный graph `0 → 1 → 2` для metadata/global/project-agents; exact history, bootstrap parity, atomic apply, backups и schema-1 upgrades покрыты regression и трёхплатформенным CI. |
 | 49 | Нет исполняемого cross-repository контракта NPR ↔ BP | 2026-07-07 | 2026-07-07 | PR №4, merge `ee4677a`; [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|review]] | Репозитории тестировали себя независимо. Добавлен pinned offline contract и live checkout gate: repository/commit/hashes, accepted promotion source, retired routes и ADR consequences; suite подключён к Ubuntu, Windows и macOS CI. Broad governance verification выполнена по обновлённому PLAYBOOK-паттерну. |
 | 48 | `new-project-rules/main` не защищён на GitHub | 2026-07-07 | 2026-07-07 | GitHub ruleset `18603924`; [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|review]] | Governance оставался только документацией после прежнего `403`. Добавлены CODEOWNERS и regression test, затем включён active ruleset: PR + 1 approval + Code Owner review + resolved threads, strict `shell`/`powershell`, запрет deletion/non-fast-forward. API postcondition: `main.protected=true`. |
 | 47 | Standardization tree digest читает transient `.git` locks | 2026-07-06 | 2026-07-06 | (в этой ветке) | Test helper включал внутренности `.git` в проверку отсутствия mutation. На macOS runner с Python 3.14 Git maintenance успевал удалить `objects/maintenance.lock` между `is_file()` и `read_bytes()`, вызывая flaky `FileNotFoundError`. Digest теперь проверяет только project artifacts и исключает `.git`, состояние которого тестируется отдельными Git assertions. |
