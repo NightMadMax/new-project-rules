@@ -131,7 +131,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: NightMadMax/best-practices
-          ref: 1444f53cc1616d39cd25715fba980354d2b9e75f
+          ref: e255b6474002ec3a5c4ff16935a24229e9ebf614
           path: .external/best-practices
           persist-credentials: false
       - name: Verify pinned checkout and consumer E2E

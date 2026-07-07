@@ -23,6 +23,7 @@ REQUIRED_CONSUMER_INTERFACE_FILES = {
     "docs/architecture/decisions/ADR-0006-versioned-consumer-manifest.md",
     "docs/reference/PRACTICE_SCHEMA.md",
     "scripts/practice_report.py",
+    "scripts/migrate_consumer_manifest.py",
 }
 
 
