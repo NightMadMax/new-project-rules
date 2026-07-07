@@ -30,6 +30,12 @@ class BestPracticesContractTests(unittest.TestCase):
         self.assertEqual([], checker.validate_contract(self.contract))
         self.assertEqual([], checker.verify_npr_decision(self.contract, ROOT))
 
+    def test_cross_repo_e2e_checkout_uses_contract_pin(self):
+        workflow = (ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+        self.assertIn("cross-repo-e2e:", workflow)
+        self.assertIn(f"ref: {self.contract['source_commit']}", workflow)
+        self.assertIn("scripts/test-best-practices-e2e.py", workflow)
+
     def test_missing_skill_is_rejected(self):
         changed = json.loads(json.dumps(self.contract))
         changed["required_files"].pop(".agents/skills/apply-best-practices/SKILL.md")

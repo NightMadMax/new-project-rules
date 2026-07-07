@@ -106,7 +106,7 @@ workflow Best Practices.
 
 ```sh
 python3 scripts/best_practices_manifest.py --project "/path/to/Project" --set-global optout
-python3 scripts/best_practices_manifest.py --project "/path/to/Project" --set-section python ask
+python3 scripts/best_practices_manifest.py --project "/path/to/Project" --set-section web ask
 ```
 
 ```powershell

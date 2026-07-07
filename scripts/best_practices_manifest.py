@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import sys
 from pathlib import Path
 from typing import Any, Optional, Sequence
@@ -14,7 +13,7 @@ from typing import Any, Optional, Sequence
 
 MANIFEST_NAME = ".best-practices.json"
 PREFERENCE_VALUES = ("ask", "optout")
-SECTION_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+ALLOWED_SECTIONS = {"1c", "web", "common", "tools", "anti-patterns", "prompts", "snippets"}
 
 
 def empty_manifest() -> dict[str, Any]:
@@ -76,8 +75,8 @@ def update_preference(project: Path, *, global_value: Optional[str], section: Op
     if global_value is not None:
         data["preferences"]["global"] = global_value
     if section is not None:
-        if not SECTION_RE.fullmatch(section):
-            raise ValueError("section must use lowercase letters, digits, and hyphens")
+        if section not in ALLOWED_SECTIONS:
+            raise ValueError(f"unsupported Best Practices section: {section}")
         data["preferences"]["sections"][section] = section_value
     atomic_write(path, data)
     return path

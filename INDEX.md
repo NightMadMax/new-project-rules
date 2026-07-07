@@ -53,6 +53,7 @@
 | [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07.md]] | Финальный review pinned cross-repo contract NPR ↔ Best Practices |
 | [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07.md]] | Review schema 2 и последовательного migration graph |
 | [[docs/reviews/A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07|A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07.md]] | Code review schema 2 writer для consumer preferences |
+| [[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07|A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07.md]] | Code review исполняемого NPR ↔ BP consumer gate |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
@@ -116,6 +117,7 @@
 | `scripts/test-supply-chain.py` | Regression tests Action SHA/Docker digest policy |
 | `scripts/best_practices_manifest.py` | Writer schema 2 preferences для Best Practices consumer manifest |
 | `scripts/test-best-practices-manifest.py` | Regression tests consumer manifest writer |
+| `scripts/test-best-practices-e2e.py` | Cross-repo E2E NPR writer ↔ pinned BP loader/report |
 | `.github/dependabot.yml` | Еженедельные GitHub Actions updates |
 | `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |
 | `.github/workflows/macos-smoke.yml` | Path-triggered и ручной macOS smoke suite |

@@ -50,9 +50,9 @@ class BestPracticesManifestTests(unittest.TestCase):
             "practices": {"PC-2026-001": decision},
         }), encoding="utf-8")
         manifest_writer.update_preference(
-            self.project, global_value=None, section="python", section_value="optout",
+            self.project, global_value=None, section="web", section_value="optout",
         )
-        self.assertEqual("optout", self.read()["preferences"]["sections"]["python"])
+        self.assertEqual("optout", self.read()["preferences"]["sections"]["web"])
         self.assertEqual(decision, self.read()["practices"]["PC-2026-001"])
 
     def test_schema1_requires_explicit_migration(self):
@@ -79,6 +79,13 @@ class BestPracticesManifestTests(unittest.TestCase):
             "--set-section", "python", "invalid",
         ], capture_output=True, text=True)
         self.assertEqual(2, result.returncode)
+        self.assertFalse(self.path.exists())
+
+    def test_writer_rejects_well_formed_but_unknown_section(self):
+        with self.assertRaisesRegex(ValueError, "unsupported Best Practices section"):
+            manifest_writer.update_preference(
+                self.project, global_value=None, section="unknown", section_value="ask",
+            )
         self.assertFalse(self.path.exists())
 
 
