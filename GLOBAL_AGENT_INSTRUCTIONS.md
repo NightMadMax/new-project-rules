@@ -31,7 +31,7 @@
 - Globally, `~/.claude/CLAUDE.md` contains only `@~/.codex/AGENTS.md`.
 - Root instructions define shared rules. A nearer `AGENTS.md` specializes or overrides them for its subtree; `AGENTS.override.md` deliberately replaces the instruction file at that directory level.
 - Keep instruction files concise. Codex stops adding files when the combined instruction chain reaches `project_doc_max_bytes` (32 KiB by default); move detailed workflows into docs or skills.
-- Instruction-file changes apply to new sessions. After changing them, start a new session and verify the loaded instruction sources, for example with `codex --ask-for-approval never "Summarize the current instructions."` and `codex --cd <directory> ...` for nested scopes.
+- Instruction-file changes apply to new sessions. After changing them, start a new process and verify the loaded instruction sources, for example with `codex --ask-for-approval never exec "Summarize the current instructions."` and `codex --cd <directory> ... exec ...` for nested scopes.
 
 ## New Project Defaults
 

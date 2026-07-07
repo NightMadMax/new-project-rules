@@ -170,7 +170,7 @@ git remote -v
 - папка проекта видна внутри общего Obsidian vault и не содержит `.obsidian`.
 
 Если менялись instruction-файлы, проверяйте их в новой сессии Codex командой
-`codex --cd "/path/to/New Project" --ask-for-approval never "Summarize the current instructions."`.
+`codex --cd "/path/to/New Project" --ask-for-approval never exec "Summarize the current instructions."`.
 
 Когда документы заполнены и Git tree чистый, постройте reviewable metadata plan:
 

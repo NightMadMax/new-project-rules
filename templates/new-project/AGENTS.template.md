@@ -66,9 +66,9 @@ never overwritten by a baseline update.
 - Lead with the most critical, non-negotiable rules and group them by task.
 - State the reason, then the rule; avoid vague directives and aspirational rules
   not reflected in the codebase.
-- Verify changed rules in a new session with `codex --ask-for-approval never
-  "Summarize the current instructions."`; for nested scopes add `codex --cd
-  <directory>` and check the loaded sources and precedence.
+- Verify changed rules in a new process with `codex --ask-for-approval never
+  exec "Summarize the current instructions."`; for nested scopes add `codex
+  --cd <directory> ... exec ...` and check the loaded sources and precedence.
 
 ## Repository Workflow
 
