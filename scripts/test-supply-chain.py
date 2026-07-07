@@ -75,6 +75,13 @@ class SupplyChainTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", macos)
         self.assertIn('      - "scripts/**"', macos)
 
+    def test_codeowners_protects_governance_surfaces(self):
+        codeowners = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
+        self.assertIn("* @NightMadMax", codeowners)
+        for path in ("/.github/", "/.agents/", "/config/", "/scripts/", "/templates/"):
+            with self.subTest(path=path):
+                self.assertIn(f"{path} @NightMadMax", codeowners)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
