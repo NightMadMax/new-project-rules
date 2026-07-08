@@ -122,4 +122,5 @@
 | `scripts/test-best-practices-e2e.py` | Cross-repo E2E NPR writer ↔ pinned BP loader/report |
 | `.github/dependabot.yml` | Еженедельные GitHub Actions updates |
 | `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |
+| `.github/workflows/bp-pin-watch.yml` | Scheduled read-only detector drift reviewed Best Practices pin |
 | `.github/workflows/macos-smoke.yml` | Path-triggered и ручной macOS smoke suite |

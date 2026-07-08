@@ -138,6 +138,8 @@ Parser-check обязан возвращать ненулевой код, есл
   local actions и отказ от mutable tags/branches;
 - pinned compatibility contract Best Practices: schema, repository identity,
   required skills, accepted promotion source, commit и file hashes;
+- scheduled read-only detection устаревшего Best Practices pin без
+  автоматического обновления reviewed contract;
 - schema 2 consumer writer: global/section preferences, сохранение outcomes,
   отказ от неявной schema 1 migration и symlink safety;
 - cross-repo consumer E2E на Ubuntu, Windows и macOS: pinned BP checkout,
