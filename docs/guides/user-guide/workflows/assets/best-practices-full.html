@@ -48,6 +48,19 @@
   }
 
   *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  .toc{margin-top:22px;background:var(--panel);border:1px solid var(--hair);border-radius:12px;padding:16px 18px;}
+  .toc h2{font-size:13px;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin:0 0 10px;}
+  .toc ol{margin:0;padding-left:0;list-style:none;counter-reset:toc;display:grid;grid-template-columns:1fr;gap:5px;}
+  @media(min-width:620px){.toc ol{grid-template-columns:1fr 1fr;}}
+  .toc li{counter-increment:toc;}
+  .toc a{display:flex;gap:9px;align-items:baseline;text-decoration:none;color:var(--ink-soft);font-size:13.5px;padding:4px 6px;border-radius:7px;}
+  .toc a:hover{background:var(--panel-2);color:var(--ink);}
+  .toc a::before{content:counter(toc, upper-latin);font-family:var(--mono);font-size:11px;font-weight:700;color:var(--user);
+                 background:var(--user-bg);border-radius:5px;min-width:20px;height:20px;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+  .band{scroll-margin-top:14px;}
+  .toplink{display:inline-block;margin-top:2px;font-family:var(--mono);font-size:11px;color:var(--ink-faint);text-decoration:none;}
+  .toplink:hover{color:var(--user);}
   body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
        -webkit-font-smoothing:antialiased;line-height:1.5;}
   .wrap{max-width:940px;margin:0 auto;padding:40px 20px 72px;}
@@ -166,7 +179,7 @@
   footer code{font-family:var(--mono);font-size:12px;}
 </style>
 
-<div class="wrap">
+<div class="wrap" id="top">
   <div class="eyebrow">Two-tier knowledge governance · ADR-0003</div>
   <h1>Работа с практиками — полный процесс</h1>
   <p class="lede">Каждый шаг: <b>кто исполняет</b>, <b>чем запускается</b> (auto / skill / script / manual / git), с каким <b>входом</b> и <b>результатом</b>, и <b>по какому сигналу</b> человек понимает, что настал его ход.</p>
@@ -191,8 +204,17 @@
     </div>
   </div>
 
+  <nav class="toc">
+    <h2>Оглавление</h2>
+    <ol>
+      <li><a href="#flow-a">Поток A — находка → практика в Best Practices</a></li>
+      <li><a href="#flow-b">Поток B — затвердевание практики → правило стандарта</a></li>
+      <li><a href="#flow-c">Контур C — целостность между репозиториями</a></li>
+    </ol>
+  </nav>
+
   <!-- ============ FLOW A ============ -->
-  <section class="band">
+  <section class="band" id="flow-a">
     <div class="band-head"><span class="band-tag">ПОТОК A</span><h2>Находка → практика в Best Practices</h2></div>
     <p class="band-sub">Основной, частый путь. Всё в репозитории Best Practices.</p>
     <div class="rail">
@@ -333,7 +355,7 @@
   </section>
 
   <!-- ============ FLOW B ============ -->
-  <section class="band">
+  <section class="band" id="flow-b">
     <div class="band-head"><span class="band-tag">ПОТОК B</span><h2>Затвердевание практики → правило стандарта</h2></div>
     <p class="band-sub">Редкий maintainer-only акт. Второй класс кандидатов — внутри new-project-rules.</p>
     <div class="rail">
@@ -427,7 +449,7 @@
   </section>
 
   <!-- ============ FLOW C ============ -->
-  <section class="band">
+  <section class="band" id="flow-c">
     <div class="band-head"><span class="band-tag">КОНТУР C</span><h2>Целостность между репозиториями</h2></div>
     <p class="band-sub">Фоновая защита: pin на конкретный commit BP + хеши интерфейсных файлов, без сетевой зависимости CI.</p>
     <div class="rail">
