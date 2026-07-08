@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-07-07
+last_verified: 2026-07-08
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -17,6 +17,7 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
+| 59 | Bypass защиты `main` выдан роли Admin, а не конкретному аккаунту | 2026-07-08 | GitHub governance / ruleset «Protect main» (`18603924`) | В ruleset защиты `main` bypass-actor = `RepositoryRole id=5` (Admin), `mode=always`, тогда как намерение владельца — прямой push (bypass) строго у него, а все остальные контрибьюторы идут через PR + status checks. Пока владелец единственный админ, риск не проявляется; но добавление второго Admin автоматически даст ему обход PR/checks/force-push guard. Разобрать: сузить bypass до конкретного actor вместо role-level, либо осознанно принять role-level и задокументировать решение в governance. Проверить то же на репозитории `Best Practices`. Обнаружено при аудите push в `main` (bypass сработал в этой сессии). |
 
 ## Fixed
 
