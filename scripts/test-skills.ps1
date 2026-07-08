@@ -73,6 +73,12 @@ Test-Skill "promote-project-knowledge"
 Test-Skill "reflect-and-record"
 Test-Skill "compress-project"
 
+$reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
+$reflectText = Get-Content -Raw -Encoding UTF8 $reflectSkill
+Test-RequiredLiterals -File $reflectSkill -Literals @(
+    'instruction changes apply to new processes/sessions'
+)
+
 $requiredHeadings = @("## Knowledge Promotion", "## Defect Tracking")
 $sharedRuleLiterals = @(
     'docs/quality/DEFECTS.md',
