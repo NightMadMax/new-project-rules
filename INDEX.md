@@ -63,6 +63,7 @@
 | [[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07|A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07.md]] | Code review исполняемого NPR ↔ BP consumer gate |
 | [[docs/reviews/A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07|A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07.md]] | Review фактической миграции NPR consumer manifest |
 | [[docs/reviews/A6_CONSUMER_CONTRACT_CLOSEOUT_2026-07-07|A6_CONSUMER_CONTRACT_CLOSEOUT_2026-07-07.md]] | Финальный review фазы A consumer contract |
+| [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|NPR_BP_CLOSEOUT_REVIEW_2026-07-08.md]] | Финальный live-аудит и закрытие программы NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |

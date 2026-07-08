@@ -100,9 +100,10 @@ reference](https://docs.github.com/en/rest/actions/permissions).
 
 ## Governance state
 
-Проверка 2026-07-07 подтвердила active ruleset `Protect main` (`id: 18603924`):
+Проверка 2026-07-08 подтвердила active ruleset `Protect main` (`id: 18603924`):
 PR, один approval, Code Owner review, resolved threads, strict checks `shell` и
-`powershell`, запрет deletion/non-fast-forward; branch API возвращает
+`powershell`, а также `cross-repo-e2e` на Ubuntu, Windows и macOS; запрет
+deletion/non-fast-forward; branch API возвращает
 `main.protected=true`. `.github/CODEOWNERS` задаёт владельца всех файлов и явно
 перечисляет высокодоверенные governance surfaces. Administrator bypass остаётся
 осознанной trust boundary. Actions SHA/owner policy действует как независимый
