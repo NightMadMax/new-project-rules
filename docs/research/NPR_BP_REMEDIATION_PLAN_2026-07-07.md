@@ -1,8 +1,8 @@
 ---
 type: research
-status: proposed
+status: complete
 owner: project
-last_verified: 2026-07-07
+last_verified: 2026-07-08
 source_of_truth: repository
 related:
   - "[[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07]]"
@@ -49,6 +49,22 @@ related:
              ↓
        Фаза 7: consumer pilot и метрики
 ```
+
+## Статус выполнения
+
+| Фаза | Статус | Проверенный результат |
+|---|---|---|
+| 0 | completed | Внешние действия выполнялись через отдельные подтверждения и reviewable PR. |
+| 1–3 | completed | BP hardening опубликован, оба `main` защищены, устаревший route удалён. |
+| 4 | completed | Pinned contract и cross-repo E2E работают на Ubuntu, Windows и macOS. |
+| 5 | completed | NPR использует schema `2` и последовательный migration graph. |
+| 6 | completed | BP содержит пять практик в трёх разделах; три accepted-практики имеют E2, две остаются trial. Дополнительный harvest 2026-07-08 отменён решением пользователя. |
+| 7 | completed | Два consumer-проекта содержат шесть решений; adoption rate — 66,7%. |
+| C4 | completed | Pin обновлён до BP `07583c90d7def43fc3709114e2442625d1be6d8e`; `bp-pin-watch` зелёный; три cross-repo matrix checks обязательны в ruleset NPR. |
+
+Финальная проверка и live-состояние зафиксированы в
+[[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08]]. Дефект №59 намеренно не
+входит в closeout scope и остаётся открытым.
 
 ## Фаза 0. Согласовать внешние изменения
 

@@ -393,7 +393,8 @@ evidence хранится в [[ACTIONS]].
 
 Стратегические этапы A–F завершены. Текущая schema стандарта — `2`; default
 branch защищён active ruleset `Protect main`, а обязательные `shell` и
-`powershell` checks подтверждаются GitHub Actions. Следующий этап развития — не
+`powershell` checks вместе с `cross-repo-e2e` на Ubuntu, Windows и macOS
+подтверждаются GitHub Actions. Следующий этап развития — не
 новый механизм bootstrap, а продуктовая проверка стандарта на реальных consumer
 projects: time-to-first-green, доля self-service запусков, compliance через
 30/90 дней, upgrade lag и объём ручных вмешательств. Эти метрики не следует
