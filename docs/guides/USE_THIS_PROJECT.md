@@ -294,6 +294,8 @@ Claude Code: `/compress-project`
 - периодическая уборка или подготовка к релизу.
 
 Только скрипт-отчёт без скилла: `./scripts/compress-project.sh --root .`.
+Если после компрессии изменения не были закоммичены, скилл явно предложит
+сделать commit.
 Подробности: [[docs/guides/COMPRESS_PROJECT|COMPRESS_PROJECT]].
 
 ## Полезные уточнения в запросе

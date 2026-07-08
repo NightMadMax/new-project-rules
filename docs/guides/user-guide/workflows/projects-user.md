@@ -109,7 +109,8 @@ read-only.
 - ⌨ **Вручную:** отчёт — `./scripts/compress-project.sh --root .`; применить
   обратимое — `./scripts/compress-project.sh --root . --apply`.
 - **Результат:** отчёт/план; по `--apply` — только обратимые операции; инварианты
-  держит `validate-project`.
+  держит `validate-project`. Если изменения не закоммичены, агент явно предлагает
+  сделать commit.
 
 ## Подтянуть практики Best Practices
 
