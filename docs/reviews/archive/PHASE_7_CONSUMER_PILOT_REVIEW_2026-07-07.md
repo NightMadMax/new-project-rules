@@ -5,7 +5,7 @@ owner: project
 last_verified: 2026-07-07
 source_of_truth: repository-and-github
 related:
-  - "[[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07]]"
+  - "[[docs/research/archive/NPR_BP_REMEDIATION_PLAN_2026-07-07]]"
   - "[[docs/architecture/BEST_PRACTICES_CONTRACT]]"
 ---
 

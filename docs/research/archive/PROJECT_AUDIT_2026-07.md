@@ -1,6 +1,6 @@
 ---
 type: research
-status: active
+status: superseded
 owner: project
 last_verified: 2026-07-02
 source_of_truth: repository

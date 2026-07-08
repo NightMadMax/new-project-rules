@@ -6,7 +6,7 @@ last_verified: 2026-07-07
 source_of_truth: .best-practices.json
 related:
   - "[[docs/architecture/BEST_PRACTICES_CONTRACT]]"
-  - "[[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07]]"
+  - "[[docs/reviews/archive/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07]]"
 ---
 
 # Review A5: NPR consumer manifest migration

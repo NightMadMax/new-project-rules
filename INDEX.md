@@ -48,28 +48,20 @@
 | [[docs/research/STRATEGIC_EVOLUTION_PLAN|STRATEGIC_EVOLUTION_PLAN.md]] | Реализованный план policy-системы и следующий продуктовый этап |
 | [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|AGENT_RUNTIME_CAPABILITIES_2026.md]] | Рантайм-возможности Codex/Claude Code и план улучшений правил |
 | [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|AGENT_COMMUNITY_PRACTICES_2026.md]] | Community-практики Claude Code/Codex и кандидаты на внедрение |
-| [[docs/research/PROJECT_AUDIT_2026-07|PROJECT_AUDIT_2026-07.md]] | Аудит проекта июль 2026: консистентность, обновления Codex/Claude Code, рекомендации |
 | [[docs/research/PROJECT_AUDIT_2026-07-03|PROJECT_AUDIT_2026-07-03.md]] | Повторный глубокий аудит: adversarial standardization checks, CI, portability и readiness |
 | [[docs/research/BEST_PRACTICES_INTEGRATION|BEST_PRACTICES_INTEGRATION.md]] | Решения по интеграции базы Best Practices в create-new-project |
-| [[docs/research/PROJECT_HARVEST_2026-07-06|PROJECT_HARVEST_2026-07-06.md]] | Полный harvest checked-in lessons из соседних git-проектов |
 | [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06.md]] | Архитектура знаний между new-project-rules и Best Practices: дублирование, маршрутизация, SSOT |
-| [[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07|NPR_BP_HARVEST_ANALYSIS_2026-07-07.md]] | Совместный функциональный harvest-анализ NPR и Best Practices: зрелость, GitHub-state, разрывы и приоритеты |
-| [[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07|NPR_BP_REMEDIATION_PLAN_2026-07-07.md]] | Поэтапный план исправления связки NPR и Best Practices с gates, проверками и Definition of Done |
+| [[docs/research/archive/README|Research archive]] | Устаревшие аудиты и завершённые исследования NPR ↔ Best Practices |
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
-| [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07.md]] | Финальный review GitHub ruleset и CODEOWNERS для защиты NPR main |
-| [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07.md]] | Финальный review pinned cross-repo contract NPR ↔ Best Practices |
-| [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07.md]] | Review schema 2 и последовательного migration graph |
-| [[docs/reviews/A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07|A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07.md]] | Code review schema 2 writer для consumer preferences |
-| [[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07|A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07.md]] | Code review исполняемого NPR ↔ BP consumer gate |
-| [[docs/reviews/A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07|A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07.md]] | Review фактической миграции NPR consumer manifest |
-| [[docs/reviews/A6_CONSUMER_CONTRACT_CLOSEOUT_2026-07-07|A6_CONSUMER_CONTRACT_CLOSEOUT_2026-07-07.md]] | Финальный review фазы A consumer contract |
 | [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|NPR_BP_CLOSEOUT_REVIEW_2026-07-08.md]] | Финальный live-аудит и закрытие программы NPR ↔ Best Practices |
+| [[docs/reviews/archive/README|Review archive]] | Промежуточные review завершённых фаз NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
 | [[docs/quality/PROMOTION_CANDIDATES|PROMOTION_CANDIDATES.md]] | Maintainer-only очередь затвердевания практик Best Practices в правила NPR |
 | [[docs/quality/promotion-candidates/README|promotion-candidates/]] | Канонический one-file-per-candidate backlog и команды генератора |
+| [[docs/quality/promotion-candidates/archive/README|promotion-candidates archive]] | Архив implemented/rejected promotion candidates |
 | [[docs/security/THREAT_MODEL|THREAT_MODEL.md]] | Bootstrap, policy, migrations и CI supply-chain threats |
 | [[TEMPLATES|TEMPLATES.md]] | Каталог и назначение всех шаблонов |
 | [[.agents/skills/setup-new-computer/SKILL|setup-new-computer]] | Универсальный workflow настройки компьютера |

@@ -6,8 +6,8 @@ last_verified: 2026-07-07
 source_of_truth: config/best-practices-contract.json
 related:
   - "[[docs/architecture/BEST_PRACTICES_CONTRACT]]"
-  - "[[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07]]"
-  - "[[docs/reviews/A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07]]"
+  - "[[docs/reviews/archive/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07]]"
+  - "[[docs/reviews/archive/A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07]]"
 ---
 
 # A6: consumer contract closeout

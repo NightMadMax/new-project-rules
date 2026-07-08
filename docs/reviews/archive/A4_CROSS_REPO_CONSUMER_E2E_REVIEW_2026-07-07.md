@@ -6,7 +6,7 @@ last_verified: 2026-07-07
 source_of_truth: repository
 related:
   - "[[docs/architecture/BEST_PRACTICES_CONTRACT]]"
-  - "[[docs/reviews/A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07]]"
+  - "[[docs/reviews/archive/A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07]]"
   - "[[docs/quality/DEFECTS]]"
 ---
 

@@ -34,3 +34,6 @@ python3 scripts/promotion_candidates.py validate
 Не поддерживайте вручную общий список записей: каталог является очередью, а
 [[docs/quality/PROMOTION_CANDIDATES]] — стабильной точкой входа и описанием
 workflow.
+
+Завершённые `implemented` и `rejected` записи хранятся в
+[[docs/quality/promotion-candidates/archive/README|архиве promotion candidates]].

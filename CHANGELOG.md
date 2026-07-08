@@ -63,8 +63,8 @@
 - GitHub governance для default branch: `.github/CODEOWNERS`, regression test
   high-trust surfaces и active ruleset `Protect main` (`id: 18603924`) с PR/
   review gate, strict `shell`/`powershell` checks и защитой истории; дефект №48
-  закрыт, результат подтверждён [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|phase-2 review]].
-- Поэтапный [[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07|план исправления
+  закрыт, результат подтверждён [[docs/reviews/archive/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|phase-2 review]].
+- Поэтапный [[docs/research/archive/NPR_BP_REMEDIATION_PLAN_2026-07-07|план исправления
   связки NPR и Best Practices]]: GitHub governance, доставка BP hardening,
   устранение stale routes, исполняемый cross-repo contract, version/migration
   NPR, наполнение BP и consumer pilot с измеримыми outcomes.
@@ -86,7 +86,7 @@
   синхронизированы. Реализованы кандидаты `PC-2026-625b2fcadaef` и
   `PC-2026-4eb5666c703b`, закрывающие дефекты `#43–#44`.
 - Полный harvest четырёх соседних git-проектов: отчёт
-  [[docs/research/PROJECT_HARVEST_2026-07-06]], три очищенных `triaged`
+  [[docs/research/archive/PROJECT_HARVEST_2026-07-06]], три очищенных `triaged`
   promotion-кандидата и два открытых дефекта текущего backlog (`#43`, `#44`).
 - Компрессия проекта (Уровень 1): `scripts/compress-project.py` с обёртками
   `.sh`/`.ps1` и тестом `test-compress-project` (14 тестов). Отчёт по умолчанию,
@@ -252,7 +252,7 @@
   пользовательский вход с фразами для типовых задач и выбором workflow;
   ссылки добавлены в [[README|README]], [[INDEX|INDEX]] и
   [[docs/README|индекс документации]].
-- [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта — июль 2026]]:
+- [[docs/research/archive/PROJECT_AUDIT_2026-07|Аудит проекта — июль 2026]]:
   внутренний аудит консистентности, сверка с актуальной документацией
   Codex CLI и Claude Code, community-практики; дефекты 28–32 записаны в
   [[docs/quality/DEFECTS|DEFECTS]], рекомендации приоритизированы.

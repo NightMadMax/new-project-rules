@@ -5,7 +5,7 @@ owner: project
 last_verified: 2026-07-03
 source_of_truth: repository
 related:
-  - "[[docs/research/PROJECT_AUDIT_2026-07]]"
+  - "[[docs/research/archive/PROJECT_AUDIT_2026-07]]"
   - "[[docs/quality/DEFECTS]]"
   - "[[docs/quality/TESTING]]"
   - "[[docs/security/THREAT_MODEL]]"

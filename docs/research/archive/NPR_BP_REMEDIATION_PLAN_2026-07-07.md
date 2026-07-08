@@ -5,7 +5,7 @@ owner: project
 last_verified: 2026-07-08
 source_of_truth: repository
 related:
-  - "[[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07]]"
+  - "[[docs/research/archive/NPR_BP_HARVEST_ANALYSIS_2026-07-07]]"
   - "[[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture]]"
   - "[[docs/quality/DEFECTS]]"
 ---
@@ -18,7 +18,7 @@ related:
 в котором оба опубликованных `main` защищены, совместимы, автоматически
 проверяют общий knowledge lifecycle и дают измеримую пользу consumer projects.
 
-Основание: [[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07|совместный harvest-анализ]].
+Основание: [[docs/research/archive/NPR_BP_HARVEST_ANALYSIS_2026-07-07|совместный harvest-анализ]].
 
 ## Правила выполнения
 

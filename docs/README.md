@@ -44,14 +44,11 @@ related:
 - [[docs/research/STRATEGIC_EVOLUTION_PLAN|Стратегический план развития policy-системы]]
 - [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|Рантайм-возможности Codex/Claude Code 2026]]
 - [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|Community-практики Claude Code/Codex]]
-- [[docs/research/PROJECT_AUDIT_2026-07|Аудит проекта и направления улучшений — июль 2026]]
 - [[docs/research/PROJECT_AUDIT_2026-07-03|Повторный глубокий аудит проекта — 2026-07-03]]
 - [[docs/research/BEST_PRACTICES_INTEGRATION|Интеграция базы Best Practices в создание проекта]]
 - [[docs/research/PROJECT_COMPRESSION_PLAN|План: компрессия проекта (script + skill)]]
-- [[docs/research/PROJECT_HARVEST_2026-07-06|Полный harvest соседних проектов — 2026-07-06]]
 - [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|Архитектура знаний NPR ↔ Best Practices — 2026-07-06]]
-- [[docs/research/NPR_BP_HARVEST_ANALYSIS_2026-07-07|Совместный harvest-анализ NPR и Best Practices — 2026-07-07]]
-- [[docs/research/NPR_BP_REMEDIATION_PLAN_2026-07-07|План исправления связки NPR и Best Practices — 2026-07-07]]
+- [[docs/research/archive/README|Архив устаревших и завершённых исследований]]
 
 ## Качество и ревью
 
@@ -62,14 +59,8 @@ related:
 - [[docs/quality/PROMOTION_CANDIDATES|Очередь кандидатов на knowledge promotion]]
 - [[docs/quality/promotion-candidates/README|Файлы promotion candidates и генератор ID]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
-- [[docs/reviews/PHASE_2_MAIN_PROTECTION_REVIEW_2026-07-07|Финальный review фазы 2: защита NPR main]]
-- [[docs/reviews/PHASE_4_CROSS_REPO_CONTRACT_REVIEW_2026-07-07|Финальный review фазы 4: cross-repo contract]]
-- [[docs/reviews/PHASE_5_SEQUENTIAL_MIGRATIONS_REVIEW_2026-07-07|Финальный review фазы 5: sequential migrations]]
-- [[docs/reviews/A3_SCHEMA2_CONSUMER_WRITER_REVIEW_2026-07-07|Code review A3: schema 2 consumer writer]]
-- [[docs/reviews/A4_CROSS_REPO_CONSUMER_E2E_REVIEW_2026-07-07|Code review A4: cross-repo consumer E2E]]
-- [[docs/reviews/A5_NPR_CONSUMER_MANIFEST_MIGRATION_REVIEW_2026-07-07|Review A5: миграция NPR consumer manifest]]
-- [[docs/reviews/A6_CONSUMER_CONTRACT_CLOSEOUT_2026-07-07|Финальный review A6: consumer contract closeout]]
 - [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|Финальный live-аудит связки NPR ↔ Best Practices]]
+- [[docs/reviews/archive/README|Архив промежуточных review]]
 
 ## Безопасность
 
