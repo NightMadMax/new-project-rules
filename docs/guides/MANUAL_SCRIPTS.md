@@ -116,6 +116,15 @@ python .\scripts\best_practices_manifest.py --project "C:\Projects\Project" --se
 - Когда вручную: зафиксировать global/section opt-in или opt-out без изменения
   outcomes. Результат нужно проверить и закоммитить в consumer repository.
 
+Проверить, не появился ли новый commit после reviewed BP pin:
+
+```sh
+python3 scripts/check_best_practices_contract.py --check-latest
+```
+
+Команда read-only. Ненулевой exit code означает необходимость review/update
+pin, а не разрешение автоматически менять contract.
+
 ### Валидация и диагностика
 
 Read-only проверка структуры проекта или набора правил и общая диагностика

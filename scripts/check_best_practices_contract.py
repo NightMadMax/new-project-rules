@@ -7,6 +7,7 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Dict, List, Mapping, Optional, Sequence
@@ -188,6 +189,36 @@ def verify_checkout(data: Mapping[str, object], root: Path) -> List[str]:
     return problems
 
 
+def verify_latest_commit(data: Mapping[str, object], latest_commit: str) -> List[str]:
+    problems = validate_contract(data)
+    if problems:
+        return problems
+    if not SHA_RE.fullmatch(latest_commit):
+        return ["Best Practices main did not resolve to a full commit SHA"]
+    if latest_commit != data["source_commit"]:
+        return [
+            f"Best Practices pin {data['source_commit']} is behind main {latest_commit}; "
+            "review the BP diff and update the pin explicitly"
+        ]
+    return []
+
+
+def resolve_remote_main(data: Mapping[str, object]) -> str:
+    git = shutil.which("git")
+    if not git:
+        raise RuntimeError("Git is unavailable")
+    repository = str(data["repository"])
+    result = subprocess.run(
+        [git, "ls-remote", "--exit-code", f"https://github.com/{repository}.git", "refs/heads/main"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if result.returncode != 0 or not result.stdout.strip():
+        raise RuntimeError("cannot resolve Best Practices main")
+    return result.stdout.split()[0]
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -195,7 +226,9 @@ def build_parser() -> argparse.ArgumentParser:
         type=Path,
         default=Path(__file__).resolve().parents[1] / "config" / "best-practices-contract.json",
     )
-    parser.add_argument("--best-practices-root", type=Path)
+    source = parser.add_mutually_exclusive_group()
+    source.add_argument("--best-practices-root", type=Path)
+    source.add_argument("--check-latest", action="store_true")
     return parser
 
 
@@ -209,6 +242,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         else validate_contract(data)
     )
     problems.extend(problem for problem in checkout_problems if problem not in problems)
+    if args.check_latest and not problems:
+        try:
+            latest_commit = resolve_remote_main(data)
+        except RuntimeError as exc:
+            problems.append(str(exc))
+        else:
+            problems.extend(verify_latest_commit(data, latest_commit))
     for problem in problems:
         print(f"ERROR: {problem}")
     if problems:

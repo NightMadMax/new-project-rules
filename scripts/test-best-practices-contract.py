@@ -36,6 +36,19 @@ class BestPracticesContractTests(unittest.TestCase):
         self.assertIn(f"ref: {self.contract['source_commit']}", workflow)
         self.assertIn("scripts/test-best-practices-e2e.py", workflow)
 
+    def test_latest_pin_check_detects_drift(self):
+        pinned = self.contract["source_commit"]
+        self.assertEqual([], checker.verify_latest_commit(self.contract, pinned))
+        problems = checker.verify_latest_commit(self.contract, "f" * 40)
+        self.assertTrue(any("is behind main" in item for item in problems))
+
+    def test_scheduled_pin_watch_is_read_only(self):
+        workflow = (ROOT / ".github/workflows/bp-pin-watch.yml").read_text(encoding="utf-8")
+        self.assertIn("schedule:", workflow)
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("contents: read", workflow)
+        self.assertIn("--check-latest", workflow)
+
     def test_missing_skill_is_rejected(self):
         changed = json.loads(json.dumps(self.contract))
         changed["required_files"].pop(".agents/skills/apply-best-practices/SKILL.md")
