@@ -1,0 +1,483 @@
+<title>Работа с практиками — полный процесс</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --panel-2:#fbfbfd;
+    --ink:#1a1d24; --ink-soft:#4a4f5a; --ink-faint:#7b8290;
+    --hair:#e3e6ec; --hair-2:#eef0f4; --spine:#d3d8e0;
+    --user:#2f6fed; --user-bg:#eaf1fe;
+    --gh:#7c5cdf; --gh-bg:#f0ecfd;
+    --maint:#0e8f78; --maint-bg:#e3f5f0;
+    --admin:#b5711a; --admin-bg:#fbf0dd;
+    --agent:#c2410c; --agent-bg:#fce9df;
+    --git:#4f46e5; --git-bg:#ebeafc;
+    --sig:#0e8f78; --sig-bg:#e3f5f0;
+    --ok:#1c9b5a; --ok-bg:#e6f6ec; --no:#cf4141; --no-bg:#fbeaea;
+    --gate:#c98a12;
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#12141a; --panel:#1b1e26; --panel-2:#20242e;
+    --ink:#eef0f5; --ink-soft:#b9bfcb; --ink-faint:#828a99;
+    --hair:#2b2f3a; --hair-2:#242833; --spine:#343a47;
+    --user:#6ea0ff; --user-bg:#1b2740; --gh:#a894f5; --gh-bg:#251f3d;
+    --maint:#3ec9ab; --maint-bg:#123029; --admin:#e2a54a; --admin-bg:#33280f;
+    --agent:#f0895a; --agent-bg:#3a2113; --git:#a5b4fc; --git-bg:#20213d;
+    --sig:#3ec9ab; --sig-bg:#123029;
+    --ok:#4fd089; --ok-bg:#123020; --no:#f07a7a; --no-bg:#331717; --gate:#e2a54a;
+  }}
+  :root[data-theme="light"]{
+    --bg:#f4f5f7; --panel:#ffffff; --panel-2:#fbfbfd;
+    --ink:#1a1d24; --ink-soft:#4a4f5a; --ink-faint:#7b8290;
+    --hair:#e3e6ec; --hair-2:#eef0f4; --spine:#d3d8e0;
+    --user:#2f6fed; --user-bg:#eaf1fe; --gh:#7c5cdf; --gh-bg:#f0ecfd;
+    --maint:#0e8f78; --maint-bg:#e3f5f0; --admin:#b5711a; --admin-bg:#fbf0dd;
+    --agent:#c2410c; --agent-bg:#fce9df; --git:#4f46e5; --git-bg:#ebeafc;
+    --sig:#0e8f78; --sig-bg:#e3f5f0;
+    --ok:#1c9b5a; --ok-bg:#e6f6ec; --no:#cf4141; --no-bg:#fbeaea; --gate:#c98a12;
+  }
+  :root[data-theme="dark"]{
+    --bg:#12141a; --panel:#1b1e26; --panel-2:#20242e;
+    --ink:#eef0f5; --ink-soft:#b9bfcb; --ink-faint:#828a99;
+    --hair:#2b2f3a; --hair-2:#242833; --spine:#343a47;
+    --user:#6ea0ff; --user-bg:#1b2740; --gh:#a894f5; --gh-bg:#251f3d;
+    --maint:#3ec9ab; --maint-bg:#123029; --admin:#e2a54a; --admin-bg:#33280f;
+    --agent:#f0895a; --agent-bg:#3a2113; --git:#a5b4fc; --git-bg:#20213d;
+    --sig:#3ec9ab; --sig-bg:#123029;
+    --ok:#4fd089; --ok-bg:#123020; --no:#f07a7a; --no-bg:#331717; --gate:#e2a54a;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+       -webkit-font-smoothing:antialiased;line-height:1.5;}
+  .wrap{max-width:940px;margin:0 auto;padding:40px 20px 72px;}
+
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;
+           text-transform:uppercase;color:var(--ink-faint);}
+  h1{font-size:clamp(26px,4.4vw,38px);line-height:1.12;margin:.35em 0 .3em;
+     letter-spacing:-.02em;text-wrap:balance;font-weight:700;}
+  .lede{color:var(--ink-soft);max-width:62ch;font-size:15.5px;}
+
+  .legend{margin-top:22px;padding:15px 16px;background:var(--panel);
+          border:1px solid var(--hair);border-radius:12px;
+          display:grid;grid-template-columns:1fr;gap:11px;}
+  @media(min-width:640px){.legend{grid-template-columns:1fr 1fr;}}
+  .lg-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:12.5px;color:var(--ink-soft);}
+  .lg-row .h{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);
+             width:100%;margin-bottom:1px;}
+
+  .badge{font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.09em;
+         padding:2px 7px;border-radius:5px;text-transform:uppercase;flex:none;}
+  .b-auto{color:var(--gh);background:var(--gh-bg);}
+  .b-skill{color:var(--maint);background:var(--maint-bg);}
+  .b-script{color:var(--ink);background:var(--hair-2);}
+  .b-manual{color:var(--ink-faint);background:var(--hair-2);}
+  .b-git{color:var(--git);background:var(--git-bg);}
+  .exec-chip{font-family:var(--mono);font-size:10.5px;padding:2px 8px;border-radius:20px;
+             flex:none;white-space:nowrap;}
+  .e-agent{color:var(--agent);background:var(--agent-bg);}
+  .e-user{color:var(--user);background:var(--user-bg);}
+  .e-ci{color:var(--gh);background:var(--gh-bg);}
+  .e-maint{color:var(--maint);background:var(--maint-bg);}
+  .e-admin{color:var(--admin);background:var(--admin-bg);}
+  .sigkey{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;
+          color:var(--sig);background:var(--sig-bg);padding:2px 8px;border-radius:5px;}
+
+  .band{margin-top:42px;}
+  .band-head{display:flex;align-items:baseline;gap:12px;margin-bottom:5px;flex-wrap:wrap;}
+  .band-tag{font-family:var(--mono);font-size:12px;font-weight:600;letter-spacing:.1em;
+            padding:3px 8px;border-radius:6px;background:var(--panel);
+            border:1px solid var(--hair);color:var(--ink-faint);}
+  .band-head h2{font-size:19px;margin:0;letter-spacing:-.01em;}
+  .band-sub{color:var(--ink-faint);font-size:13.5px;margin:2px 0 20px;}
+
+  .rail{position:relative;padding-left:30px;}
+  .rail::before{content:"";position:absolute;left:9px;top:6px;bottom:6px;width:2px;
+                background:var(--spine);border-radius:2px;}
+  .step{position:relative;margin-bottom:12px;}
+  .step::before{content:"";position:absolute;left:-25.5px;top:20px;width:11px;height:11px;
+                border-radius:50%;background:var(--panel);border:2.5px solid var(--node,var(--spine));}
+  .card{background:var(--panel);border:1px solid var(--hair);
+        border-left:4px solid var(--node,var(--spine));border-radius:11px;padding:14px 16px;}
+  .u{--node:var(--user);--node-bg:var(--user-bg);}
+  .g{--node:var(--gh);--node-bg:var(--gh-bg);}
+  .m{--node:var(--maint);--node-bg:var(--maint-bg);}
+  .a{--node:var(--admin);--node-bg:var(--admin-bg);}
+  .ag{--node:var(--agent);--node-bg:var(--agent-bg);}
+
+  .r1{display:flex;align-items:flex-start;gap:10px;flex-wrap:wrap;}
+  .sid{font-family:var(--mono);font-size:12px;font-weight:700;color:var(--node);
+       background:var(--node-bg);padding:2px 7px;border-radius:6px;flex:none;}
+  .title{font-weight:650;font-size:15.5px;flex:1 1 220px;min-width:0;}
+  .who{font-family:var(--mono);font-size:11px;color:var(--node);background:var(--node-bg);
+       padding:3px 9px;border-radius:20px;flex:none;white-space:nowrap;}
+
+  .launch{margin-top:11px;padding:9px 11px;background:var(--panel-2);
+          border:1px solid var(--hair-2);border-radius:9px;}
+  .lrow{display:flex;align-items:baseline;gap:9px;flex-wrap:wrap;}
+  .lblock + .lblock{margin-top:8px;padding-top:8px;border-top:1px dashed var(--hair);}
+  .pathlbl{font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;
+           color:var(--ink-faint);display:block;margin-bottom:5px;}
+  .trig{font-size:13px;color:var(--ink-soft);flex:1 1 240px;min-width:0;}
+  .trig .code{font-family:var(--mono);font-size:12px;background:var(--panel);border:1px solid var(--hair);
+              color:var(--ink);padding:1px 6px;border-radius:5px;}
+  .trig .say{font-style:italic;color:var(--ink);}
+
+  .flow{margin-top:11px;display:flex;align-items:stretch;gap:8px;flex-wrap:wrap;}
+  .io{flex:1 1 240px;min-width:0;background:var(--panel-2);border:1px solid var(--hair-2);
+      border-radius:9px;padding:8px 11px;}
+  .io .k{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);
+         display:block;margin-bottom:3px;}
+  .io .v{font-size:13px;color:var(--ink-soft);}
+  .io .v .code{font-family:var(--mono);font-size:11.5px;background:var(--panel);border:1px solid var(--hair);
+               color:var(--ink);padding:1px 5px;border-radius:5px;}
+  .arrow{align-self:center;color:var(--ink-faint);font-size:18px;flex:none;}
+
+  /* Д1 signal row (external) */
+  .sigrow{margin-top:10px;padding:8px 11px;background:var(--sig-bg);border-radius:9px;
+          border:1px solid color-mix(in srgb,var(--sig) 26%,transparent);}
+  .sigrow .lbl{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.09em;
+               text-transform:uppercase;color:var(--sig);display:block;margin-bottom:3px;}
+  .sigrow .txt{font-size:12.5px;color:var(--ink-soft);}
+
+  /* Д2 connector (signal = previous output) */
+  .connector{position:relative;margin:-2px 0 10px;}
+  .connector .pill{display:inline-flex;align-items:center;gap:8px;
+                   background:var(--sig-bg);border:1px solid color-mix(in srgb,var(--sig) 30%,transparent);
+                   color:var(--ink-soft);font-size:12px;border-radius:20px;padding:5px 12px;flex-wrap:wrap;}
+  .connector .pill .lbl{font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.08em;
+                        text-transform:uppercase;color:var(--sig);}
+  .connector .pill .dn{color:var(--sig);font-weight:700;}
+  .connector .pill .say{font-style:italic;color:var(--ink);}
+  .connector .pill .code{font-family:var(--mono);font-size:11px;background:var(--panel);
+                         border:1px solid var(--hair);color:var(--ink);padding:1px 5px;border-radius:4px;}
+
+  .branch{display:flex;gap:12px;flex-wrap:wrap;}
+  .branch .card{flex:1 1 300px;}
+  .card.ok{--node:var(--ok);--node-bg:var(--ok-bg);}
+  .card.no{--node:var(--no);--node-bg:var(--no-bg);}
+  .verdict{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;}
+
+  .note{margin-top:14px;font-size:13px;color:var(--ink-soft);background:var(--panel);
+        border:1px dashed var(--hair);border-radius:10px;padding:11px 14px;}
+  .note b{color:var(--ink);font-weight:650;}
+  footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--hair);
+         font-size:12.5px;color:var(--ink-faint);}
+  footer code{font-family:var(--mono);font-size:12px;}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">Two-tier knowledge governance · ADR-0003</div>
+  <h1>Работа с практиками — полный процесс</h1>
+  <p class="lede">Каждый шаг: <b>кто исполняет</b>, <b>чем запускается</b> (auto / skill / script / manual / git), с каким <b>входом</b> и <b>результатом</b>, и <b>по какому сигналу</b> человек понимает, что настал его ход.</p>
+
+  <div class="legend">
+    <div class="lg-row"><span class="h">Тип запуска</span>
+      <span class="badge b-auto">auto</span><span>сам</span>
+      <span class="badge b-skill">skill</span><span>вызов скилла</span>
+      <span class="badge b-script">script</span><span>команда</span>
+      <span class="badge b-manual">manual</span><span>руками</span>
+      <span class="badge b-git">git</span><span>push / PR</span>
+    </div>
+    <div class="lg-row"><span class="h">Исполнитель</span>
+      <span class="exec-chip e-agent">агент·правило</span>
+      <span class="exec-chip e-user">польз.→агент</span>
+      <span class="exec-chip e-ci">система·CI</span>
+      <span class="exec-chip e-admin">администратор</span>
+    </div>
+    <div class="lg-row" style="grid-column:1/-1"><span class="h">Сигнал «пора действовать»</span>
+      <span class="connector" style="margin:0"><span class="pill"><span class="lbl">Сигнал</span> <span class="dn">↓</span> на связке = выход прошлого шага</span></span>
+      <span class="sigkey">◆ строка = сигнал извне потока</span>
+    </div>
+  </div>
+
+  <!-- ============ FLOW A ============ -->
+  <section class="band">
+    <div class="band-head"><span class="band-tag">ПОТОК A</span><h2>Находка → практика в Best Practices</h2></div>
+    <p class="band-sub">Основной, частый путь. Всё в репозитории Best Practices.</p>
+    <div class="rail">
+
+      <div class="step ag">
+        <div class="card">
+          <div class="r1"><span class="sid">A1</span><span class="title">Зафиксировать факт в проекте</span></div>
+          <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Обнаружен дефект или повторившийся приём в ходе работы (внешний старт потока)</span></div>
+          <div class="launch">
+            <div class="lblock"><span class="pathlbl">Путь по умолчанию</span>
+              <div class="lrow"><span class="exec-chip e-agent">агент · по правилу</span><span class="badge b-auto">auto</span>
+                <span class="trig">Запускать нечего: агент сам пишет дефект в <span class="code">DEFECTS.md</span> (правило AGENTS.md)</span></div></div>
+            <div class="lblock"><span class="pathlbl">Путь по запросу</span>
+              <div class="lrow"><span class="exec-chip e-user">пользователь → агент</span><span class="badge b-skill">skill</span>
+                <span class="trig"><span class="say">«Зафиксируй этот урок, занеси в дефекты»</span> · <span class="code">/reflect-and-record</span></span></div></div>
+          </div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Сбой, приём или решение из работы</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v"><span class="code">DEFECTS.md</span> · <span class="code">PLAYBOOK.md</span> (≥2 раз) · ADR · research</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step u">
+        <div class="card">
+          <div class="r1"><span class="sid">A2</span><span class="title">Собрать кандидатов</span><span class="who">Пользователь</span></div>
+          <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Пользователь решил вынести накопленный опыт в общую базу (внешняя инициатива)</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-user">пользователь → агент</span><span class="badge b-skill">skill</span>
+            <span class="trig"><span class="say">«Собери кандидатов в Best Practices из соседних проектов»</span> · <span class="code">/harvest-practice-candidates</span></span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Checked-in артефакты соседних git-проектов (<span class="code">DEFECTS</span>, <span class="code">PLAYBOOK</span>, research, <span class="code">TOOLS.md</span>, <span class="code">.mcp.json</span>)</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Harvest-preview: shortlist уроков + отброшенное с причинами</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">harvest-preview одобрен пользователем</span></span></div>
+      <div class="step u">
+        <div class="card">
+          <div class="r1"><span class="sid">A3</span><span class="title">Оформить файл-кандидат</span><span class="who">Пользователь</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-user">пользователь → агент</span><span class="badge b-script">script</span>
+            <span class="trig"><span class="code">python3 scripts/new_candidate.py …</span> — collision-resistant ID, провенанс обязателен</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Урок + провенанс (<span class="code">source</span>, <span class="code">added_by</span>)</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v"><span class="code">candidates/PC-2026-&lt;12hex&gt;-slug.md</span>, status new/triaged, evidence E0/E1</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">файл кандидата создан</span></span></div>
+      <div class="step u">
+        <div class="card">
+          <div class="r1"><span class="sid">A4</span><span class="title">Локальная проверка</span><span class="who">Пользователь</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-user">пользователь → агент</span><span class="badge b-script">script</span>
+            <span class="trig"><span class="code">make check</span> = unittest + validate.py + freshness</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Файл кандидата</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Зелёный validator (иначе PR не готов)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> отчёт агента: <span class="say">«кандидат готов, make check зелёный — открыть PR?»</span></span></div>
+      <div class="step u">
+        <div class="card">
+          <div class="r1"><span class="sid">A5</span><span class="title">Отправить на GitHub</span><span class="who">Пользователь</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-user">пользователь → агент</span><span class="badge b-git">git</span>
+            <span class="trig"><span class="say">«Запушь ветку и открой PR»</span> · <span class="code">git push</span> + <span class="code">gh pr create</span> — агент спрашивает перед созданием PR</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Ветка <span class="code">candidate/*</span> с закоммиченным файлом; обоснование агента → в описание PR</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Открытый PR в защищённый <span class="code">main</span></span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">PR открыт</span> — событие GitHub</span></div>
+      <div class="step g">
+        <div class="card">
+          <div class="r1"><span class="sid">A6</span><span class="title">Автопроверка PR</span><span class="who">GitHub</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-ci">система · CI</span><span class="badge b-auto">auto</span>
+            <span class="trig">Запускать нечего: <span class="code">validate.yml</span> стартует сам при открытии PR</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Diff Pull Request</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Статус-чек «validate»; красный блокирует merge</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">CI зелёный, PR готов к ревью</span></span></div>
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">A7</span><span class="title">Решение: принять или отклонить</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-skill">skill</span>
+            <span class="trig"><span class="say">«Разбери кандидатов и прими решение»</span> · <span class="code">/review-practice-candidates</span> — дедуп, качество, обобщённость, чистота, evidence</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Файл кандидата + существующие <span class="code">practices/**</span></span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Вердикт — ветвление ниже</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step a">
+        <div class="branch">
+          <div class="card ok">
+            <div class="r1"><span class="verdict" style="color:var(--ok)">✓ Accept</span></div>
+            <div class="io" style="margin-top:8px;flex:1 1 100%"><span class="v">Создаётся <span class="code">practices/&lt;раздел&gt;/PC-*.md</span> (E1=trial, E2/E3=accepted); кандидат → <span class="code">accepted</span> + commit; wikilink в README; PR влит в main.</span></div>
+          </div>
+          <div class="card no">
+            <div class="r1"><span class="verdict" style="color:var(--no)">✕ Reject</span></div>
+            <div class="io" style="margin-top:8px;flex:1 1 100%"><span class="v">Кандидат → <span class="code">rejected</span> + причина в <span class="code">## Notes</span>. Файл не удаляется — журнал решений.</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step u">
+        <div class="card">
+          <div class="r1"><span class="sid">A9</span><span class="title">Доставить практику в проекты</span><span class="who">Пользователь</span></div>
+          <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Правило-напоминание в <span class="code">AGENTS.template</span> срабатывает при определении стека проекта (внешний триггер)</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-user">пользователь → агент</span><span class="badge b-skill">skill</span>
+            <span class="trig"><span class="say">«Подтяни практики Best Practices под стек»</span> · <span class="code">/apply-best-practices</span> (pull-модель)</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v"><span class="code">practices/**</span> + стек проекта</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">common применён сразу; решения в <span class="code">.best-practices.json</span></span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="note"><b>Защита main (условие A5–A8):</b> require PR + review approval + review from Code Owners (<code>.github/CODEOWNERS</code>) + status check <code>validate</code> + block force push. Настраивается владельцем один раз в GitHub Settings → Branches.</div>
+  </section>
+
+  <!-- ============ FLOW B ============ -->
+  <section class="band">
+    <div class="band-head"><span class="band-tag">ПОТОК B</span><h2>Затвердевание практики → правило стандарта</h2></div>
+    <p class="band-sub">Редкий maintainer-only акт. Второй класс кандидатов — внутри new-project-rules.</p>
+    <div class="rail">
+
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">B0</span><span class="title">Проверить условие входа</span><span class="who">Администратор</span></div>
+          <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Практика в BP вызрела настолько, что должна выполняться во всех проектах по умолчанию (решение администратора)</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-manual">manual</span>
+            <span class="trig">Проверка критериев обязательности: практика <span class="code">accepted</span>, универсальна, это императив а не совет</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Accepted-практика BP + вывод «обязательна всем»</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Решение начинать (иначе — оставить советом в BP)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">решение о затвердевании принято</span></span></div>
+      <div class="step a">
+        <div class="card" style="border-left-color:var(--gate)">
+          <div class="r1"><span class="sid" style="color:var(--gate);background:var(--admin-bg)">B1</span><span class="title">Gate целостности контракта</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-script">script</span>
+            <span class="trig"><span class="code">python3 scripts/check_best_practices_contract.py --best-practices-root "../Best Practices"</span></span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v"><span class="code">config/best-practices-contract.json</span> + реальный BP</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">OK по remote/commit/hashes/status/routes/ADR — иначе стоп, сначала обновить pin</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">контракт-гейт зелёный</span></span></div>
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">B2</span><span class="title">Оформить promotion-кандидат</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-skill">skill</span>
+            <span class="trig"><span class="say">«Затверди эту практику как правило стандарта»</span> · <span class="code">/promote-project-knowledge</span> → <span class="code">promotion_candidates.py create</span></span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Accepted-практика BP, точный practice path, полный <span class="code">source_commit</span></span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v"><span class="code">docs/quality/promotion-candidates/PC-*.md</span>, status approved, задан artifact_type + target</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">кандидат approved</span></span></div>
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">B3</span><span class="title">Материализовать в стандарт</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-skill">skill</span>
+            <span class="trig"><span class="say">«Примени этот кандидат»</span> · <span class="code">/apply-promotion-candidate</span></span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Один <span class="code">approved</span> кандидат по ID</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Артефакт NPR: rule / template / test / validator / script / skill / guide</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">изменение внесено</span> (тот же skill продолжает)</span></div>
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">B4</span><span class="title">Синхронизировать репозиторий</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-manual">manual</span>
+            <span class="trig">Правки в одной задаче — тот же <span class="code">/apply-promotion-candidate</span></span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Изменение из B3</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Обновлены <span class="code">README</span>, <span class="code">INDEX</span>, <span class="code">docs/README</span>, <span class="code">CHANGELOG</span>, шаблоны/тесты/скилы</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">синхронизация завершена, проверки зелёные</span></span></div>
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">B5</span><span class="title">Traceability + отправка</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-git">git</span>
+            <span class="trig"><span class="say">«Закоммить и запушь»</span> · <span class="code">git push origin/main</span> — стандарт NPR не требует PR, но агент спрашивает перед PR</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Внесённое изменение + пройденные checks</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Кандидат → <span class="code">implemented</span> + commit; outcome в <span class="code">.best-practices.json</span>; push в <span class="code">origin/main</span></span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="note"><b>Правило SSOT (B3):</b> императив живёт в NPR (<code>AGENTS.md</code>, самодостаточно), обоснование остаётся в Best Practices — rationale не копируется, связывается мягкой ссылкой.</div>
+  </section>
+
+  <!-- ============ FLOW C ============ -->
+  <section class="band">
+    <div class="band-head"><span class="band-tag">КОНТУР C</span><h2>Целостность между репозиториями</h2></div>
+    <p class="band-sub">Фоновая защита: pin на конкретный commit BP + хеши интерфейсных файлов, без сетевой зависимости CI.</p>
+    <div class="rail">
+
+      <div class="step g">
+        <div class="card">
+          <div class="r1"><span class="sid">C1</span><span class="title">Контрактный тест + Cross-repo E2E</span><span class="who">GitHub</span></div>
+          <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Любой push или PR в new-project-rules (событие GitHub)</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-ci">система · CI</span><span class="badge b-auto">auto</span>
+            <span class="trig"><span class="code">ci.yml</span> → <span class="code">test-best-practices-contract.py</span> + <span class="code">test-best-practices-e2e.py</span> (Ubuntu / Windows / macOS)</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Contract.json + хеши интерфейсных файлов; checkout <span class="code">source_commit</span>, реальный BP <span class="code">practice_report.py</span></span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Pass/fail; подтверждено, что writer NPR ↔ reader BP совместимы</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step g">
+        <div class="card">
+          <div class="r1"><span class="sid">C3</span><span class="title">Ежедневный сторож дрейфа</span><span class="who">GitHub · cron</span></div>
+          <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Расписание <span class="code">cron 17 5 * * *</span> (ежедневно, без участия человека)</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-ci">система · CI</span><span class="badge b-auto">auto</span>
+            <span class="trig"><span class="code">bp-pin-watch.yml</span> → <span class="code">check_best_practices_contract.py --check-latest</span></span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Reviewed pin vs текущий BP <span class="code">main</span></span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">При дрейфе — красный read-only сигнал (commit/hashes не меняет)</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="connector"><span class="pill"><span class="lbl">Сигнал</span><span class="dn">↓</span> <span class="say">красный сигнал bp-pin-watch</span></span></div>
+      <div class="step a">
+        <div class="card">
+          <div class="r1"><span class="sid">C4</span><span class="title">Обновление pin</span><span class="who">Администратор</span></div>
+          <div class="launch"><div class="lrow"><span class="exec-chip e-admin">администратор</span><span class="badge b-git">git</span>
+            <span class="trig">Вручную, отдельным reviewable PR (5 шагов из контракт-доки) — не смешивать с реализацией правила</span></div></div>
+          <div class="flow">
+            <div class="io"><span class="k">Вход</span><span class="v">Новый BP <span class="code">main</span>, accepted-практика с достаточной evidence</span></div>
+            <span class="arrow">→</span>
+            <div class="io"><span class="k">Результат</span><span class="v">Обновлены commit / hashes / route / ADR expectations</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    Две решающие точки — одна роль администратора: <b style="color:var(--admin)">A7</b> — пустить ли опыт в базу практик (accept/reject); <b style="color:var(--admin)">B0/B2</b> — сделать ли практику обязательным правилом. Прежде различались «мейнтейнер» и «администратор» — теперь это единая роль ведения базы и стандарта.
+  </footer>
+</div>

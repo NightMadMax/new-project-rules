@@ -66,6 +66,7 @@ check_skill apply-promotion-candidate
 check_skill promote-project-knowledge
 check_skill reflect-and-record
 check_skill compress-project
+check_skill document-process-workflow
 
 reflect_skill="$root/.agents/skills/reflect-and-record/SKILL.md"
 check_required_literals "$reflect_skill" \

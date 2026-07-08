@@ -19,7 +19,14 @@
 | [[TOOLS|TOOLS.md]] | Установленные инструменты, версии и команды проверки |
 | `requirements-dev.txt` | Python-зависимости для сопровождения Agent Skills |
 | [[docs/README|docs/README.md]] | Индекс отдельной папки документации |
-| [[docs/guides/USER_GUIDE|USER_GUIDE.md]] | Основное пользовательское руководство: установка, ежедневные сценарии и безопасные запросы агенту |
+| [[docs/guides/user-guide/README|user-guide/]] | Папка руководства пользователя: основной гайд + каталог визуальных workflow по процессам |
+| [[docs/guides/user-guide/USER_GUIDE|USER_GUIDE.md]] | Основное пользовательское руководство: установка, ежедневные сценарии и безопасные запросы агенту |
+| [[docs/guides/user-guide/workflows/README|workflows/]] | Каталог process-workflow: полный процесс + workflow пользователя (Markdown + HTML) |
+| [[docs/guides/user-guide/workflows/best-practices-full|best-practices-full.md]] | Работа с практиками — полный процесс: все роли, запуск, вход/результат, сигнал |
+| [[docs/guides/user-guide/workflows/best-practices-user|best-practices-user.md]] | Работа с практиками — workflow пользователя: что сделать, чтобы добиться результата |
+| [[docs/guides/user-guide/workflows/best-practices-admin|best-practices-admin.md]] | Одобрение и применение практик — workflow администратора: разбор кандидатов, затвердевание, pin |
+| [[docs/guides/user-guide/workflows/setup-new-computer-user|setup-new-computer-user.md]] | Настройка нового компьютера — workflow пользователя: два маршрута (агенту/вручную) |
+| [[docs/guides/user-guide/workflows/projects-user|projects-user.md]] | Работа с проектами — карта действий пользователя: создание проекта + каталог действий |
 | [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT.md]] | Пользовательский вход: как работать с проектом и какими фразами ставить задачи агенту |
 | [[docs/guides/MANUAL_SCRIPTS|MANUAL_SCRIPTS.md]] | Справочник по ручному запуску скриптов: команды sh/ps1, флаги и когда запускать вручную |
 | [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT.md]] | Создание проекта вручную или по запросу агенту |
@@ -72,6 +79,7 @@
 | [[.agents/skills/promote-project-knowledge/SKILL|promote-project-knowledge]] | Maintainer-only: затвердевание вызревшей практики Best Practices в правило NPR |
 | [[.agents/skills/reflect-and-record/SKILL|reflect-and-record]] | Рефлексия ошибки/поправки и запись урока в нужный артефакт |
 | [[.agents/skills/compress-project/SKILL|compress-project]] | Безопасная компрессия накопившегося «мусора»: журналы, docs, память |
+| [[.agents/skills/document-process-workflow/SKILL|document-process-workflow]] | Создание и поддержание в актуальности workflow-отчётов процессов (docs/guides/user-guide/workflows) |
 | `scripts/bootstrap-new-project.sh` | Создание проекта на macOS/Linux |
 | `scripts/bootstrap-new-project.ps1` | Создание проекта в Windows PowerShell |
 | `scripts/setup-global-agents.sh` | Глобальная настройка Codex+Claude (macOS/Linux) |

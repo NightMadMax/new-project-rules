@@ -72,6 +72,7 @@ Test-Skill "apply-promotion-candidate"
 Test-Skill "promote-project-knowledge"
 Test-Skill "reflect-and-record"
 Test-Skill "compress-project"
+Test-Skill "document-process-workflow"
 
 $reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
 $reflectText = Get-Content -Raw -Encoding UTF8 $reflectSkill

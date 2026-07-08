@@ -1,0 +1,171 @@
+<title>Работа с проектами — карта действий</title>
+<style>
+  :root{
+    --bg:#f4f5f7; --panel:#ffffff; --panel-2:#fbfbfd;
+    --ink:#1a1d24; --ink-soft:#4a4f5a; --ink-faint:#7b8290;
+    --hair:#e3e6ec; --hair-2:#eef0f4; --spine:#d3d8e0;
+    --user:#2f6fed; --user-bg:#eaf1fe;
+    --loc:#0f766e; --loc-bg:#dcf3ef;
+    --ok:#1c9b5a;
+    --goal:#b5711a; --goal-bg:#fbf0dd;
+    --mono:ui-monospace,"SF Mono","SFMono-Regular",Menlo,Consolas,monospace;
+    --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
+  @media (prefers-color-scheme:dark){:root{
+    --bg:#12141a; --panel:#1b1e26; --panel-2:#20242e;
+    --ink:#eef0f5; --ink-soft:#b9bfcb; --ink-faint:#828a99;
+    --hair:#2b2f3a; --hair-2:#242833; --spine:#343a47;
+    --user:#6ea0ff; --user-bg:#1b2740; --loc:#4fd0c0; --loc-bg:#0f2f2b;
+    --ok:#4fd089; --goal:#e2a54a; --goal-bg:#33280f;
+  }}
+  :root[data-theme="light"]{
+    --bg:#f4f5f7; --panel:#ffffff; --panel-2:#fbfbfd;
+    --ink:#1a1d24; --ink-soft:#4a4f5a; --ink-faint:#7b8290;
+    --hair:#e3e6ec; --hair-2:#eef0f4; --spine:#d3d8e0;
+    --user:#2f6fed; --user-bg:#eaf1fe; --loc:#0f766e; --loc-bg:#dcf3ef;
+    --ok:#1c9b5a; --goal:#b5711a; --goal-bg:#fbf0dd;
+  }
+  :root[data-theme="dark"]{
+    --bg:#12141a; --panel:#1b1e26; --panel-2:#20242e;
+    --ink:#eef0f5; --ink-soft:#b9bfcb; --ink-faint:#828a99;
+    --hair:#2b2f3a; --hair-2:#242833; --spine:#343a47;
+    --user:#6ea0ff; --user-bg:#1b2740; --loc:#4fd0c0; --loc-bg:#0f2f2b;
+    --ok:#4fd089; --goal:#e2a54a; --goal-bg:#33280f;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.5;}
+  .wrap{max-width:900px;margin:0 auto;padding:40px 20px 72px;}
+  .eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-faint);}
+  h1{font-size:clamp(24px,4vw,34px);line-height:1.12;margin:.35em 0 .3em;letter-spacing:-.02em;text-wrap:balance;font-weight:700;}
+  .lede{color:var(--ink-soft);max-width:64ch;font-size:15.5px;}
+  .code{font-family:var(--mono);font-size:12px;background:var(--panel);border:1px solid var(--hair);color:var(--ink);padding:1px 6px;border-radius:5px;}
+  .say{font-style:italic;color:var(--ink);}
+
+  .modelnote{margin-top:16px;background:var(--panel);border:1px dashed var(--hair);border-radius:11px;padding:12px 15px;font-size:13px;color:var(--ink-soft);}
+  .modelnote b{color:var(--ink);}
+
+  .sec{margin-top:34px;}
+  .sechead{display:flex;align-items:baseline;gap:11px;margin-bottom:4px;flex-wrap:wrap;}
+  .sechead .n{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.06em;color:var(--user);background:var(--user-bg);padding:3px 9px;border-radius:6px;}
+  .sechead h2{font-size:18px;margin:0;letter-spacing:-.01em;}
+  .secsub{color:var(--ink-faint);font-size:13px;margin:2px 0 16px;}
+
+  /* create = mini rail */
+  .rail{position:relative;padding-left:32px;counter-reset:st;}
+  .rail::before{content:"";position:absolute;left:11px;top:8px;bottom:8px;width:2px;background:var(--spine);border-radius:2px;}
+  .step{position:relative;margin-bottom:11px;}
+  .step::before{counter-increment:st;content:counter(st);position:absolute;left:-32px;top:12px;width:24px;height:24px;border-radius:50%;
+                background:var(--user);color:#fff;font-family:var(--mono);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;}
+  .scard{background:var(--panel);border:1px solid var(--hair);border-left:4px solid var(--user);border-radius:10px;padding:12px 14px;}
+  .scard .t{font-weight:650;font-size:15px;}
+  .scard .m{margin-top:6px;font-size:13px;color:var(--ink-soft);}
+  .loc{font-family:var(--mono);font-size:11px;color:var(--loc);background:var(--loc-bg);border:1px solid color-mix(in srgb,var(--loc) 24%,transparent);
+       padding:1px 6px;border-radius:5px;}
+
+  /* catalog grid */
+  .grid{display:grid;grid-template-columns:1fr;gap:13px;}
+  @media(min-width:640px){.grid{grid-template-columns:1fr 1fr;}}
+  .acard{background:var(--panel);border:1px solid var(--hair);border-radius:12px;padding:14px 15px;display:flex;flex-direction:column;gap:8px;}
+  .acard .ah{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;}
+  .acard .ico{font-size:16px;flex:none;}
+  .acard .name{font-weight:650;font-size:15px;flex:1 1 auto;}
+  .acard .when{font-size:12.5px;color:var(--ink-soft);}
+  .acard .when b{color:var(--ink);font-weight:600;}
+  .acard .run{font-size:12.5px;color:var(--ink-soft);border-top:1px dashed var(--hair);padding-top:8px;margin-top:auto;}
+  .acard .run .k{font-family:var(--mono);font-size:9.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-faint);margin-right:5px;}
+  .ro{display:inline-block;font-family:var(--mono);font-size:9.5px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+      color:var(--ok);background:color-mix(in srgb,var(--ok) 15%,transparent);padding:1px 6px;border-radius:4px;}
+
+  footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--hair);font-size:12.5px;color:var(--ink-faint);}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">new-project-rules · область: пользователь</div>
+  <h1>Работа с проектами — карта действий пользователя</h1>
+  <p class="lede">Что можно делать с проектами по стандарту. «Создать проект» — это процесс (шаги ниже); остальное — независимые действия-возможности, каждое со своим триггером. Выбирай нужное.</p>
+
+  <div class="modelnote"><b>Почему не один workflow.</b> Линейная модель «шаг за шагом» подходит только для процессов (создание проекта, настройка компьютера). «Оценить», «стандартизировать», «валидировать», «сжать» — самостоятельные действия, а не одна последовательность. Поэтому здесь — <b>карта</b>: у каждого действия свой «когда» и «чем запускается». Почти всё живёт в папке <span class="loc">Правила для нового проекта</span>.</p>
+
+  <!-- Section 1: create -->
+  <div class="sec">
+    <div class="sechead"><span class="n">Процесс</span><h2>Создать новый проект</h2></div>
+    <p class="secsub">Где: открой агента в папке <span class="loc">Правила для нового проекта</span> (bootstrap использует её commit как проверяемый source_commit).</p>
+    <div class="rail">
+      <div class="step"><div class="scard">
+        <div class="t">Запросить создание · два маршрута</div>
+        <div class="m"><b>🗣 Агенту:</b> <span class="say">«Создай новый проект „Название“ в папке &lt;путь&gt;, профиль software, приватный GitHub-репозиторий»</span> · <span class="code">/create-new-project</span>. Профиль по умолчанию — <span class="code">software</span> (есть <span class="code">minimal</span>, <span class="code">operated</span>, <span class="code">all</span>).<br><b>⌨ Вручную:</b> <span class="code">./scripts/bootstrap-new-project.sh "&lt;путь&gt;" "Название" software</span> (или <span class="code">.ps1</span> на Windows).</div>
+      </div></div>
+      <div class="step"><div class="scard">
+        <div class="t">Агент разворачивает структуру</div>
+        <div class="m">Создаёт папку внутри общего vault как отдельный git-репозиторий; заполняет <span class="code">AGENTS.md</span>/<span class="code">CLAUDE.md</span>, <span class="code">README</span>, <span class="code">PROJECT</span>, <span class="code">INDEX</span>; добавляет только подходящие профилю документы.</div>
+      </div></div>
+      <div class="step"><div class="scard">
+        <div class="t">Публикация и проверка</div>
+        <div class="m">git init → отдельный GitHub-репозиторий → первый commit и push (для local-only — без GitHub). Проверяет <span class="code">.project-standard.json</span>, bootstrap, git status, wikilinks.</div>
+      </div></div>
+      <div class="step"><div class="scard">
+        <div class="t">Заполнить стартовые документы</div>
+        <div class="m"><span class="code">PROJECT</span>: цель/scope/non-goals; <span class="code">AGENTS → Commands</span>: только реально проверенные команды; <span class="code">INDEX</span>: только существующие файлы. Есть код — заполнить install/build/test/lint/run.</div>
+      </div></div>
+    </div>
+  </div>
+
+  <!-- Section 2: catalog -->
+  <div class="sec">
+    <div class="sechead"><span class="n">Каталог</span><h2>Остальные действия с проектами</h2></div>
+    <p class="secsub">Независимые возможности. У каждой — когда применять и чем запускается.</p>
+    <div class="grid">
+
+      <div class="acard">
+        <div class="ah"><span class="ico">🔎</span><span class="name">Оценить существующий проект</span><span class="ro">read-only</span></div>
+        <div class="when"><b>Когда:</b> есть legacy-проект, хочешь понять разрыв со стандартом без изменения файлов.</div>
+        <div class="run"><span class="k">Запуск</span><span class="say">«Оцени этот проект относительно стандарта»</span> · <span class="code">/assess-existing-project</span> → decision report</div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">🧭</span><span class="name">Стандартизировать проект</span></div>
+        <div class="when"><b>Когда:</b> решил привести legacy к стандарту — на месте или пересобрать по шаблону.</div>
+        <div class="run"><span class="k">Запуск</span><span class="say">«Предложи стратегию стандартизации»</span> · <span class="code">/standardize-existing-project</span></div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">✅</span><span class="name">Проверить и продиагностировать</span><span class="ro">read-only</span></div>
+        <div class="when"><b>Когда:</b> убедиться, что проект/окружение соответствуют стандарту.</div>
+        <div class="run"><span class="k">Запуск</span><span class="code">python3 scripts/validate-project.py</span> · <span class="code">./scripts/project-doctor.sh</span></div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">🗜️</span><span class="name">Сжать «мусор» проекта</span></div>
+        <div class="when"><b>Когда:</b> проект разросся; периодическая уборка перед релизом.</div>
+        <div class="run"><span class="k">Запуск</span><span class="say">«Сожми накопившийся мусор проекта»</span> · <span class="code">/compress-project</span></div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">📥</span><span class="name">Подтянуть практики Best Practices</span></div>
+        <div class="when"><b>Когда:</b> определён стек; хочешь применить готовые практики. <b>Где:</b> <span class="loc">твой проект</span>.</div>
+        <div class="run"><span class="k">Запуск</span><span class="say">«Подтяни практики под стек»</span> · <span class="code">/apply-best-practices</span></div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">🔄</span><span class="name">Синхронизировать глобальные правила</span><span class="ro">read-only check</span></div>
+        <div class="when"><b>Когда:</b> проверить состояние global policy на машине, увидеть diff.</div>
+        <div class="run"><span class="k">Запуск</span><span class="code">./scripts/sync-global-agents.sh --check</span> · <span class="code">--diff --report-only</span></div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">🧱</span><span class="name">Спланировать миграцию правил</span></div>
+        <div class="when"><b>Когда:</b> нужно применить изменения global/project policy контролируемо.</div>
+        <div class="run"><span class="k">Запуск</span><span class="code">./scripts/plan-migration.sh --plan --report-only</span>, apply — по fingerprint</div>
+      </div>
+
+      <div class="acard">
+        <div class="ah"><span class="ico">📝</span><span class="name">Зафиксировать урок / дефект</span></div>
+        <div class="when"><b>Когда:</b> нашёл баг или удачный приём. <b>Где:</b> <span class="loc">твой проект</span>.</div>
+        <div class="run"><span class="k">Запуск</span><span class="say">«Зафиксируй урок»</span> · <span class="code">/reflect-and-record</span> → DEFECTS / PLAYBOOK</div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>Часть серии workflow пользователя. Каждое действие при необходимости раскрывается в собственный детальный workflow. Справочники — в docs/guides.</footer>
+</div>

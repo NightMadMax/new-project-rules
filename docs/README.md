@@ -13,7 +13,9 @@ related:
 
 ## Руководства
 
-- [[docs/guides/USER_GUIDE|Руководство пользователя]]
+- [[docs/guides/user-guide/README|Руководство пользователя (папка)]]
+- [[docs/guides/user-guide/USER_GUIDE|Основное руководство пользователя]]
+- [[docs/guides/user-guide/workflows/README|Каталог workflow по процессам]]
 - [[docs/guides/USE_THIS_PROJECT|Как работать с этим проектом]]
 - [[docs/guides/MANUAL_SCRIPTS|Ручной запуск скриптов]]
 - [[docs/guides/CREATE_NEW_PROJECT|Создание нового проекта]]

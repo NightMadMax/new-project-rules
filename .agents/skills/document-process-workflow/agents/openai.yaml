@@ -1,0 +1,4 @@
+interface:
+  display_name: "Document Process Workflow"
+  short_description: "Create and keep process-workflow reports current"
+  default_prompt: "Use $document-process-workflow to create or update a process-workflow report and keep it in sync with the structure."
