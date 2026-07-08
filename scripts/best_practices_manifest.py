@@ -13,7 +13,11 @@ from typing import Any, Optional, Sequence
 
 MANIFEST_NAME = ".best-practices.json"
 PREFERENCE_VALUES = ("ask", "optout")
-ALLOWED_SECTIONS = {"1c", "web", "common", "tools", "anti-patterns", "prompts", "snippets"}
+ALLOWED_SECTIONS = {
+    "1c", "web", "backend", "mobile", "desktop", "data-ml", "data-analysis",
+    "excel-research", "powerbi", "jira-confluence", "devops", "embedded",
+    "common", "tools", "anti-patterns", "prompts", "snippets",
+}
 
 
 def empty_manifest() -> dict[str, Any]:
@@ -85,14 +89,22 @@ def update_preference(project: Path, *, global_value: Optional[str], section: Op
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project", required=True, type=Path)
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument("--set-global", choices=PREFERENCE_VALUES)
-    group.add_argument("--set-section", nargs=2, metavar=("SECTION", "PREFERENCE"))
+    parser.add_argument("--set-global", choices=PREFERENCE_VALUES)
+    parser.add_argument("--set-section", nargs=2, metavar=("SECTION", "PREFERENCE"))
+    parser.add_argument(
+        "--stack",
+        action="append",
+        metavar="SECTION",
+        help="mark a project stack as used (records section preference 'ask'); repeatable",
+    )
     return parser
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = build_parser().parse_args(argv)
+    if not (args.set_global or args.set_section or args.stack):
+        print("nothing to do: provide --set-global, --set-section or --stack", file=sys.stderr)
+        return 2
     section = None
     section_value = None
     if args.set_section:
@@ -101,12 +113,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print("section preference must be ask or optout", file=sys.stderr)
             return 2
     try:
-        path = update_preference(
-            args.project,
-            global_value=args.set_global,
-            section=section,
-            section_value=section_value,
-        )
+        path = None
+        if args.set_global is not None or section is not None:
+            path = update_preference(
+                args.project,
+                global_value=args.set_global,
+                section=section,
+                section_value=section_value,
+            )
+        for stack in args.stack or []:
+            path = update_preference(
+                args.project,
+                global_value=None,
+                section=stack,
+                section_value="ask",
+            )
     except ValueError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

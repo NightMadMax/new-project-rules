@@ -22,8 +22,21 @@
 - Отчёты [[docs/guides/user-guide/workflows/setup-new-computer-user|«Настройка нового компьютера»]]
   и [[docs/guides/user-guide/workflows/projects-user|«Работа с проектами»]]
   (workflow пользователя): у шагов два маршрута — фраза агенту и скрипт вручную.
+- Выбор стека при создании проекта: `create-new-project` спрашивает стек(и)
+  (можно несколько или пропустить), `best_practices_manifest.py` получил флаг
+  `--stack` и записывает выбор в `.best-practices.json`, применяются практики
+  выбранных стеков плюс `common`. Обновлены гайд `CREATE_NEW_PROJECT` и отчёт
+  `projects-user`.
 
 ### Изменено
+
+- Расширен список стеков Best Practices: добавлены `backend`, `mobile`,
+  `desktop`, `data-ml`, `data-analysis`, `excel-research`, `powerbi`,
+  `jira-confluence`, `devops`, `embedded`; расширено автоопределение по
+  файлам-маркерам (`data-analysis` и `jira-confluence` — только явный выбор).
+  NPR `ALLOWED_SECTIONS` синхронизирован, контракт-pin обновлён до BP
+  `ff54781f05e9b3f945e75b602aa32cb49ded671e`; `harvest-practice-candidates`
+  переспрашивает стек, если кандидат по умолчанию попадает в `common`.
 
 - Skill [[.agents/skills/compress-project/SKILL|compress-project]] теперь явно
   предлагает сделать commit, если после компрессии изменения остались

@@ -127,7 +127,7 @@
       <div class="row"><span class="k">Где</span><span class="v"><span class="loc">Правила для нового проекта</span> — bootstrap использует её commit как проверяемый <span class="code">source_commit</span>.</span></div>
     </div>
     <div class="routes two">
-      <div class="route agent"><span class="rl">🗣 агенту</span><div class="body"><span class="say">«Создай новый проект „Название“ в папке &lt;путь&gt;, профиль software, приватный GitHub-репозиторий»</span> · <span class="code">/create-new-project</span>. Профиль по умолчанию <span class="code">software</span> (есть <span class="code">minimal</span>, <span class="code">operated</span>, <span class="code">all</span>).</div></div>
+      <div class="route agent"><span class="rl">🗣 агенту</span><div class="body"><span class="say">«Создай новый проект „Название“ в папке &lt;путь&gt;, профиль software, стек web и backend, приватный GitHub-репозиторий»</span> · <span class="code">/create-new-project</span>. Профиль по умолчанию <span class="code">software</span>. <b>Стек</b> агент спрашивает отдельно (можно несколько или пропустить → только <span class="code">common</span>): 1c/web/backend/mobile/desktop/data-ml/data-analysis/excel-research/powerbi/jira-confluence/devops/embedded → пишется в <span class="code">.best-practices.json</span>.</div></div>
       <div class="route manual"><span class="rl">⌨ вручную</span><div class="body"><span class="cmd">./scripts/bootstrap-new-project.sh "&lt;путь&gt;" "Название" software</span>(или <span class="code">.ps1</span> на Windows).</div></div>
     </div>
     <ol class="steps">
@@ -201,7 +201,7 @@
       <div class="route agent"><span class="rl">🗣 агенту</span><div class="body"><span class="say">«Сожми накопившийся мусор проекта, покажи план»</span> · <span class="code">/compress-project</span></div></div>
       <div class="route manual"><span class="rl">⌨ вручную</span><div class="body">Отчёт (read-only):<span class="cmd">./scripts/compress-project.sh --root .</span>Применить обратимое:<span class="cmd">./scripts/compress-project.sh --root . --apply</span></div></div>
     </div>
-    <div class="res"><span class="k">Результат</span>отчёт/план; по <span class="code">--apply</span> — только обратимые операции (архив, сплит), инварианты держит <span class="code">validate-project</span>. Если изменения не закоммичены, агент явно предлагает сделать commit.</div>
+    <div class="res"><span class="k">Результат</span>отчёт/план; по <span class="code">--apply</span> — только обратимые операции (архив, сплит), инварианты держит <span class="code">validate-project</span>.</div>
     <a class="toplink" href="#top">↑ к оглавлению</a>
   </section>
 

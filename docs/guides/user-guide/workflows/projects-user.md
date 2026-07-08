@@ -46,8 +46,13 @@ related:
 - **Где:** `Правила для нового проекта` (bootstrap использует её commit как
   проверяемый `source_commit`).
 - 🗣 **Агенту:** *«Создай новый проект „Название“ в папке `<путь>`, профиль
-  software, приватный GitHub-репозиторий»* · `/create-new-project`. Профиль по
-  умолчанию `software` (есть `minimal`, `operated`, `all`).
+  software, стек `web` и `backend`, приватный GitHub-репозиторий»* ·
+  `/create-new-project`. Профиль по умолчанию `software` (есть `minimal`,
+  `operated`, `all`).
+- **Стек** агент спрашивает отдельно (можно несколько; можно пропустить — тогда
+  только `common`): `1c`/`web`/`backend`/`mobile`/`desktop`/`data-ml`/
+  `data-analysis`/`excel-research`/`powerbi`/`jira-confluence`/`devops`/`embedded`.
+  Выбор пишется в `.best-practices.json`.
 - ⌨ **Вручную:** `./scripts/bootstrap-new-project.sh "<путь>" "Название" software`
   (или `.ps1` на Windows).
 - Дальше агент: разворачивает структуру (AGENTS/CLAUDE, README, PROJECT, INDEX,

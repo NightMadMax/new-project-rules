@@ -81,16 +81,25 @@ description: Создаёт новый проект внутри общего Ob
    (чтобы отказ сохранился между машинами) и пропустить остальное — при отказе
    больше не предлагать. Не создавать schema 1 и не писать legacy-поля
    `optout`/`applied` вручную.
-4. Если база доступна и пользователь согласен, прочитать
-   `<база>/.agents/skills/apply-best-practices/SKILL.md` и выполнить его **только
-   для `common`** (стек нового проекта ещё не определён). Перед этим выполнить
-   `python3 scripts/best_practices_manifest.py --project <destination>
-   --set-global ask`. Изменения внести отдельным осмысленным commit и push;
-   outcomes отдельных практик записывает только canonical
-   `practice_report.py` из Best Practices в `practices`, без section-level
-   `applied`.
-5. Напомнить пользователю: когда определится стек проекта, повторно подтянуть
-   стековые практики — это уже описано правилом в `AGENTS.md` нового проекта.
+4. Если база доступна и пользователь согласен:
+   - **Спросить стек(и) проекта.** Спросить, какие стеки планируется
+     использовать (можно несколько), из списка Best Practices: `1c`, `web`,
+     `backend`, `mobile`, `desktop`, `data-ml`, `data-analysis`,
+     `excel-research`, `powerbi`, `jira-confluence`, `devops`, `embedded`.
+     Если стек ещё неизвестен — разрешить пропустить (тогда только `common`).
+   - Инициализировать manifest и записать выбранные стеки:
+     `python3 scripts/best_practices_manifest.py --project <destination>
+     --set-global ask --stack <stack1> --stack <stack2> …` (без `--stack` при
+     неизвестном стеке).
+   - Прочитать `<база>/.agents/skills/apply-best-practices/SKILL.md` и выполнить
+     его **для `common` и каждого выбранного стека** (`--section <stack>` у
+     `practice_report.py`). Если стек не выбран — только для `common`.
+   - Изменения внести отдельным осмысленным commit и push; outcomes отдельных
+     практик записывает только canonical `practice_report.py` из Best Practices
+     в `practices`, без section-level `applied`.
+5. Напомнить пользователю: если стек ещё не выбран или добавится новый — позже
+   подтянуть стековые практики (правило в `AGENTS.md` нового проекта); стек можно
+   дозаписать тем же `best_practices_manifest.py --stack <name>`.
 6. Не менять стандарт `new-project-rules`; применять практики только в целевом
    проекте.
 

@@ -88,6 +88,32 @@ class BestPracticesManifestTests(unittest.TestCase):
             )
         self.assertFalse(self.path.exists())
 
+    def test_cli_stack_records_selected_stacks(self):
+        result = subprocess.run([
+            sys.executable, str(MODULE_PATH), "--project", str(self.project),
+            "--stack", "web", "--stack", "backend",
+        ], capture_output=True, text=True)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertEqual(
+            {"web": "ask", "backend": "ask"},
+            self.read()["preferences"]["sections"],
+        )
+
+    def test_cli_stack_rejects_unknown_stack_without_write(self):
+        result = subprocess.run([
+            sys.executable, str(MODULE_PATH), "--project", str(self.project),
+            "--stack", "nope",
+        ], capture_output=True, text=True)
+        self.assertEqual(1, result.returncode)
+        self.assertFalse(self.path.exists())
+
+    def test_cli_requires_an_action(self):
+        result = subprocess.run([
+            sys.executable, str(MODULE_PATH), "--project", str(self.project),
+        ], capture_output=True, text=True)
+        self.assertEqual(2, result.returncode)
+        self.assertFalse(self.path.exists())
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
