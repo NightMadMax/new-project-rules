@@ -67,6 +67,15 @@ check_skill promote-project-knowledge
 check_skill reflect-and-record
 check_skill compress-project
 
+reflect_skill="$root/.agents/skills/reflect-and-record/SKILL.md"
+check_required_literals "$reflect_skill" \
+  'файл можно изменить в текущей' \
+  'новым процессам/сессиям'
+if grep -Fq 'не в середине' "$reflect_skill"; then
+  echo "FAIL: reflect-and-record retains the retired mid-session edit prohibition" >&2
+  fail=$((fail + 1))
+fi
+
 for file in \
   "$root/AGENTS.md" \
   "$root/templates/new-project/AGENTS.template.md"
