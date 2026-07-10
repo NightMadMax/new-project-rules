@@ -46,6 +46,8 @@
 | [[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL.md]] | Обоснование структуры артефактов |
 | [[docs/research/MUST_HAVE_PROJECT_TOOLING_2026|MUST_HAVE_PROJECT_TOOLING_2026.md]] | Исследование обязательной базы инструментов в 2026 году |
 | [[docs/research/STRATEGIC_EVOLUTION_PLAN|STRATEGIC_EVOLUTION_PLAN.md]] | Реализованный план policy-системы и следующий продуктовый этап |
+| [[docs/research/CONSUMER_STANDARD_MEASUREMENT|CONSUMER_STANDARD_MEASUREMENT.md]] | Протокол измерения результата стандарта на consumer-проектах |
+| [[docs/research/CONSUMER_STANDARD_BASELINE_2026-07-10|CONSUMER_STANDARD_BASELINE_2026-07-10.md]] | Первый проверенный baseline consumer-метрик |
 | [[docs/research/AGENT_RUNTIME_CAPABILITIES_2026|AGENT_RUNTIME_CAPABILITIES_2026.md]] | Рантайм-возможности Codex/Claude Code и план улучшений правил |
 | [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|AGENT_COMMUNITY_PRACTICES_2026.md]] | Community-практики Claude Code/Codex и кандидаты на внедрение |
 | [[docs/research/PROJECT_AUDIT_2026-07-03|PROJECT_AUDIT_2026-07-03.md]] | Повторный глубокий аудит: adversarial standardization checks, CI, portability и readiness |

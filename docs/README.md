@@ -47,6 +47,8 @@ related:
 - [[docs/research/PROJECT_AUDIT_2026-07-03|Повторный глубокий аудит проекта — 2026-07-03]]
 - [[docs/research/BEST_PRACTICES_INTEGRATION|Интеграция базы Best Practices в создание проекта]]
 - [[docs/research/PROJECT_COMPRESSION_PLAN|План: компрессия проекта (script + skill)]]
+- [[docs/research/CONSUMER_STANDARD_MEASUREMENT|Измерение результата стандарта на consumer-проектах]]
+- [[docs/research/CONSUMER_STANDARD_BASELINE_2026-07-10|Baseline consumer-метрик — 2026-07-10]]
 - [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|Архитектура знаний NPR ↔ Best Practices — 2026-07-06]]
 - [[docs/research/archive/README|Архив устаревших и завершённых исследований]]
 
