@@ -59,4 +59,5 @@ jobs:
           python3 scripts/test-compress-project.py
           python3 scripts/test-best-practices-contract.py
           python3 scripts/test-best-practices-manifest.py
+          python3 scripts/test-standard-metrics.py
           python3 scripts/validate-project.py --root . --kind rules --report-only
