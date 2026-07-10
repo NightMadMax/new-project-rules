@@ -1,8 +1,8 @@
 ---
 type: research
-status: proposed
+status: implemented
 owner: project
-last_verified: 2026-07-06
+last_verified: 2026-07-10
 source_of_truth: repository
 related:
   - "[[PROJECT]]"
@@ -14,6 +14,14 @@ related:
 ---
 
 # План: компрессия проекта (script + skill)
+
+## Статус реализации
+
+План выполнен. Уровень 1 реализован в `scripts/compress-project.py` с POSIX и
+PowerShell-обёртками и regression-тестом; уровни 2–3 описаны в
+`.agents/skills/compress-project/SKILL.md`. Документация, регистрация в индексах и
+CI-проверки добавлены; сам проект прошёл dogfood-компрессию и последующую
+валидацию.
 
 ## Проблема
 
