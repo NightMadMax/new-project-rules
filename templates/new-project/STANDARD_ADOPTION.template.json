@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "created_at": "<YYYY-MM-DD>",
+  "first_green_at": null,
+  "first_green_self_service": null,
+  "interventions": []
+}

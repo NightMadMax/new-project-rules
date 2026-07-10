@@ -167,6 +167,8 @@ try {
             Assert-File $dir $f $p
         }
         Assert-Absent $dir ".obsidian" $p
+        Assert-File $dir "docs/quality/STANDARD_ADOPTION.json" "$p metrics"
+        Assert-Grep (Join-Path $dir "docs/quality/STANDARD_ADOPTION.json") '"first_green_at": null' "$p metrics"
         if ((Get-Content -Raw (Join-Path $dir "CLAUDE.md")).Trim() -eq "@AGENTS.md") { Pass }
         else { Fail "${p}: CLAUDE.md is not exactly '@AGENTS.md'" }
         $placeholders = Get-ChildItem -Recurse -Filter *.md $dir | Select-String -Pattern '<PROJECT_NAME>|<YYYY-MM-DD>'

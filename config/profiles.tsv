@@ -3,6 +3,7 @@ minimal	@generated	.editorconfig	-	-	-
 minimal	@generated	.gitattributes	-	-	-
 minimal	@generated	.gitignore	-	-	-
 minimal	@generated	.project-standard.json	-	-	-
+minimal	STANDARD_ADOPTION.template.json	docs/quality/STANDARD_ADOPTION.json	Журнал product-метрик стандарта	-	-
 minimal	README.template.md	README.md	Описание и быстрый старт	-	-
 minimal	AGENTS.template.md	AGENTS.md	Правила агента и workflow	-	-
 minimal	@generated	CLAUDE.md	Imports AGENTS for Claude Code	-	-

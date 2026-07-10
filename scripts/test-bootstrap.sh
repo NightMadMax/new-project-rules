@@ -136,6 +136,8 @@ for profile in minimal software operated all; do
     assert_file "$dir" "$f" "$profile"
   done
   assert_absent "$dir" ".obsidian" "$profile"
+  assert_file "$dir" "docs/quality/STANDARD_ADOPTION.json" "$profile metrics"
+  assert_grep "$dir/docs/quality/STANDARD_ADOPTION.json" '"first_green_at": null' "$profile metrics"
   if [ "$(cat "$dir/CLAUDE.md" 2>/dev/null)" = "@AGENTS.md" ]; then ok
   else bad "$profile: CLAUDE.md is not exactly '@AGENTS.md'"; fi
   assert_no_placeholder "$dir" "$profile"

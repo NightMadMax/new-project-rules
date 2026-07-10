@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Bootstrap создаёт machine-readable журнал `STANDARD_ADOPTION.json`; новый
+  `standard-metrics.py` записывает первый green/self-service и ручные
+  вмешательства, затем сводит их read-only отчётом.
+
 - Протокол consumer-метрик и baseline двух operated-проектов: текущий compliance
   2/2 и шесть recorded practice decisions; исторически неизвестные показатели
   явно не подменяются косвенными оценками.
