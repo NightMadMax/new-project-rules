@@ -42,7 +42,7 @@ def validate_state(repository, metadata, ruleset, collaborators, strict_actor_id
         problems.append("Protect main ruleset must be active")
     bypass = ruleset.get("bypass_actors")
     expected_ids = {5} if strict_actor_id else {5, None}
-    bypass_redacted = not strict_actor_id and bypass == []
+    bypass_redacted = not strict_actor_id and not bypass
     bypass_ok = bypass_redacted or (
         isinstance(bypass, list) and len(bypass) == 1 and isinstance(bypass[0], dict)
         and bypass[0].get("actor_type") == "RepositoryRole"

@@ -71,6 +71,11 @@ class GovernanceTests(unittest.TestCase):
             "NightMadMax/best-practices", metadata, ruleset, collaborators,
             strict_actor_id=True,
         ))
+        ruleset.pop("bypass_actors")
+        self.assertEqual([], checker.validate_state(
+            "NightMadMax/best-practices", metadata, ruleset, collaborators,
+            strict_actor_id=False,
+        ))
 
 
 if __name__ == "__main__":
