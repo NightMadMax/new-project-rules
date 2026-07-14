@@ -6,6 +6,11 @@
 
 ### Добавлено
 
+- В [[docs/quality/DEFECTS|журнале дефектов]] зафиксированы два сбоя реального
+  создания проекта: validation `practice_report.py` на актуальной базе Best
+  Practices и невозможность запуска packaged `codex.exe` из PowerShell для
+  проверки instruction sources.
+
 - Bootstrap создаёт machine-readable журнал `STANDARD_ADOPTION.json`; новый
   `standard-metrics.py` записывает первый green/self-service и ручные
   вмешательства, затем сводит их read-only отчётом.

@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-07-08
+last_verified: 2026-07-14
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -17,6 +17,8 @@ related:
 
 | # | Title | Discovered | Component | Description |
 |---|---|---|---|---|
+| 61 | Проверка instruction sources не запускает packaged Codex Desktop на Windows | 2026-07-14 | `create-new-project` / instruction-source verification | При создании `favorit-web` команда `codex --cd <destination> --ask-for-approval never exec ...` разрешилась в `WindowsApps/.../codex.exe`, но PowerShell не смог запустить executable: `Отказано в доступе`. Workflow считает наличие команды достаточным и не различает invocable CLI и packaged app executable. Нужен переносимый preflight/launcher fallback либо явный статус skipped с диагностикой, покрытый Windows-тестом. Это отдельный дефект от №56: subcommand `exec` указан правильно. |
+| 60 | Create workflow блокируется внутренней validation актуальной Best Practices | 2026-07-14 | `create-new-project` / NPR↔BP integration | При создании `favorit-web` актуальный `practice_report.py` завершился до отчёта и записи outcomes ошибками `candidate target does not point to this practice` для accepted-файлов. Текущий cross-repo контракт проверяет pinned artifacts и reader/writer compatibility, но не гарантирует, что актуальный набор accepted practices проходит end-to-end report. Нужен воспроизводимый live/fixture gate для repository validation и определённый fail-safe workflow без ручной записи schema 2 outcomes. |
 | 59 | Bypass защиты `main` выдан роли Admin, а не конкретному аккаунту | 2026-07-08 | GitHub governance / ruleset «Protect main» (`18603924`) | В ruleset защиты `main` bypass-actor = `RepositoryRole id=5` (Admin), `mode=always`, тогда как намерение владельца — прямой push (bypass) строго у него, а все остальные контрибьюторы идут через PR + status checks. Пока владелец единственный админ, риск не проявляется; но добавление второго Admin автоматически даст ему обход PR/checks/force-push guard. Разобрать: сузить bypass до конкретного actor вместо role-level, либо осознанно принять role-level и задокументировать решение в governance. Проверить то же на репозитории `Best Practices`. Обнаружено при аудите push в `main` (bypass сработал в этой сессии). |
 
 ## Fixed
