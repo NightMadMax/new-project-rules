@@ -28,6 +28,7 @@
 | [[docs/guides/user-guide/workflows/setup-new-computer-user|setup-new-computer-user.md]] | Настройка нового компьютера — workflow пользователя: два маршрута (агенту/вручную) |
 | [[docs/guides/user-guide/workflows/projects-user|projects-user.md]] | Работа с проектами — карта действий пользователя: создание проекта + каталог действий |
 | [[docs/guides/USE_THIS_PROJECT|USE_THIS_PROJECT.md]] | Пользовательский вход: как работать с проектом и какими фразами ставить задачи агенту |
+| [[docs/guides/GITHUB_WORKFLOW|GITHUB_WORKFLOW.md]] | Правила прямого push, ролей, rulesets, required checks и GitHub API tokens |
 | [[docs/guides/MANUAL_SCRIPTS|MANUAL_SCRIPTS.md]] | Справочник по ручному запуску скриптов: команды sh/ps1, флаги и когда запускать вручную |
 | [[docs/guides/CREATE_NEW_PROJECT|CREATE_NEW_PROJECT.md]] | Создание проекта вручную или по запросу агенту |
 | [[docs/guides/ASSESS_EXISTING_PROJECT|ASSESS_EXISTING_PROJECT.md]] | Read-only оценка legacy-проекта и decision report без изменения файлов |

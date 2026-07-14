@@ -109,5 +109,7 @@ deletion/non-fast-forward; branch API возвращает
 осознанной trust boundary для прямого push владельца. Governance-инвариант:
 `NightMadMax` — единственный Admin, остальные контрибьюторы получают не более
 Write/Maintain и проходят PR/checks. Read-only `check_github_governance.py`
-ежедневно проверяет оба ruleset и список Admin; второй Admin делает audit
-красным. Actions SHA/owner policy действует как независимый control.
+в полном локальном режиме проверяет оба ruleset и точный role ID. Scheduled
+self-audit каждого репозитория проверяет собственный ruleset и список Admin;
+`GITHUB_TOKEN` скрывает role ID, поэтому там удерживаются тип/mode bypass, а
+второй Admin делает audit красным. Actions SHA/owner policy независим.

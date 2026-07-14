@@ -9,6 +9,9 @@
 - Read-only `check_github_governance.py` и scheduled workflow проверяют active
   rulesets, обязательные checks и инвариант «владелец — единственный Admin» при
   сохранённом прямом push через Admin-bypass.
+- [[docs/guides/GITHUB_WORKFLOW|Правила работы с GitHub]] закрепляют прямой push
+  владельца, модель ролей, стабильные required-check contexts, remote CI gate и
+  ограничения repository-scoped `GITHUB_TOKEN`.
 
 - В [[docs/quality/DEFECTS|журнале дефектов]] зафиксированы два сбоя реального
   создания проекта: validation `practice_report.py` на актуальной базе Best

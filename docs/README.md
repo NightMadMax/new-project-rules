@@ -13,6 +13,7 @@ related:
 
 ## Руководства
 
+- [[docs/guides/GITHUB_WORKFLOW|Правила работы с GitHub]]
 - [[docs/guides/user-guide/README|Руководство пользователя (папка)]]
 - [[docs/guides/user-guide/USER_GUIDE|Основное руководство пользователя]]
 - [[docs/guides/user-guide/workflows/README|Каталог workflow по процессам]]

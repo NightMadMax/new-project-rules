@@ -32,7 +32,7 @@ def gh_json(path: str):
     return json.loads(result.stdout)
 
 
-def validate_state(repository, metadata, ruleset, collaborators) -> List[str]:
+def validate_state(repository, metadata, ruleset, collaborators, strict_actor_id=True) -> List[str]:
     policy = POLICIES[repository]
     owner = str(cast_mapping(metadata.get("owner")).get("login", ""))
     problems: List[str] = []
@@ -40,9 +40,15 @@ def validate_state(repository, metadata, ruleset, collaborators) -> List[str]:
         problems.append("default branch must be main")
     if ruleset.get("enforcement") != "active":
         problems.append("Protect main ruleset must be active")
-    if ruleset.get("bypass_actors") != [
-        {"actor_id": 5, "actor_type": "RepositoryRole", "bypass_mode": "always"}
-    ]:
+    bypass = ruleset.get("bypass_actors")
+    expected_ids = {5} if strict_actor_id else {5, None}
+    bypass_ok = (
+        isinstance(bypass, list) and len(bypass) == 1 and isinstance(bypass[0], dict)
+        and bypass[0].get("actor_type") == "RepositoryRole"
+        and bypass[0].get("bypass_mode") == "always"
+        and bypass[0].get("actor_id") in expected_ids
+    )
+    if not bypass_ok:
         problems.append("ruleset must keep the reviewed Admin always-bypass")
     rules = [item for item in ruleset.get("rules", []) if isinstance(item, dict)]
     rule_types = {str(item.get("type")) for item in rules}
@@ -68,25 +74,31 @@ def validate_state(repository, metadata, ruleset, collaborators) -> List[str]:
     return problems
 
 
-def audit(repository: str) -> List[str]:
+def audit(repository: str, strict_actor_id: bool = True) -> List[str]:
     policy = POLICIES[repository]
     metadata = gh_json(f"repos/{repository}")
     ruleset = gh_json(f"repos/{repository}/rulesets/{policy['ruleset_id']}")
     collaborators = gh_json(f"repos/{repository}/collaborators?affiliation=all&permission=admin")
     if not isinstance(metadata, dict) or not isinstance(ruleset, dict) or not isinstance(collaborators, list):
         return ["GitHub API returned an unexpected response shape"]
-    return validate_state(repository, metadata, ruleset, collaborators)
+    return validate_state(repository, metadata, ruleset, collaborators, strict_actor_id)
 
 
 def main(argv: Optional[Sequence[str]] = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repository", action="append", choices=sorted(POLICIES))
+    parser.add_argument(
+        "--github-token-scope", action="store_true",
+        help="audit one current repository when GITHUB_TOKEN redacts RepositoryRole actor_id",
+    )
     args = parser.parse_args(argv)
     repositories = args.repository or sorted(POLICIES)
+    if args.github_token_scope and len(repositories) != 1:
+        parser.error("--github-token-scope requires exactly one --repository")
     failed = False
     for repository in repositories:
         try:
-            problems = audit(repository)
+            problems = audit(repository, strict_actor_id=not args.github_token_scope)
         except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
             problems = [f"cannot query GitHub API: {error}"]
         if problems:
