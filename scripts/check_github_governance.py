@@ -42,7 +42,8 @@ def validate_state(repository, metadata, ruleset, collaborators, strict_actor_id
         problems.append("Protect main ruleset must be active")
     bypass = ruleset.get("bypass_actors")
     expected_ids = {5} if strict_actor_id else {5, None}
-    bypass_ok = (
+    bypass_redacted = not strict_actor_id and bypass == []
+    bypass_ok = bypass_redacted or (
         isinstance(bypass, list) and len(bypass) == 1 and isinstance(bypass[0], dict)
         and bypass[0].get("actor_type") == "RepositoryRole"
         and bypass[0].get("bypass_mode") == "always"
@@ -89,7 +90,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     parser.add_argument("--repository", action="append", choices=sorted(POLICIES))
     parser.add_argument(
         "--github-token-scope", action="store_true",
-        help="audit one current repository when GITHUB_TOKEN redacts RepositoryRole actor_id",
+        help="audit one current repository when GITHUB_TOKEN redacts bypass actors",
     )
     args = parser.parse_args(argv)
     repositories = args.repository or sorted(POLICIES)

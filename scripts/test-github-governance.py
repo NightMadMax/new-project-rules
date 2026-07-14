@@ -60,9 +60,9 @@ class GovernanceTests(unittest.TestCase):
         self.assertTrue(any("Admin always-bypass" in problem for problem in problems))
         self.assertTrue(any("non_fast_forward" in problem for problem in problems))
 
-    def test_github_token_scope_allows_redacted_role_id_only(self):
+    def test_github_token_scope_allows_redacted_bypass_only(self):
         metadata, ruleset, collaborators = self.state()
-        ruleset["bypass_actors"][0]["actor_id"] = None
+        ruleset["bypass_actors"] = []
         self.assertEqual([], checker.validate_state(
             "NightMadMax/best-practices", metadata, ruleset, collaborators,
             strict_actor_id=False,

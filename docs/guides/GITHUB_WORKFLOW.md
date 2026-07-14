@@ -43,9 +43,10 @@ related:
   `python scripts/check_github_governance.py`. Он проверяет оба ruleset, точный
   `RepositoryRole id=5` и единственного owner-admin.
 - Не использовать стандартный `GITHUB_TOKEN` для cross-repository governance:
-  он repository-scoped, не читает collaborators соседнего repo и может скрывать
-  actor ID. Scheduled workflow выполняет только self-audit собственного
-  репозитория с `--github-token-scope`; ограничение должно быть явным.
+  он repository-scoped, не читает collaborators соседнего repo и скрывает
+  bypass actors. Scheduled workflow выполняет только self-audit собственного
+  репозитория с `--github-token-scope`: active guards/checks и sole owner-admin;
+  точный bypass подтверждает только полный интерактивный audit.
 - Не создавать PAT, GitHub App, deploy key или repository secret без отдельного
   согласования. Никогда не записывать credential в репозиторий или логи.
 

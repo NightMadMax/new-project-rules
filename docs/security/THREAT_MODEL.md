@@ -110,6 +110,7 @@ deletion/non-fast-forward; branch API возвращает
 `NightMadMax` — единственный Admin, остальные контрибьюторы получают не более
 Write/Maintain и проходят PR/checks. Read-only `check_github_governance.py`
 в полном локальном режиме проверяет оба ruleset и точный role ID. Scheduled
-self-audit каждого репозитория проверяет собственный ruleset и список Admin;
-`GITHUB_TOKEN` скрывает role ID, поэтому там удерживаются тип/mode bypass, а
-второй Admin делает audit красным. Actions SHA/owner policy независим.
+self-audit каждого репозитория проверяет active ruleset, обязательные
+guards/checks и список Admin. `GITHUB_TOKEN` полностью скрывает bypass actors,
+поэтому scheduled job их не подтверждает; точный bypass остаётся обязанностью
+full audit. Второй Admin делает self-audit красным.
