@@ -83,6 +83,7 @@ class BestPracticesContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
             subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
             subprocess.run(
@@ -99,7 +100,7 @@ class BestPracticesContractTests(unittest.TestCase):
             practice = root / "practices/common/PC-2026-001-example.md"
             practice.parent.mkdir(parents=True)
             practice.write_text("---\nid: PC-2026-001\nstatus: accepted\n---\n", encoding="utf-8")
-            required[str(practice.relative_to(root))] = hashlib.sha256(practice.read_bytes()).hexdigest()
+            required[practice.relative_to(root).as_posix()] = hashlib.sha256(practice.read_bytes()).hexdigest()
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
             head = subprocess.run(
@@ -117,7 +118,7 @@ class BestPracticesContractTests(unittest.TestCase):
                 "required_files": required,
                 "promotion_source": {
                     "id": "PC-2026-001",
-                    "path": str(practice.relative_to(root)),
+                    "path": practice.relative_to(root).as_posix(),
                     "required_status": "accepted",
                 },
             }
@@ -125,13 +126,14 @@ class BestPracticesContractTests(unittest.TestCase):
             self.assertEqual([], checker.verify_checkout(contract, root))
             practice.write_text("---\nid: PC-2026-001\nstatus: trial\n---\n", encoding="utf-8")
             problems = checker.verify_checkout(contract, root)
-            self.assertTrue(any("sha256 mismatch" in item for item in problems))
+            self.assertTrue(any("pinned file differs" in item for item in problems))
             self.assertTrue(any("not accepted" in item for item in problems))
 
     def test_retired_route_in_active_surface_is_rejected(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "core.autocrlf", "false"], cwd=root, check=True)
             subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
             subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
             subprocess.run(["git", "remote", "add", "origin", "git@github.com:NightMadMax/best-practices.git"], cwd=root, check=True)
@@ -144,7 +146,7 @@ class BestPracticesContractTests(unittest.TestCase):
             practice = root / "practices/common/PC-2026-001-example.md"
             practice.parent.mkdir(parents=True)
             practice.write_text("---\nid: PC-2026-001\nstatus: accepted\n---\n", encoding="utf-8")
-            required[str(practice.relative_to(root))] = hashlib.sha256(practice.read_bytes()).hexdigest()
+            required[practice.relative_to(root).as_posix()] = hashlib.sha256(practice.read_bytes()).hexdigest()
             (root / "README.md").write_text("retired-route\n", encoding="utf-8")
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
@@ -152,11 +154,24 @@ class BestPracticesContractTests(unittest.TestCase):
             changed = json.loads(json.dumps(self.contract))
             changed["source_commit"] = head
             changed["required_files"] = required
-            changed["promotion_source"] = {"id": "PC-2026-001", "path": str(practice.relative_to(root)), "required_status": "accepted"}
+            changed["promotion_source"] = {"id": "PC-2026-001", "path": practice.relative_to(root).as_posix(), "required_status": "accepted"}
             changed["retired_routes"] = ["retired-route"]
             changed["active_routing_surfaces"] = ["README.md"]
             problems = checker.verify_checkout(changed, root)
             self.assertTrue(any("retired route" in item for item in problems))
+
+    def test_checkout_hash_uses_committed_blob_not_worktree_line_endings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.email", "test@example.com"], cwd=root, check=True)
+            subprocess.run(["git", "config", "user.name", "Test"], cwd=root, check=True)
+            path = root / "sample.py"
+            path.write_bytes(b"first\nsecond\n")
+            subprocess.run(["git", "add", "sample.py"], cwd=root, check=True)
+            subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
+            expected = hashlib.sha256(b"first\nsecond\n").hexdigest()
+            self.assertEqual(expected, hashlib.sha256(checker._git_blob(root, "sample.py")).hexdigest())
 
 
 if __name__ == "__main__":

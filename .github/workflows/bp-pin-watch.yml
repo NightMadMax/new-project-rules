@@ -15,5 +15,17 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: NightMadMax/best-practices
+          ref: main
+          path: .external/best-practices-live
+          persist-credentials: false
+      - name: Validate live repository and representative report
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python3 .external/best-practices-live/scripts/validate.py --root .external/best-practices-live
+          python3 scripts/test-best-practices-e2e.py --best-practices-root .external/best-practices-live
       - name: Detect reviewed pin drift
         run: python3 scripts/check_best_practices_contract.py --check-latest

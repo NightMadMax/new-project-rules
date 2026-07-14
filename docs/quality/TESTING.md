@@ -42,6 +42,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-best-practices-contract.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-github-governance.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-best-practices-manifest.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-best-practices-e2e.py --best-practices-root "../Best Practices"
 python3 scripts/check-action-pins.py
@@ -67,6 +68,7 @@ python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-compress-project.py
 python .\scripts\test-supply-chain.py
 python .\scripts\test-best-practices-contract.py
+python .\scripts\test-github-governance.py
 python .\scripts\test-best-practices-manifest.py
 python .\scripts\test-best-practices-e2e.py --best-practices-root "..\Best Practices"
 python .\scripts\check-action-pins.py

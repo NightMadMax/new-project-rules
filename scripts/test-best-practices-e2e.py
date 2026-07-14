@@ -46,6 +46,22 @@ class ConsumerManifestE2E(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
+    def test_full_best_practices_repository_is_valid(self):
+        problems = self.report.validate.validate_repository(self.bp_root)
+        self.assertEqual([], [problem.render(self.bp_root) for problem in problems])
+
+    def test_real_report_reads_schema2_consumer(self):
+        self.writer.update_preference(
+            self.project, global_value="ask", section="common", section_value="ask",
+        )
+        exit_code = self.report.main([
+            "--root", str(self.bp_root),
+            "--project", str(self.project),
+            "--section", "common",
+            "--format", "json",
+        ])
+        self.assertEqual(0, exit_code)
+
     def test_npr_global_optout_is_enforced_by_bp(self):
         self.writer.update_preference(
             self.project, global_value="optout", section=None, section_value=None,

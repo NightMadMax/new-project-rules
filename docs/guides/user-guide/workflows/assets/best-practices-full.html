@@ -473,11 +473,11 @@
           <div class="r1"><span class="sid">C3</span><span class="title">Ежедневный сторож дрейфа</span><span class="who">GitHub · cron</span></div>
           <div class="sigrow"><span class="lbl">◆ Сигнал</span><span class="txt">Расписание <span class="code">cron 17 5 * * *</span> (ежедневно, без участия человека)</span></div>
           <div class="launch"><div class="lrow"><span class="exec-chip e-ci">система · CI</span><span class="badge b-auto">auto</span>
-            <span class="trig"><span class="code">bp-pin-watch.yml</span> → <span class="code">check_best_practices_contract.py --check-latest</span></span></div></div>
+            <span class="trig"><span class="code">bp-pin-watch.yml</span> → pin check + live BP validation/report</span></div></div>
           <div class="flow">
             <div class="io"><span class="k">Вход</span><span class="v">Reviewed pin vs текущий BP <span class="code">main</span></span></div>
             <span class="arrow">→</span>
-            <div class="io"><span class="k">Результат</span><span class="v">При дрейфе — красный read-only сигнал (commit/hashes не меняет)</span></div>
+            <div class="io"><span class="k">Результат</span><span class="v">При drift или invalid repository/report — красный read-only сигнал; ничего не записывает</span></div>
           </div>
         </div>
       </div>

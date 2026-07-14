@@ -115,7 +115,7 @@ class MigrationPlannerTests(unittest.TestCase):
         self.assertEqual(plan.status, "ready")
         self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block+0006-upgrade-project-agents-managed-block-v2")
         self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
-        self.assertTrue(plan.desired_text.startswith(local))
+        self.assertTrue(plan.desired_text.replace("\r\n", "\n").startswith(local))
         self.assertIn("new-project-rules:begin schema=", plan.desired_text)
         self.assertIn("in Russian", plan.desired_text)
         self.assertEqual(before, digest_tree(project))

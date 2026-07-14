@@ -70,8 +70,8 @@ Owners (`.github/CODEOWNERS`) + status check `validate` + block force push.
 
 | Шаг | Действие | Исполнитель | Запуск | Вход → Результат | Сигнал |
 |---|---|---|---|---|---|
-| C1 | Контрактный тест + Cross-repo E2E | система·CI | `auto` — `ci.yml` → `test-best-practices-contract.py` + `test-best-practices-e2e.py` (Ubuntu/Windows/macOS) | Contract.json + хеши; checkout `source_commit`, реальный BP `practice_report.py` → pass/fail, writer↔reader совместимы | любой push/PR в NPR |
-| C3 | Ежедневный сторож дрейфа | система·CI | `auto` — `bp-pin-watch.yml` → `check_best_practices_contract.py --check-latest` (cron `17 5 * * *`) | Reviewed pin vs BP `main` → красный read-only сигнал при дрейфе (commit/hashes не меняет) | внешн.: расписание cron |
+| C1 | Контрактный тест + Cross-repo E2E | система·CI | `auto` — `ci.yml` → contract + E2E (Ubuntu/Windows/macOS) | Contract.json + хеши; полная BP validation, реальный schema-2 report и outcomes → pass/fail | любой push/PR в NPR |
+| C3 | Ежедневный live-сторож | система·CI | `auto` — `bp-pin-watch.yml` → pin check + checkout BP `main` + validation/report (cron `17 5 * * *`) | Reviewed pin и live repository → красный read-only сигнал при drift/invalid state; ничего не записывает | внешн.: расписание cron |
 | C4 | Обновление pin | администратор | `git` — вручную, отдельный reviewable PR (5 шагов из контракт-доки) | Новый BP `main`, accepted-практика с evidence → обновлены commit/hashes/route/ADR | красный сигнал bp-pin-watch |
 
 ## Две решающие точки

@@ -1,0 +1,21 @@
+name: governance-audit
+
+on:
+  schedule:
+    - cron: "41 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Verify rulesets and sole owner-admin invariant
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/check_github_governance.py

@@ -38,6 +38,8 @@
 - Supply-chain checks: `python scripts/check-action-pins.py` и
   `python scripts/test-supply-chain.py`; external Actions разрешены только по
   full commit SHA, Docker actions — по `sha256` digest.
+- GitHub governance audit: `python scripts/check_github_governance.py` —
+  read-only проверка rulesets и инварианта «владелец — единственный Admin».
 - Validator runtime uses only the Python standard library.
 - Install: `python -m pip install -r requirements-dev.txt`.
 - `PyYAML 6.0.3`: required by the official `skill-creator` metadata generator

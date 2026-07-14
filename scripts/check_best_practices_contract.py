@@ -24,6 +24,7 @@ REQUIRED_CONSUMER_INTERFACE_FILES = {
     "docs/architecture/decisions/ADR-0006-versioned-consumer-manifest.md",
     "docs/reference/PRACTICE_SCHEMA.md",
     "scripts/practice_report.py",
+    "scripts/validate.py",
     "scripts/migrate_consumer_manifest.py",
 }
 
@@ -81,7 +82,7 @@ def validate_contract(data: Mapping[str, object]) -> List[str]:
             + ", ".join(sorted(missing_interface))
         )
     for path, digest in required_files.items():
-        if not isinstance(path, str) or path.startswith("/") or ".." in Path(path).parts:
+        if not isinstance(path, str) or path.startswith("/") or "\\" in path or ".." in Path(path).parts:
             problems.append(f"unsafe required file path: {path!r}")
         if not isinstance(digest, str) or not SHA256_RE.fullmatch(digest):
             problems.append(f"invalid sha256 for {path!r}")
@@ -126,6 +127,13 @@ def _git(root: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
+def _git_blob(root: Path, relative: str) -> bytes:
+    result = subprocess.run(
+        ["git", "show", f"HEAD:{relative}"], cwd=root, check=True, capture_output=True
+    )
+    return result.stdout
+
+
 def _frontmatter(path: Path) -> Dict[str, str]:
     lines = path.read_text(encoding="utf-8").splitlines()
     if not lines or lines[0] != "---":
@@ -163,7 +171,13 @@ def verify_checkout(data: Mapping[str, object], root: Path) -> List[str]:
         if not path.is_file():
             problems.append(f"missing pinned file: {relative}")
             continue
-        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        dirty = subprocess.run(
+            ["git", "diff", "--quiet", "HEAD", "--", relative], cwd=root
+        ).returncode
+        if dirty != 0:
+            problems.append(f"pinned file differs from committed HEAD: {relative}")
+            continue
+        actual = hashlib.sha256(_git_blob(root, relative)).hexdigest()
         if actual != expected:
             problems.append(f"sha256 mismatch: {relative}")
 

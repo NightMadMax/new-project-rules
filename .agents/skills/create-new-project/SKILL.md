@@ -94,6 +94,12 @@ description: Создаёт новый проект внутри общего Ob
    - Прочитать `<база>/.agents/skills/apply-best-practices/SKILL.md` и выполнить
      его **для `common` и каждого выбранного стека** (`--section <stack>` у
      `practice_report.py`). Если стек не выбран — только для `common`.
+   - Если repository validation или `practice_report.py` завершается ошибкой,
+     не отменять уже завершённый bootstrap проекта и не записывать outcomes
+     вручную. Показать исходную ошибку, отметить применение практик как
+     отложенное и дать команду повторного запуска после исправления базы:
+     `python3 <база>/scripts/practice_report.py --root <база> --project
+     <destination> --section <stack>`. Manifest сохраняет только preferences.
    - Изменения внести отдельным осмысленным commit и push; outcomes отдельных
      практик записывает только canonical `practice_report.py` из Best Practices
      в `practices`, без section-level `applied`.

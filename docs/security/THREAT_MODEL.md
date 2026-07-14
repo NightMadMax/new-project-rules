@@ -106,5 +106,8 @@ PR, один approval, Code Owner review, resolved threads, strict checks `shell
 deletion/non-fast-forward; branch API возвращает
 `main.protected=true`. `.github/CODEOWNERS` задаёт владельца всех файлов и явно
 перечисляет высокодоверенные governance surfaces. Administrator bypass остаётся
-осознанной trust boundary. Actions SHA/owner policy действует как независимый
-дополнительный control.
+осознанной trust boundary для прямого push владельца. Governance-инвариант:
+`NightMadMax` — единственный Admin, остальные контрибьюторы получают не более
+Write/Maintain и проходят PR/checks. Read-only `check_github_governance.py`
+ежедневно проверяет оба ruleset и список Admin; второй Admin делает audit
+красным. Actions SHA/owner policy действует как независимый control.

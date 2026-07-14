@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Read-only `check_github_governance.py` и scheduled workflow проверяют active
+  rulesets, обязательные checks и инвариант «владелец — единственный Admin» при
+  сохранённом прямом push через Admin-bypass.
+
 - В [[docs/quality/DEFECTS|журнале дефектов]] зафиксированы два сбоя реального
   создания проекта: validation `practice_report.py` на актуальной базе Best
   Practices и невозможность запуска packaged `codex.exe` из PowerShell для
@@ -42,6 +46,11 @@
   `projects-user`.
 
 ### Изменено
+
+- Best Practices pin обновлён до Windows-portable validation; cross-repo E2E и
+  ежедневный live-watch теперь запускают полную validation и реальный schema-2
+  report. Create workflow при сбое базы сохраняет проект и не пишет outcomes
+  вручную.
 
 - Расширен список стеков Best Practices: добавлены `backend`, `mobile`,
   `desktop`, `data-ml`, `data-analysis`, `excel-research`, `powerbi`,

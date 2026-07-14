@@ -123,6 +123,8 @@
 | `scripts/best_practices_manifest.py` | Writer schema 2 preferences для Best Practices consumer manifest |
 | `scripts/test-best-practices-manifest.py` | Regression tests consumer manifest writer |
 | `scripts/test-best-practices-e2e.py` | Cross-repo E2E NPR writer ↔ pinned BP loader/report |
+| `scripts/check_github_governance.py` | Read-only audit rulesets и единственного owner-admin |
+| `scripts/test-github-governance.py` | Regression tests governance-инвариантов |
 | `.github/dependabot.yml` | Еженедельные GitHub Actions updates |
 | `.github/workflows/ci.yml` | CI: syntax-check и runtime-тесты на каждый push/PR |
 | `.github/workflows/bp-pin-watch.yml` | Scheduled read-only detector drift reviewed Best Practices pin |

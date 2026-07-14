@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "NightMadMax/best-practices",
-  "source_commit": "7a0be917320b9812591ebad2c4fbb00119834e93",
+  "source_commit": "a492d82bb80eaeef9c47c573ce11c61d09f21719",
   "supported_practice_statuses": ["accepted"],
   "retired_routes": ["harvest-project-lessons"],
   "active_routing_surfaces": [
@@ -29,7 +29,8 @@
     "docs/architecture/decisions/ADR-0006-versioned-consumer-manifest.md": "0d833f415ba9c72e3cbc33c43ec505f77a2813fc51cf3ecb1a6903b9cd0cd214",
     "docs/reference/PRACTICE_SCHEMA.md": "7e7dd63fe28215606849a13ef39d3d1fea8fbaeead2e4933343eea46545b6028",
     "scripts/migrate_consumer_manifest.py": "4f6c3308d2ae43dead92e6aad294fd696a8223fd6dc4141bd762f61e7f5c856f",
-    "scripts/practice_report.py": "59ed5e6f36c126d84b8973194f339a62b837f2dafa43c41c67b074781e8bbb78",
+    "scripts/practice_report.py": "9a42c8457a1c5acdbb1557f7b1ba113097083b61f543f738a512a5f86f0540f2",
+    "scripts/validate.py": "f18b72f1b72be2684e563f2840f4d47476961cf8fab2ef823b1ec0738e1fae72",
     "practices/common/PC-2026-001-keep-credentials-out-of-repository.md": "74a7d7c763f36108cda098a3a2a7e4873d6823df2587fcd5ea258524d375e44f"
   },
   "promotion_source": {

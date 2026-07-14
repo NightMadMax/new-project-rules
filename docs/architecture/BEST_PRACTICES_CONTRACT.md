@@ -23,7 +23,8 @@ CI: `python3 scripts/test-best-practices-contract.py`.
 CI дополнительно checkout'ит `source_commit` в изолированный каталог и запускает
 `scripts/test-best-practices-e2e.py`: NPR writer создаёт preferences, а реальный
 BP `practice_report.py` загружает их, применяет optout и записывает outcome.
-Gate выполняется на Ubuntu, Windows и macOS.
+До reader/writer assertions gate запускает полную repository validation и
+реальный schema-2 report. Gate выполняется на Ubuntu, Windows и macOS.
 
 Перед promotion:
 
@@ -36,8 +37,10 @@ python3 scripts/check_best_practices_contract.py \
 retired route или изменённом ADR. GitHub governance дополнительно проверяется
 в конце структурной фазы через `gh api` согласно [[docs/quality/PLAYBOOK|PLAYBOOK]].
 
-Scheduled workflow `bp-pin-watch` сравнивает reviewed pin с текущим BP `main`.
-Drift создаёт красный read-only signal, но не обновляет commit или hashes.
+Scheduled workflow `bp-pin-watch` сравнивает reviewed pin с текущим BP `main`,
+checkout'ит live `main`, выполняет repository validation и representative report.
+Drift или невалидная база создаёт красный read-only signal, но не обновляет
+commit, hashes или consumer outcomes.
 
 ## Compatibility и deprecation
 

@@ -42,6 +42,7 @@ jobs:
           python3 scripts/test-standardize-existing-project.py
           python3 scripts/test-compress-project.py
           python3 scripts/test-best-practices-contract.py
+          python3 scripts/test-github-governance.py
           python3 scripts/test-best-practices-manifest.py
           python3 scripts/test-standard-metrics.py
       - name: Validator report
@@ -83,6 +84,7 @@ jobs:
           python .\scripts\test-standardize-existing-project.py
           python .\scripts\test-compress-project.py
           python .\scripts\test-best-practices-contract.py
+          python .\scripts\test-github-governance.py
           python .\scripts\test-best-practices-manifest.py
           python .\scripts\test-standard-metrics.py
       - name: Validator report on Windows
@@ -133,7 +135,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: NightMadMax/best-practices
-          ref: 7a0be917320b9812591ebad2c4fbb00119834e93
+          ref: a492d82bb80eaeef9c47c573ce11c61d09f21719
           path: .external/best-practices
           persist-credentials: false
       - name: Verify pinned checkout and consumer E2E
