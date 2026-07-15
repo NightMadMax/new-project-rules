@@ -125,8 +125,49 @@ class MigrationPlannerTests(unittest.TestCase):
         project = self.make_agents_project(local + self.baseline_text())
         plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
         self.assertEqual(plan.status, "blocked")
-        self.assertTrue(any("standardize-existing-project" in b for b in plan.blockers))
+        self.assertTrue(any("accept-unmanaged-as-local" in b for b in plan.blockers))
         self.assertIsNone(plan.desired_text)
+
+    def test_stale_unmarked_baseline_copy_stays_blocked_without_review(self):
+        """A project whose unmarked file already duplicates baseline sections must not be appended to
+        blindly: appending would give it the rules twice. Only an explicit review may unblock it."""
+        local = "## Project Identity\n\n- Project: `Demo`\n\n"
+        project = self.make_agents_project(local + self.baseline_text().replace("Russian", "Klingon"))
+        plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
+        self.assertEqual(plan.status, "blocked")
+        self.assertIsNone(plan.desired_text)
+
+    def test_reviewed_unmanaged_conflict_appends_baseline_below_local_content(self):
+        local = "# Workspace Notes\n\n- Use the full git path on Windows.\n"
+        project = self.make_agents_project(local)
+        before = digest_tree(project)
+        plan = planner.project_agents_plan(
+            project, self.contract, self.migrations, self.version, accept_unmanaged_as_local=True
+        )
+        self.assertEqual(plan.status, "ready")
+        self.assertEqual(plan.blockers, ())
+        self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block+0006-upgrade-project-agents-managed-block-v2")
+        self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
+        self.assertTrue(plan.desired_text.replace("\r\n", "\n").startswith(local))
+        self.assertIn(f"new-project-rules:begin schema={self.version}", plan.desired_text)
+        self.assertEqual(before, digest_tree(project), "planning must not touch the project")
+
+    def test_reviewed_unmanaged_conflict_apply_preserves_local_content_and_backs_up(self):
+        local = "# Workspace Notes\n\n- Use the full git path on Windows.\n"
+        project = self.make_agents_project(local)
+        plan = planner.project_agents_plan(
+            project, self.contract, self.migrations, self.version, accept_unmanaged_as_local=True
+        )
+        result = planner.apply_plan(plan)
+        self.assertIsNotNone(result.backup)
+        written = (project / "AGENTS.md").read_text(encoding="utf-8").replace("\r\n", "\n")
+        self.assertTrue(written.startswith(local), "existing local lines must survive unchanged")
+        self.assertIn(f"new-project-rules:begin schema={self.version}", written)
+        self.assertEqual(
+            planner.project_agents_plan(project, self.contract, self.migrations, self.version).status,
+            "up_to_date",
+            "applying the reviewed plan must reach the managed state",
+        )
 
     def test_project_plan_is_reviewable_and_read_only(self):
         project = self.make_project("software")
@@ -393,6 +434,18 @@ class MigrationPlannerTests(unittest.TestCase):
         self.assertEqual(applied.returncode, 0, applied.stderr)
         self.assertTrue((project / ".project-standard.json").is_file())
         self.assertEqual(subprocess.run(apply_base + ["--yes"], capture_output=True).returncode, 0)
+
+    def test_cli_rejects_review_flag_for_other_targets(self):
+        project = self.make_project("minimal")
+        for target in ("project", "global"):
+            command = [
+                sys.executable, str(MODULE_PATH), "--plan", "--target", target,
+                "--root", str(project), "--contract-root", str(self.contract),
+                "--accept-unmanaged-as-local",
+            ]
+            result = subprocess.run(command, capture_output=True)
+            self.assertEqual(result.returncode, 2, f"target={target}")
+            self.assertIn("only valid with --target project-agents", result.stderr.decode())
 
     def test_cli_rejects_fingerprint_mismatch(self):
         project = self.make_project("minimal")

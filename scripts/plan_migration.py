@@ -408,7 +408,13 @@ def global_plan(home: Path, contract_root: Path, migrations: Sequence[Migration]
     )
 
 
-def project_agents_plan(project_root: Path, contract_root: Path, migrations: Sequence[Migration], version: int) -> MigrationPlan:
+def project_agents_plan(
+    project_root: Path,
+    contract_root: Path,
+    migrations: Sequence[Migration],
+    version: int,
+    accept_unmanaged_as_local: bool = False,
+) -> MigrationPlan:
     destination = project_root / "AGENTS.md"
     template = contract_root / "templates" / "new-project" / "AGENTS.template.md"
     try:
@@ -430,9 +436,15 @@ def project_agents_plan(project_root: Path, contract_root: Path, migrations: Seq
     project_git = inspect_git(project_root)
     contract_git = inspect_git(contract_root)
     blockers: list[str] = []
-    if state.status not in {"legacy_exact", "managed_drift", "managed_upgrade"}:
+    adoptable = {"legacy_exact", "managed_drift", "managed_upgrade"}
+    if accept_unmanaged_as_local:
+        adoptable = adoptable | {"unmanaged_conflict"}
+    if state.status not in adoptable:
         if state.status == "unmanaged_conflict":
-            blockers.append("Project AGENTS.md mixes baseline and local rules without markers; run standardize-existing-project first")
+            blockers.append(
+                "Project AGENTS.md has no markers and does not match the baseline; review whether its content is "
+                "local-only and re-run with --accept-unmanaged-as-local, or reconcile a stale baseline copy first"
+            )
         elif state.status == "missing":
             blockers.append("Project AGENTS.md is missing")
         else:
@@ -446,6 +458,11 @@ def project_agents_plan(project_root: Path, contract_root: Path, migrations: Seq
 
     if state.status == "legacy_exact":
         changes = (f"wrap matching baseline in schema={version} managed markers", "create timestamped backup before apply")
+    elif state.status == "unmanaged_conflict":
+        changes = (
+            f"append the schema={version} managed baseline below existing content; existing lines are preserved unchanged",
+            "create timestamped backup before apply",
+        )
     elif state.status in {"managed_drift", "managed_upgrade"}:
         changes = ("refresh the managed baseline block; local content outside markers is preserved", "create timestamped backup before apply")
     else:
@@ -464,7 +481,7 @@ def project_agents_plan(project_root: Path, contract_root: Path, migrations: Seq
         "Adopt or refresh the managed AGENTS baseline without exposing local content.",
         changes=changes, blockers=tuple(blockers), preview=agent_sync.secret_safe_diff(state),
         fingerprint=fingerprint, destination=destination, desired_text=desired,
-        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "managed_drift", "managed_upgrade"},
+        preimage_digest=preimage, backup_required=state.status in {"legacy_exact", "unmanaged_conflict", "managed_drift", "managed_upgrade"},
         required_clean_roots=(contract_root, project_root),
     )
 
@@ -569,6 +586,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--home", default=str(Path.home()), help="Home directory for target=global.")
     parser.add_argument("--profile", choices=("auto", *PROFILE_RANKS), default="auto")
     parser.add_argument("--contract-root", default=str(Path(__file__).resolve().parent.parent))
+    parser.add_argument(
+        "--accept-unmanaged-as-local",
+        action="store_true",
+        help="target=project-agents only: assert after review that an unmarked AGENTS.md holds local rules, "
+             "so the baseline is appended below it instead of blocking.",
+    )
     parser.add_argument("--report-only", action="store_true", help="Always return 0 after reporting.")
     parser.add_argument("--fingerprint", help="Exact fingerprint emitted by the reviewed plan.")
     parser.add_argument("--yes", action="store_true", help="Confirm the reviewed apply operation.")
@@ -581,7 +604,9 @@ def build_plan(args: argparse.Namespace, contract_root: Path) -> MigrationPlan:
     if args.target == "project":
         return project_plan(Path(args.root).resolve(), contract_root, args.profile, migrations, version)
     if args.target == "project-agents":
-        return project_agents_plan(Path(args.root).resolve(), contract_root, migrations, version)
+        return project_agents_plan(
+            Path(args.root).resolve(), contract_root, migrations, version, args.accept_unmanaged_as_local
+        )
     return global_plan(Path(args.home).resolve(), contract_root, migrations, version)
 
 
@@ -596,6 +621,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         return 2
     if args.plan and (args.fingerprint or args.yes):
         print("--fingerprint and --yes are only valid with --apply.", file=sys.stderr)
+        return 2
+    if args.accept_unmanaged_as_local and args.target != "project-agents":
+        print("--accept-unmanaged-as-local is only valid with --target project-agents.", file=sys.stderr)
         return 2
     if args.apply and (not args.fingerprint or not args.yes):
         print("--apply requires both --fingerprint and --yes.", file=sys.stderr)

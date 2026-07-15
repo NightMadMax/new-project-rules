@@ -37,12 +37,14 @@ PROFILE_FIELDS = (
     "docs_section",
     "docs_label",
 )
+ADOPTION_JOURNAL = "docs/quality/STANDARD_ADOPTION.json"
 SAFE_CREATE_FILES = {
     "CLAUDE.md",
     ".gitignore",
     ".gitattributes",
     ".editorconfig",
     "docs/README.md",
+    ADOPTION_JOURNAL,
 }
 CORE_DOCS = ("README.md", "PROJECT.md", "INDEX.md", "AGENTS.md")
 TRANSFER_DIRS = ("src", "app", "lib", "tests")
@@ -548,7 +550,18 @@ def format_report(report: AssessmentReport) -> str:
     return "\n".join(lines)
 
 
-def render_artifact(contract_root: Path, destination: str, project_name: str) -> str:
+def adoption_date_for(root: Path) -> str:
+    """Legacy projects have no recoverable creation date, so the adoption journal starts when the
+    standard was adopted. Fall back to today for a project that has no provenance metadata yet."""
+    try:
+        metadata = json.loads((root / ".project-standard.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return date.today().isoformat()
+    adopted_at = metadata.get("adopted_at") if isinstance(metadata, dict) else None
+    return adopted_at if isinstance(adopted_at, str) and adopted_at else date.today().isoformat()
+
+
+def render_artifact(contract_root: Path, destination: str, project_name: str, adoption_date: Optional[str] = None) -> str:
     today = date.today().isoformat()
     if destination == ".gitignore":
         return "\n".join((
@@ -602,7 +615,8 @@ indent_style = tab
     if source is None or source == "@generated":
         raise StandardizationConfigError(f"Cannot render unknown artifact: {destination}")
     template = (contract_root / "templates" / "new-project" / source).read_text(encoding="utf-8")
-    return template.replace("<PROJECT_NAME>", project_name).replace("<YYYY-MM-DD>", today)
+    stamp = adoption_date if destination == ADOPTION_JOURNAL and adoption_date else today
+    return template.replace("<PROJECT_NAME>", project_name).replace("<YYYY-MM-DD>", stamp)
 
 
 def index_row_for(artifact: Artifact) -> Optional[str]:
@@ -688,11 +702,12 @@ def build_adopt_in_place_plan(root: Path, contract_root: Path, report: Assessmen
     by_destination = {row.destination: row for row in selected}
     files: list[FilePlan] = []
     project_name = project_name_from_root(root)
+    adoption_date = adoption_date_for(root)
     for destination in report.files_to_create:
         files.append(FilePlan(
             path=root / destination,
             action="create",
-            content=render_artifact(contract_root, destination, project_name),
+            content=render_artifact(contract_root, destination, project_name, adoption_date),
             existed=False,
         ))
 
