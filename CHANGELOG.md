@@ -6,6 +6,16 @@
 
 ### Исправлено
 
+- `sync-global-agents --check` больше не падает `KeyError` на состоянии
+  `managed_upgrade`: словарь сообщений покрывал семь состояний из восьми, и
+  пользователь получал traceback вместо указания на нужную миграцию. Добавлен
+  регрессионный тест на непустое сообщение для каждого достижимого состояния
+  ([[docs/quality/DEFECTS|дефект №66]]).
+- `plan-migration.ps1` принимает target `project-agents`: `ValidateSet`
+  перечислял только `project` и `global`, из-за чего миграции
+  `0003-adopt-project-agents-managed-block` и
+  `0006-upgrade-project-agents-managed-block-v2` были недостижимы на Windows
+  через documented path ([[docs/quality/DEFECTS|дефект №67]]).
 - `validate-project` больше не читает зависимости и build output: набор файлов
   берётся из `git ls-files --cached --others --exclude-standard` с fallback на
   прямой обход дерева, когда git недоступен. Устранены ложные `wikilink.missing`

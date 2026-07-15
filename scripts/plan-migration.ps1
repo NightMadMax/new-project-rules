@@ -1,7 +1,7 @@
 #requires -Version 5.1
 param(
     [Parameter(Mandatory = $true)]
-    [ValidateSet("project", "global")]
+    [ValidateSet("project", "global", "project-agents")]
     [string]$Target,
 
     [string]$Root = ".",

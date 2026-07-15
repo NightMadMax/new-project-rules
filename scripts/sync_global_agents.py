@@ -214,6 +214,7 @@ def status_message(state: SyncState) -> str:
     messages = {
         "managed_match": "Managed global policy matches the portable source.",
         "managed_drift": "Managed global policy differs from the portable source.",
+        "managed_upgrade": "Managed global policy uses an older marker schema and needs a reviewed migration.",
         "legacy_exact": "Legacy unmanaged policy matches content but has no ownership markers.",
         "unmanaged_conflict": "Unmanaged active policy differs; ownership cannot be inferred safely.",
         "missing": "Active global policy is missing.",

@@ -110,6 +110,18 @@ class AgentSyncTests(unittest.TestCase):
         assert desired is not None
         self.assertIn(f"schema={self.schema + 1}", desired)
 
+    def test_status_message_covers_every_reachable_state(self):
+        for status in (
+            "managed_match", "managed_drift", "managed_upgrade", "legacy_exact",
+            "unmanaged_conflict", "missing", "malformed", "unsupported_schema",
+        ):
+            with self.subTest(status=status):
+                message = sync.status_message(sync.SyncState(
+                    status=status, schema_version=self.schema, portable_text="",
+                    portable_path=self.portable, active_path=self.active, active_text=None,
+                ))
+                self.assertTrue(message)
+
     def test_malformed_and_unsupported_markers(self):
         self.write_active(f"{sync.END_MARKER}\n{sync.BEGIN_TEMPLATE.format(schema=1)}\n")
         self.assertEqual(self.inspect().status, "malformed")
