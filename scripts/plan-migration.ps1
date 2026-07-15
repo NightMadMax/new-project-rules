@@ -10,6 +10,8 @@ param(
     [ValidateSet("auto", "minimal", "software", "operated", "all")]
     [string]$Profile = "auto",
 
+    [switch]$AcceptUnmanagedAsLocal,
+
     [Parameter(Mandatory = $true, ParameterSetName = "Plan")]
     [switch]$Plan,
 
@@ -45,6 +47,7 @@ if ($null -eq $Python) {
 }
 $Mode = if ($Plan) { "--plan" } else { "--apply" }
 $Arguments = @((Join-Path $PSScriptRoot "plan_migration.py"), $Mode, "--target", $Target, "--root", $Root, "--home", $HomeDirectory, "--profile", $Profile)
+if ($AcceptUnmanagedAsLocal) { $Arguments += "--accept-unmanaged-as-local" }
 if ($ReportOnly) { $Arguments += "--report-only" }
 if ($Apply) { $Arguments += @("--fingerprint", $Fingerprint, "--yes") }
 & $Python.Source @Arguments

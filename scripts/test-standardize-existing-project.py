@@ -12,6 +12,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from datetime import date
 from pathlib import Path
 
 
@@ -79,6 +80,42 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         if git:
             self.git_init(project)
         return project
+
+    def test_missing_adoption_journal_is_planned_and_created(self):
+        project = self.make_project("minimal")
+        (project / planner.ADOPTION_JOURNAL).unlink()
+        self.git_commit_all(project, "drop adoption journal")
+        report = planner.assess_project(project, ROOT, "auto", "auto")
+        self.assertIn(planner.ADOPTION_JOURNAL, report.files_to_create)
+        plan = planner.build_adopt_in_place_plan(project, ROOT, report)
+        self.assertEqual(plan.status, "ready")
+        planner.apply_plan(plan)
+        journal = json.loads((project / planner.ADOPTION_JOURNAL).read_text(encoding="utf-8"))
+        self.assertEqual(journal["schema_version"], 1)
+        self.assertIsNone(journal["first_green_at"])
+        self.assertEqual(journal["interventions"], [])
+
+    def test_adoption_journal_starts_at_the_recorded_adoption_date(self):
+        """A legacy project has no recoverable creation date, so the journal must start when the
+        standard was adopted rather than inventing today's date."""
+        project = self.make_project("minimal")
+        (project / planner.ADOPTION_JOURNAL).unlink()
+        (project / ".project-standard.json").write_text(json.dumps({
+            "schema_version": 1, "profile": "minimal", "source": "NightMadMax/new-project-rules",
+            "source_commit": "0" * 40, "created_at": None, "adopted_at": "2020-01-02",
+            "applied_migrations": ["0001-adopt-project-standard"],
+        }), encoding="utf-8")
+        self.git_commit_all(project, "legacy metadata without journal")
+        self.assertEqual(planner.adoption_date_for(project), "2020-01-02")
+        report = planner.assess_project(project, ROOT, "auto", "auto")
+        planner.apply_plan(planner.build_adopt_in_place_plan(project, ROOT, report))
+        journal = json.loads((project / planner.ADOPTION_JOURNAL).read_text(encoding="utf-8"))
+        self.assertEqual(journal["created_at"], "2020-01-02")
+
+    def test_adoption_journal_falls_back_to_today_without_metadata(self):
+        project = self.make_project("minimal")
+        self.assertFalse((project / ".project-standard.json").exists())
+        self.assertEqual(planner.adoption_date_for(project), date.today().isoformat())
 
     def test_adopt_is_recommended_for_clean_managed_project(self):
         project = self.make_project("software")
