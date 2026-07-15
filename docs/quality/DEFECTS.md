@@ -2,7 +2,7 @@
 type: defect-log
 status: active
 owner: project
-last_verified: 2026-07-14
+last_verified: 2026-07-15
 related:
   - "[[docs/README]]"
   - "[[docs/quality/TESTING]]"
@@ -27,6 +27,7 @@ related:
 
 | # | Title | Discovered | Fixed | Commit | Root Cause |
 |---|---|---|---|---|---|
+| 65 | Validator сканирует зависимости и выдаёт ложные errors | 2026-07-15 | 2026-07-15 | текущий commit | Обнаружен в `favorit-web` (его дефект №8). `iter_files()` обходила всё дерево через `rglob` и исключала только `.git`, `__pycache__` и `.trash`, не учитывая `.gitignore`: 12 ложных `wikilink.missing` и 4 `path.machine_specific` из README пакетов в `node_modules`, exit code `1`, и 10378 прочитанных файлов вместо 47 проектных. Обход стал git-aware (`git ls-files --cached --others --exclude-standard`) с fallback на `rglob` при отсутствии git; `IGNORED_PARTS` расширен зависимостями и применяется к пути относительно корня, а не абсолютному. |
 | 64 | Scheduled governance audit требовал недоступные `GITHUB_TOKEN` данные | 2026-07-14 | 2026-07-14 | текущий commit | Default workflow token не читает collaborators другого repo и полностью скрывает bypass actors. Полный локальный audit остаётся strict; scheduled self-audit проверяет active guards/checks и sole owner-admin собственного repo, не заявляя проверку скрытого bypass. |
 | 63 | Migration planner test сравнивал сохранённый prefix с LF-only строкой | 2026-07-14 | 2026-07-14 | текущий commit | Windows Git fixture сохранила корректный локальный prefix с CRLF, а assertion требовал LF bytes. Проверка нормализует только line endings перед семантическим сравнением; production сохраняет исходный стиль. |
 | 62 | Pinned BP hashes зависели от working-tree line endings | 2026-07-14 | 2026-07-14 | текущий commit | Contract verifier хешировал checkout bytes, которые `core.autocrlf` меняет без изменения Git blob. Проверка теперь хеширует `git show HEAD:<path>` и отдельно блокирует dirty pinned files. |

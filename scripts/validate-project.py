@@ -30,7 +30,17 @@ EXPECTED_PROFILE_FIELDS = (
     "docs_section",
     "docs_label",
 )
-IGNORED_PARTS = {".git", "__pycache__", ".trash"}
+IGNORED_PARTS = {
+    ".git",
+    "__pycache__",
+    ".trash",
+    "node_modules",
+    ".venv",
+    "venv",
+    ".astro",
+    ".next",
+    "vendor",
+}
 TEXT_SUFFIXES = {".md", ".json", ".yaml", ".yml", ".toml", ".ini", ".cfg", ".ps1", ".sh"}
 PLACEHOLDERS = ("<PROJECT_NAME>", "<YYYY-MM-DD>")
 RAW_MEMORY_PATHS = (
@@ -82,9 +92,36 @@ def relative(path: Path, root: Path) -> str:
         return str(path)
 
 
+def git_listed_files(root: Path) -> Optional[list[Path]]:
+    """Files Git would keep: tracked plus untracked, minus everything .gitignore excludes.
+
+    Returns None when Git cannot answer, so the caller falls back to a plain walk.
+    """
+    git = shutil.which("git")
+    if not git:
+        return None
+    try:
+        listing = subprocess.run(
+            [git, "-C", str(root), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
+            capture_output=True,
+            text=True,
+        )
+    except OSError:
+        return None
+    if listing.returncode != 0:
+        return None
+    return [root / name for name in listing.stdout.split("\0") if name]
+
+
 def iter_files(root: Path) -> Iterable[Path]:
-    for path in root.rglob("*"):
-        if any(part in IGNORED_PARTS for part in path.parts):
+    listed = git_listed_files(root)
+    candidates: Iterable[Path] = listed if listed is not None else root.rglob("*")
+    for path in candidates:
+        try:
+            parts = path.relative_to(root).parts
+        except ValueError:
+            continue
+        if any(part in IGNORED_PARTS for part in parts):
             continue
         if path.is_file():
             yield path

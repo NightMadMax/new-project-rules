@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+### Исправлено
+
+- `validate-project` больше не читает зависимости и build output: набор файлов
+  берётся из `git ls-files --cached --others --exclude-standard` с fallback на
+  прямой обход дерева, когда git недоступен. Устранены ложные `wikilink.missing`
+  и `path.machine_specific` из `node_modules` ([[docs/quality/DEFECTS|дефект
+  №65]]).
+
 ### Добавлено
 
 - Read-only `check_github_governance.py` и scheduled workflow проверяют active

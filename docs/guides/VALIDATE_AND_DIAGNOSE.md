@@ -60,6 +60,13 @@ Windows:
 - machine-specific absolute paths;
 - существующая `.project-standard.json`, если она уже есть.
 
+Проверяются только файлы самого проекта. Набор берётся из
+`git ls-files --cached --others --exclude-standard`, поэтому всё, что исключает
+`.gitignore` (`node_modules/`, `dist/`, build output), не читается и не может
+дать findings. Если git недоступен или root не является repository, validator
+обходит дерево напрямую и пропускает только известные каталоги зависимостей —
+в этом режиме чужие файлы вне списка могут попасть в отчёт.
+
 Exit codes:
 
 - `0` — validation errors отсутствуют;

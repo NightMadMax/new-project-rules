@@ -7,6 +7,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -169,6 +170,47 @@ class ValidatorTests(unittest.TestCase):
         findings = validator.check_global_rules(ROOT, home)
         self.assertIn("doctor.global_unmanaged_conflict", finding_codes(findings))
         self.assertNotIn("local divergent rule", "\n".join(item.message for item in findings))
+
+    def init_git(self, project: Path):
+        env = os.environ.copy()
+        env.update({"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
+        result = subprocess.run(
+            ["git", "-C", str(project), "init"], env=env, capture_output=True, text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def write_unclean_file(self, path: Path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(
+            "# Dependency readme\n[[unresolved target]]\n"
+            r"C:\Users\alice\private\file.txt" + "\n" + "gh" + "p_" + "A" * 24 + "\n",
+            encoding="utf-8",
+        )
+
+    def test_gitignored_files_are_not_validated(self):
+        project = self.make_project("minimal")
+        (project / ".gitignore").write_text("dist/\n", encoding="utf-8")
+        self.init_git(project)
+        self.write_unclean_file(project / "dist" / "bundled.md")
+        _, _, findings = self.validate_project(project, "minimal")
+        self.assertFalse([item for item in findings if item.severity == "ERROR"], findings)
+        self.assertNotIn("dist/bundled.md", {item.path for item in findings})
+
+    def test_dependency_directories_are_skipped_without_git(self):
+        project = self.make_project("minimal")
+        self.write_unclean_file(project / "node_modules" / "left-pad" / "README.md")
+        files = {item.relative_to(project).as_posix() for item in validator.iter_files(project)}
+        self.assertNotIn("node_modules/left-pad/README.md", files)
+        self.assertIn("README.md", files)
+
+    def test_ignored_name_in_parent_path_does_not_hide_project(self):
+        nested = self.temp_path / "vendor" / "workspace"
+        nested.mkdir(parents=True)
+        project = self.make_project("minimal")
+        moved = nested / project.name
+        shutil.move(str(project), str(moved))
+        files = {item.relative_to(moved).as_posix() for item in validator.iter_files(moved)}
+        self.assertIn("README.md", files)
 
     def test_cli_exit_codes_and_report_only(self):
         valid = self.make_project("minimal")
