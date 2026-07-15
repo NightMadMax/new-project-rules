@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "NightMadMax/best-practices",
-  "source_commit": "2ee7f1a9ac35c44096957969d05ebfd594413208",
+  "source_commit": "02daf1e1fb9c1c7676f7a28c5b192ef42a217008",
   "supported_practice_statuses": ["accepted"],
   "retired_routes": ["harvest-project-lessons"],
   "active_routing_surfaces": [

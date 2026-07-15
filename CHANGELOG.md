@@ -43,6 +43,16 @@
   и `path.machine_specific` из `node_modules` ([[docs/quality/DEFECTS|дефект
   №65]]).
 
+### Изменено
+
+- Best Practices pin обновлён с `2ee7f1a` до `02daf1e` (accepted-review
+  практики `PC-2026-fb278f599d86`). Ни один pinned артефакт не изменился:
+  hashes, `active_routing_surfaces`, ADR-ожидания и `promotion_source`
+  (`PC-2026-001`, `accepted`/`E2`) сохранены, обновлены только `source_commit`
+  и `ref` cross-repo E2E checkout. Сама практика приехала как `trial` (`E1` —
+  оба применения из одного проекта) и потому не доставляется потребителям по
+  умолчанию.
+
 ### Добавлено
 
 - Read-only `check_github_governance.py` и scheduled workflow проверяют active
