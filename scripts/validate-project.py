@@ -263,21 +263,29 @@ def check_wikilinks(root: Path, files: Sequence[Path]) -> list[Finding]:
     findings: list[Finding] = []
     markdown = [path for path in files if path.suffix.lower() == ".md"]
     by_stem: dict[str, list[Path]] = {}
+    by_stem_attachment: dict[str, list[Path]] = {}
     direct: set[str] = set()
-    for path in markdown:
+    for path in files:
         rel = relative(path, root)
-        stem_path = rel[:-3] if rel.endswith(".md") else rel
-        direct.add(stem_path)
         direct.add(rel)
-        by_stem.setdefault(path.stem, []).append(path)
+        if path.suffix:
+            direct.add(rel[: -len(path.suffix)])
+        if path.suffix.lower() == ".md":
+            by_stem.setdefault(path.stem, []).append(path)
+        else:
+            by_stem_attachment.setdefault(path.stem, []).append(path)
     for path in markdown:
         text = read_text(path) or ""
         for match in WIKILINK_RE.finditer(text):
-            target = match.group(1).strip().replace("\\", "/")
+            # Obsidian requires escaping the alias pipe as \| inside Markdown tables, so a
+            # trailing backslash is syntax rather than part of the target path.
+            target = match.group(1).strip().rstrip("\\").replace("\\", "/")
             if target in direct or f"{target}.md" in direct:
                 continue
             basename = Path(target).name
-            candidates = by_stem.get(basename, [])
+            # A note wins over an attachment of the same stem, so linking between notes keeps
+            # resolving exactly as before; attachments only answer what notes cannot.
+            candidates = by_stem.get(basename) or by_stem_attachment.get(basename, [])
             if len(candidates) == 1:
                 continue
             if not candidates:

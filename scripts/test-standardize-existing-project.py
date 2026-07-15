@@ -127,6 +127,36 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         self.assertFalse(report.blocking_issues)
         self.assertEqual(before, tree_digest(project))
 
+    def test_auto_profile_trusts_the_adopted_metadata_profile(self):
+        """An adopted project already records its profile as reviewed provenance. Inferring one from
+        the artifact count can call it ambiguous and recommend re-bootstrapping a standardized
+        project, which is destructive; the validator trusts the same field."""
+        project = self.make_project("operated")
+        (project / planner.ADOPTION_JOURNAL).unlink()
+        (project / ".project-standard.json").write_text(json.dumps({
+            "schema_version": 2, "profile": "operated", "source": "NightMadMax/new-project-rules",
+            "source_commit": "0" * 40, "created_at": None, "adopted_at": "2020-01-02",
+            "applied_migrations": ["0001-adopt-project-standard", "0004-upgrade-project-standard-v2"],
+        }), encoding="utf-8")
+        self.git_commit_all(project, "adopted operated project missing its journal")
+        self.assertEqual(planner.metadata_profile_for(project), "operated")
+        report = planner.assess_project(project, ROOT, "auto", "auto")
+        self.assertEqual(report.candidate_profile, "operated")
+        self.assertEqual(report.recommended_strategy, "adopt-in-place")
+        self.assertTrue(report.safe_to_adopt_in_place)
+        self.assertFalse(report.blocking_issues)
+
+    def test_metadata_profile_is_ignored_when_a_profile_is_requested(self):
+        project = self.make_project("software")
+        (project / ".project-standard.json").write_text(json.dumps({
+            "schema_version": 2, "profile": "operated", "source": "NightMadMax/new-project-rules",
+            "source_commit": "0" * 40, "created_at": None, "adopted_at": "2020-01-02",
+            "applied_migrations": ["0001-adopt-project-standard"],
+        }), encoding="utf-8")
+        self.git_commit_all(project, "metadata profile differs from the requested one")
+        report = planner.assess_project(project, ROOT, "auto", "software")
+        self.assertEqual(report.candidate_profile, "software")
+
     def test_rules_repository_assessment_is_not_applicable_and_read_only(self):
         before = tree_digest(ROOT)
         report = planner.assess_project(ROOT, ROOT, "auto", "auto")

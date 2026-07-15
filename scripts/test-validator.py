@@ -231,6 +231,48 @@ class ValidatorTests(unittest.TestCase):
             2,
         )
 
+    def wikilink_findings(self, note_body: str, extra_files=(), extra_notes=()):
+        root = self.temp_path / "wikilinks"
+        (root / "docs").mkdir(parents=True, exist_ok=True)
+        note = root / "docs" / "README.md"
+        note.write_text(note_body, encoding="utf-8")
+        target = root / "docs" / "GUIDE.md"
+        target.write_text("# Guide\n", encoding="utf-8")
+        files = [note, target]
+        for name in tuple(extra_files) + tuple(extra_notes):
+            path = root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("# Note\n" if name.endswith(".md") else "<html></html>\n", encoding="utf-8")
+            files.append(path)
+        return validator.check_wikilinks(root, files)
+
+    def test_escaped_alias_pipe_in_table_resolves(self):
+        # A second note with the same stem forces path-exact resolution: a target still carrying
+        # the escape reads as 'docs/GUIDE/', misses the exact path and decays to an ambiguous stem.
+        findings = self.wikilink_findings(
+            "# Docs\n\n| Note |\n|---|\n| [[docs/GUIDE\\|GUIDE.md]] |\n",
+            extra_notes=("archive/GUIDE.md",),
+        )
+        self.assertEqual(findings, [], "an escaped alias pipe is Obsidian table syntax, not part of the target")
+
+    def test_wikilink_to_attachment_resolves(self):
+        findings = self.wikilink_findings(
+            "# Docs\n\n[[analysis/report|report.html]]\n",
+            extra_files=("docs/analysis/report.html",),
+        )
+        self.assertEqual(findings, [], "a link to an existing attachment must resolve")
+
+    def test_note_wins_over_attachment_with_same_stem(self):
+        findings = self.wikilink_findings(
+            "# Docs\n\n[[GUIDE]]\n",
+            extra_files=("docs/GUIDE.html",),
+        )
+        self.assertEqual(findings, [], "a note and an attachment sharing a stem must not read as ambiguous")
+
+    def test_missing_wikilink_target_still_reported(self):
+        findings = self.wikilink_findings("# Docs\n\n[[docs/ABSENT\\|ABSENT.md]]\n")
+        self.assertEqual(finding_codes(findings), {"wikilink.missing"})
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

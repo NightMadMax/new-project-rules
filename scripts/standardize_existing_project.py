@@ -226,6 +226,7 @@ def detect_candidate_profile(
     present: set[str],
     destinations: dict[str, set[str]],
     requested: str,
+    metadata_profile: Optional[str] = None,
 ) -> tuple[Optional[str], tuple[str, ...], dict[str, tuple[str, ...]], tuple[str, ...]]:
     missing_by_profile = {
         profile: tuple(sorted(expected - present))
@@ -236,16 +237,22 @@ def detect_candidate_profile(
         if expected.issubset(present)
     )
     blockers: list[str] = []
-    if requested != "auto":
+    selected = requested if requested != "auto" else None
+    if selected is None and metadata_profile in destinations:
+        # An adopted project already records its profile as reviewed provenance; inferring one
+        # from the artifact count can contradict it and recommend re-bootstrapping a standardized
+        # project. The validator trusts the same metadata field.
+        selected = metadata_profile
+    if selected is not None:
         unsafe_missing = tuple(
-            item for item in missing_by_profile[requested]
+            item for item in missing_by_profile[selected]
             if item not in SAFE_CREATE_FILES
         )
         if unsafe_missing:
             blockers.append(
-                f"Profile {requested} is missing managed artifacts: {', '.join(unsafe_missing)}"
+                f"Profile {selected} is missing managed artifacts: {', '.join(unsafe_missing)}"
             )
-        return requested, exact_profiles, missing_by_profile, tuple(blockers)
+        return selected, exact_profiles, missing_by_profile, tuple(blockers)
     if exact_profiles:
         chosen = max(exact_profiles, key=lambda item: PROFILE_RANKS[item])
         return chosen, exact_profiles, missing_by_profile, ()
@@ -262,6 +269,18 @@ def detect_candidate_profile(
             "Candidate profile is ambiguous; multiple profiles require the same number of managed artifacts"
         )
     return chosen, exact_profiles, missing_by_profile, tuple(blockers)
+
+
+def metadata_profile_for(root: Path) -> Optional[str]:
+    """Return the profile a project recorded when it adopted the standard, if any."""
+    try:
+        metadata = json.loads((root / ".project-standard.json").read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(metadata, dict):
+        return None
+    profile = metadata.get("profile")
+    return profile if isinstance(profile, str) and profile else None
 
 
 def has_conflicting_claude(root: Path) -> bool:
@@ -401,7 +420,7 @@ def assess_project(root: Path, contract_root: Path, requested_strategy: str, req
     destinations = profile_destinations(rows)
     present = existing_managed(root, set().union(*destinations.values()))
     candidate_profile, exact_profiles, missing_by_profile, profile_blockers = detect_candidate_profile(
-        present, destinations, requested_profile
+        present, destinations, requested_profile, metadata_profile_for(root)
     )
     nested_obsidian = (root / ".obsidian").exists()
     conflicting_claude = has_conflicting_claude(root)

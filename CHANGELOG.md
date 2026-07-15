@@ -6,6 +6,19 @@
 
 ### Исправлено
 
+- `standardize-existing-project` при `--profile auto` доверяет профилю, уже
+  записанному в `.project-standard.json`, вместо вывода эвристикой по числу
+  артефактов. Для adopted-проекта расхождение давало
+  `Candidate profile is ambiguous` и рекомендацию `re-bootstrap-from-existing`,
+  то есть пересборку уже стандартизованного проекта; `validate-project` тот же
+  authoritative профиль читал всегда ([[docs/quality/DEFECTS|дефект №71]]).
+- `validate-project` больше не считает битым wikilink с экранированным `\|`
+  внутри Markdown-таблицы: Obsidian требует такое экранирование, а regex
+  захватывал хвостовой `\` в target и нормализация превращала его в `/`
+  ([[docs/quality/DEFECTS|дефект №69]]). Резолвер получил и цели-вложения:
+  ссылка на существующий файл (например `.html`-отчёт) больше не даёт ложную
+  `wikilink.missing`; заметка по-прежнему приоритетнее вложения с тем же именем
+  ([[docs/quality/DEFECTS|дефект №70]]).
 - Legacy-проект доходит до зелёного validator документированным путём, без
   ручных шагов. `plan-migration --target project-agents` принимает
   `--accept-unmanaged-as-local` / `-AcceptUnmanagedAsLocal` как явный review для
