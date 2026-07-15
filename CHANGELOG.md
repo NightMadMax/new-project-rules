@@ -6,6 +6,14 @@
 
 ### Исправлено
 
+- Legacy-проект доходит до зелёного validator документированным путём, без
+  ручных шагов. `plan-migration --target project-agents` принимает
+  `--accept-unmanaged-as-local` / `-AcceptUnmanagedAsLocal` как явный review для
+  `unmanaged_conflict` и дописывает managed baseline ниже локального текста с
+  backup; без флага состояние по-прежнему блокируется, потому что под него
+  попадает и немаркированная копия baseline. `adopt-in-place` создаёт
+  недостающий `docs/quality/STANDARD_ADOPTION.json`, начиная журнал с
+  `adopted_at` из `.project-standard.json` ([[docs/quality/DEFECTS|дефект №68]]).
 - `sync-global-agents --check` больше не падает `KeyError` на состоянии
   `managed_upgrade`: словарь сообщений покрывал семь состояний из восьми, и
   пользователь получал traceback вместо указания на нужную миграцию. Добавлен

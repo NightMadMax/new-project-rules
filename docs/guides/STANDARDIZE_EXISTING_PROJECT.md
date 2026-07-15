@@ -150,18 +150,25 @@ python3 scripts/standardize_existing_project.py --root "/path/to/project" --json
 - создание отсутствующего `CLAUDE.md` со строкой `@AGENTS.md`;
 - создание `.gitignore`, `.gitattributes`, `.editorconfig`, если файлов нет;
 - создание `docs/README.md`, если уже существует `docs/`, но нет индекса;
+- создание `docs/quality/STANDARD_ADOPTION.json`, если журнала нет: он
+  начинается с `adopted_at` из `.project-standard.json`, а без metadata — с
+  сегодняшней даты, потому что дату создания legacy-проекта восстановить нельзя;
 - обновление `INDEX.md` и `docs/README.md` только добавлением недостающих
   wikilinks;
-- metadata adoption только через
+- metadata adoption и managed baseline в `AGENTS.md` — только через
   [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS]].
 
 Требуют review и подтверждения:
 
 - `README.md`
 - `PROJECT.md`
-- `AGENTS.md`
 - существующие документы в `docs/`
 - `.github/`, CI/CD, deployment configs, `.env*`
+
+`AGENTS.md` руками не правится. Его managed-блок вносит
+`plan-migration --target project-agents`; для `unmanaged_conflict` нужен явный
+review-флаг `--accept-unmanaged-as-local`, потому что под это состояние
+попадают и чисто локальный файл, и устаревшая копия baseline.
 
 ### Для `re-bootstrap-from-existing`
 
@@ -229,8 +236,10 @@ Assessment должен возвращать не свободный текст,
 
 - assessment автоматизирован отдельным read-only planner;
 - `adopt-in-place` умеет только безопасные file creates и index updates;
-- `README.md`, `PROJECT.md`, `AGENTS.md` и содержательные docs всё ещё требуют
-  manual review;
+- `README.md`, `PROJECT.md` и содержательные docs всё ещё требуют manual review;
+- `AGENTS.md` не требует ручной правки: baseline вносится миграцией
+  `project-agents`, а review сводится к решению, локальный ли текст вне
+  маркеров;
 - `re-bootstrap-from-existing` уже умеет bootstrap нового проекта и safe-set
   apply, но содержательные docs, agent files и deployment-конфиги всё ещё
   требуют отдельного review.
