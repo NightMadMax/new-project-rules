@@ -4,6 +4,14 @@
 
 ## Unreleased
 
+### Добавлено
+
+- Capability `jira-confluence`: переносимые Jira/Confluence модели, MCP runbook,
+  аналитические документы, трассировка, project control и два профильных skill.
+  Capability совместима с любым базовым профилем и стеком.
+- Schema project metadata повышена до 3: поле `capabilities` мигрируется
+  детерминированно без изменения состава существующих базовых профилей.
+
 ### Исправлено
 
 - `standardize-existing-project` при `--profile auto` доверяет профилю, уже

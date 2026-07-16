@@ -17,10 +17,13 @@ related:
 Используйте `$create-new-project` в Codex или `/create-new-project` в Claude
 Code либо сформулируйте запрос обычным языком.
 
-Сообщите название, путь, профиль, стек и видимость GitHub-репозитория:
+Сообщите название, путь, профиль, capability, стек и видимость GitHub-репозитория:
 
 > Создай новый проект «Название» в папке `<путь>`, профиль `software`,
 > стек `web` и `backend`, приватный GitHub-репозиторий.
+
+Для Jira и Confluence добавьте capability `jira-confluence`. Она совместима с
+любым профилем и стеком: например, `operated` + `jira-confluence` + `1c`.
 
 Если профиль не указан, используется `software`. Стек можно не указывать (тогда
 применяются только общие практики `common`), а задать позже. Агент должен:
@@ -76,6 +79,14 @@ Git обязателен: bootstrap использует commit текущего
 проекта — можно несколько (например, `web` + `backend`), можно пропустить (тогда
 только `common`).
 
+## Возможности
+
+`jira-confluence` — независимая capability для локальных Jira/Confluence через
+`mcp-atlassian`. Она создаёт MCP-runbook, модели статусов и трассировки, каталоги
+JQL/CQL и профильные skills; токены и пользовательская конфигурация Codex в
+проект не записываются. При выборе capability использовать стек Best Practices
+`jira-confluence`.
+
 Доступные стеки: `1c`, `web`, `backend`, `mobile`, `desktop`, `data-ml`,
 `data-analysis`, `excel-research`, `powerbi`, `jira-confluence`, `devops`,
 `embedded` (плюс всегда `common`). Часть определяется автоматически по файлам
@@ -103,6 +114,9 @@ Git обязателен: bootstrap использует commit текущего
   -Destination "C:\Projects\New Project" `
   -ProjectName "New Project" `
   -Profile software
+
+# Jira/Confluence capability
+.\scripts\bootstrap-new-project.ps1 -Destination "C:\Projects\Jira Project" -ProjectName "Jira Project" -Profile operated -Capability jira-confluence
 ```
 
 Bootstrap принимает отсутствующую или пустую папку. Непустая папка считается

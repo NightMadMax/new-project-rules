@@ -23,6 +23,9 @@ description: Создаёт новый проект внутри общего Ob
    `new-project-rules` внутри общего родительского vault.
 2. Если профиль не указан, использовать `software`. Допустимые профили:
    `minimal`, `software`, `operated`, `all`.
+   Capability `jira-confluence` независима от профиля: при её выборе добавить
+   `-Capability jira-confluence` в PowerShell bootstrap или четвёртым аргументом
+   в shell bootstrap. Одновременно выбрать стек Best Practices `jira-confluence`.
 3. Если GitHub visibility не указана, использовать `private`. Создать отдельный
    repository, если пользователь явно не запросил local-only или monorepo.
 4. Получить или безопасно вывести GitHub slug: lowercase Latin letters, digits
@@ -36,7 +39,7 @@ description: Создаёт новый проект внутри общего Ob
    отсутствующего инструмента объяснить необходимость и получить разрешение.
 3. Запустить из корня правил:
    - macOS/Linux: `./scripts/bootstrap-new-project.sh <destination> <name> <profile>`;
-   - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-new-project.ps1 -Destination <destination> -ProjectName <name> -Profile <profile>`.
+   - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-new-project.ps1 -Destination <destination> -ProjectName <name> -Profile <profile>`; для capability добавить `-Capability jira-confluence`.
 4. Заполнить `PROJECT.md`, `README.md` и `INDEX.md` фактическими данными задачи.
    Удалить неприменимые секции и не создавать условные документы без текущей
    необходимости. Секцию «Источник» в `README.md` оставить: она называет

@@ -30,6 +30,9 @@ EXPECTED_PROFILE_FIELDS = (
     "docs_section",
     "docs_label",
 )
+EXPECTED_CAPABILITY_FIELDS = (
+    "capability", "source", "destination", "root_purpose", "docs_section", "docs_label",
+)
 IGNORED_PARTS = {
     ".git",
     "__pycache__",
@@ -69,6 +72,16 @@ class ContractError(Exception):
 @dataclass(frozen=True)
 class Artifact:
     minimum_profile: str
+    source: str
+    destination: str
+    root_purpose: str
+    docs_section: str
+    docs_label: str
+
+
+@dataclass(frozen=True)
+class CapabilityArtifact:
+    capability: str
     source: str
     destination: str
     root_purpose: str
@@ -180,6 +193,30 @@ def load_artifacts(contract_root: Path) -> list[Artifact]:
     return rows
 
 
+def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
+    path = contract_root / "config" / "capabilities.tsv"
+    try:
+        with path.open(encoding="utf-8", newline="") as handle:
+            reader = csv.DictReader(handle, delimiter="\t")
+            if tuple(reader.fieldnames or ()) != EXPECTED_CAPABILITY_FIELDS:
+                raise ContractError(f"Unexpected capabilities.tsv header: {path}")
+            rows = [CapabilityArtifact(**row) for row in reader]
+    except OSError as exc:
+        raise ContractError(f"Cannot read {path}: {exc}") from exc
+    templates = contract_root / "templates" / "new-project"
+    for row in rows:
+        if row.capability not in project_metadata.CAPABILITY_NAMES:
+            raise ContractError(f"Unknown capability: {row.capability}")
+        destination = Path(row.destination)
+        if destination.is_absolute() or ".." in destination.parts:
+            raise ContractError(f"Unsafe capability destination: {row.destination}")
+        if not (templates / row.source).is_file():
+            raise ContractError(f"Missing capability template: {row.source}")
+        if (row.docs_section == "-") != (row.docs_label == "-"):
+            raise ContractError(f"Incomplete capability docs relationship: {row.destination}")
+    return rows
+
+
 def artifacts_for_profile(rows: Sequence[Artifact], profile: str) -> list[Artifact]:
     return [
         row for row in rows
@@ -245,7 +282,7 @@ def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> li
             if match:
                 fields[match.group(1)] = match.group(2).strip().strip('"\'')
         rel = relative(path, root)
-        skill_frontmatter = rel.startswith(".agents/skills/") or rel.startswith(".claude/skills/")
+        skill_frontmatter = "/.agents/skills/" in f"/{rel}" or "/.claude/skills/" in f"/{rel}"
         required_fields = ("name", "description") if skill_frontmatter else ("type", "status")
         for required in required_fields:
             if not fields.get(required):
@@ -364,6 +401,25 @@ def check_project_structure(
             findings.append(Finding("ERROR", "index.root", f"INDEX.md does not link '{link_path}'.", "INDEX.md"))
         if artifact.docs_section != "-" and f"[[{link_path}" not in docs_text:
             findings.append(Finding("ERROR", "index.docs", f"docs/README.md does not link '{link_path}'.", "docs/README.md"))
+    return findings
+
+
+def check_capabilities(root: Path, rows: Sequence[CapabilityArtifact], capabilities: Sequence[str]) -> list[Finding]:
+    findings: list[Finding] = []
+    index_text = read_text(root / "INDEX.md") or ""
+    docs_text = read_text(root / "docs" / "README.md") or ""
+    for artifact in rows:
+        if artifact.capability not in capabilities:
+            continue
+        path = root / artifact.destination
+        if not path.is_file():
+            findings.append(Finding("ERROR", "capability.missing", f"Required {artifact.capability} artifact is missing.", artifact.destination))
+            continue
+        link_path = re.sub(r"\.md$", "", artifact.destination)
+        if artifact.root_purpose != "-" and f"[[{link_path}" not in index_text:
+            findings.append(Finding("ERROR", "capability.index.root", f"INDEX.md does not link '{link_path}'.", "INDEX.md"))
+        if artifact.docs_section != "-" and f"[[{link_path}" not in docs_text:
+            findings.append(Finding("ERROR", "capability.index.docs", f"docs/README.md does not link '{link_path}'.", "docs/README.md"))
     return findings
 
 
@@ -522,6 +578,7 @@ def validate(
         raise ContractError(f"Validation root is not a directory: {root}")
     version = load_standard_version(contract_root)
     rows = load_artifacts(contract_root)
+    capability_rows = load_capability_artifacts(contract_root)
     try:
         migrations = migration_planner.read_migrations(contract_root, version)
         source = (contract_root / "config" / "standard-source.txt").read_text(encoding="utf-8").strip()
@@ -539,7 +596,7 @@ def validate(
     if kind == "rules":
         for required in (
             "README.md", "AGENTS.md", "INDEX.md", "PROJECT.md", "STANDARD_VERSION",
-            "config/profiles.tsv", "config/migrations.tsv", "config/standard-source.txt",
+            "config/profiles.tsv", "config/capabilities.tsv", "config/migrations.tsv", "config/standard-source.txt",
         ):
             if not (root / required).is_file():
                 findings.append(Finding("ERROR", "rules.required", "Required rules-repository artifact is missing.", required))
@@ -571,6 +628,8 @@ def validate(
                 ))
         if profile:
             findings.extend(check_project_structure(root, rows, profile))
+        if metadata:
+            findings.extend(check_capabilities(root, capability_rows, metadata.get("capabilities", [])))
         findings.extend(check_project_baseline(root, contract_root, version))
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))

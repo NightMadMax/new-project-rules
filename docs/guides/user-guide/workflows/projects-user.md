@@ -53,6 +53,10 @@ related:
   только `common`): `1c`/`web`/`backend`/`mobile`/`desktop`/`data-ml`/
   `data-analysis`/`excel-research`/`powerbi`/`jira-confluence`/`devops`/`embedded`.
   Выбор пишется в `.best-practices.json`.
+- **Возможность Jira & Confluence:** добавь `jira-confluence` поверх любого
+  профиля, если проект работает с локальными Jira/Confluence через MCP. Агент
+  также выбирает стек `jira-confluence`; токены и локальная конфигурация Codex
+  не попадают в проект.
 - ⌨ **Вручную:** `./scripts/bootstrap-new-project.sh "<путь>" "Название" software`
   (или `.ps1` на Windows).
 - Дальше агент: разворачивает структуру (AGENTS/CLAUDE, README, PROJECT, INDEX,

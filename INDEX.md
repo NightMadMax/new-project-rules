@@ -11,6 +11,7 @@
 | [[ACTIONS|ACTIONS.md]] | Журнал значимых действий вне Git и rollback evidence |
 | `STANDARD_VERSION` | Версия схемы project standard |
 | `config/profiles.tsv` | Канонический состав bootstrap-профилей и index relationships |
+| `config/capabilities.tsv` | Канонический состав подключаемых возможностей проекта |
 | `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
 | `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
 | `config/standard-source.txt` | Канонический owner/repository без credentials и локальных путей |

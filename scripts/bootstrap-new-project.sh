@@ -2,7 +2,7 @@
 set -eu
 
 usage() {
-  echo "Usage: $0 <destination> <project-name> [minimal|software|operated|all]" >&2
+  echo "Usage: $0 <destination> <project-name> [minimal|software|operated|all] [jira-confluence]" >&2
   exit 2
 }
 
@@ -39,14 +39,19 @@ directory_is_empty() {
   return 0
 }
 
-[ "$#" -ge 2 ] && [ "$#" -le 3 ] || usage
+[ "$#" -ge 2 ] && [ "$#" -le 4 ] || usage
 
 destination=$1
 project_name=$2
 profile=${3:-minimal}
+capability=${4:-}
 
 case "$profile" in
   minimal|software|operated|all) ;;
+  *) usage ;;
+esac
+case "$capability" in
+  ''|jira-confluence) ;;
   *) usage ;;
 esac
 
@@ -54,6 +59,7 @@ script_dir=$(resolve_script_dir)
 project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
 manifest="$project_rules_root/config/profiles.tsv"
+capabilities_manifest="$project_rules_root/config/capabilities.tsv"
 migrations_manifest="$project_rules_root/config/migrations.tsv"
 standard_source_file="$project_rules_root/config/standard-source.txt"
 standard_version_file="$project_rules_root/STANDARD_VERSION"
@@ -121,6 +127,17 @@ header=$(sed -n '1p' "$manifest")
   echo "Invalid project profile manifest header: $manifest" >&2
   exit 1
 }
+
+capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label"
+[ "$(sed -n '1p' "$capabilities_manifest")" = "$capabilities_header" ] || {
+  echo "Invalid capability manifest header: $capabilities_manifest" >&2
+  exit 1
+}
+while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+  [ "$row_capability" = capability ] && continue
+  [ "$row_capability" = jira-confluence ] || { echo "Unknown capability '$row_capability'" >&2; exit 1; }
+  [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
+done < "$capabilities_manifest"
 
 seen_destinations='|'
 first=1
@@ -232,8 +249,10 @@ EDITORCONFIG
     CLAUDE.md) printf '@AGENTS.md\n' > "$destination/$target" ;;
     .project-standard.json)
       {
-        printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n' \
-          "$standard_version" "$profile" "$standard_source" "$source_commit" "$today" "$today"
+        printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "capabilities": [' "$standard_version" "$profile"
+        [ -z "$capability" ] || printf '"%s"' "$capability"
+        printf '],\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n' \
+          "$standard_source" "$source_commit" "$today" "$today"
         first_migration=1
         printf '%s\n' "$project_migration_ids" | while IFS= read -r migration_id; do
           [ -n "$migration_id" ] || continue
@@ -257,6 +276,14 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
     install_template "$source" "$artifact_destination"
   fi
 done < "$manifest"
+
+if [ "$capability" = jira-confluence ]; then
+  first=1
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+    [ "$first" -eq 1 ] && { first=0; continue; }
+    install_template "$source" "$artifact_destination"
+  done < "$capabilities_manifest"
+fi
 
 ensure_index_entry() {
   path=$1
@@ -302,6 +329,15 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
   ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
 done < "$manifest"
 
+if [ "$capability" = jira-confluence ]; then
+  first=1
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+    [ "$first" -eq 1 ] && { first=0; continue; }
+    ensure_index_entry "$artifact_destination" "$root_purpose"
+    ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
+  done < "$capabilities_manifest"
+fi
+
 if ! git_output=$(git -C "$destination" init 2>&1); then
     printf 'Git initialization failed:\n%s\n' "$git_output" >&2
     exit 1
@@ -326,6 +362,6 @@ if ! git_output=$(git -C "$destination" init 2>&1); then
     echo "Initialized git repository with staged files; set git user.name and git user.email, then commit the initial state." >&2
 fi
 
-echo "Created '$project_name' at $destination using profile '$profile'."
+echo "Created '$project_name' at $destination using profile '$profile'${capability:+ and capability '$capability'}."
 echo "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."
 trap - EXIT

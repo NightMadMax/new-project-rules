@@ -305,6 +305,8 @@ def project_plan(project_root: Path, contract_root: Path, profile_arg: str, migr
             blockers.append(contract_git.detail or "Rules repository must be clean and committed")
         desired_metadata = dict(metadata)
         desired_metadata["schema_version"] = version
+        if version >= 3:
+            desired_metadata.setdefault("capabilities", [])
         desired_metadata["source_commit"] = contract_git.commit
         desired_metadata["applied_migrations"] = list(metadata.get("applied_migrations", [])) + [item.migration_id for item in path]
         preview = json.dumps(desired_metadata, ensure_ascii=False, indent=2) + "\n"

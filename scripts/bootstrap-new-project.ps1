@@ -6,13 +6,17 @@ param(
     [string]$ProjectName,
 
     [ValidateSet("minimal", "software", "operated", "all")]
-    [string]$Profile = "minimal"
+    [string]$Profile = "minimal",
+
+    [ValidateSet("jira-confluence")]
+    [string[]]$Capability = @()
 )
 
 $ErrorActionPreference = "Stop"
 $RulesRoot = Split-Path -Parent $PSScriptRoot
 $Templates = Join-Path $RulesRoot "templates/new-project"
 $Manifest = Join-Path $RulesRoot "config/profiles.tsv"
+$CapabilitiesManifest = Join-Path $RulesRoot "config/capabilities.tsv"
 $StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
 $StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
 $MigrationsManifest = Join-Path $RulesRoot "config/migrations.tsv"
@@ -81,6 +85,30 @@ foreach ($artifact in $Artifacts) {
 $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
+
+$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label"
+$CapabilityLines = @(Get-Content -Encoding utf8 $CapabilitiesManifest)
+if ($CapabilityLines.Count -lt 2 -or $CapabilityLines[0] -cne $ExpectedCapabilitiesHeader) {
+    throw "Invalid capability manifest header: $CapabilitiesManifest"
+}
+$CapabilityArtifacts = @($CapabilityLines | ConvertFrom-Csv -Delimiter "`t")
+$KnownCapabilities = @($CapabilityArtifacts | ForEach-Object capability | Sort-Object -Unique)
+foreach ($selectedCapability in $Capability) {
+    if ($selectedCapability -notin $KnownCapabilities) { throw "Unknown capability '$selectedCapability'" }
+}
+foreach ($artifact in $CapabilityArtifacts) {
+    if ([System.IO.Path]::IsPathRooted($artifact.destination) -or
+            ($artifact.destination -split '/' | Where-Object { $_ -eq '..' }).Count -gt 0) {
+        throw "Unsafe capability destination '$($artifact.destination)'"
+    }
+    if ($SeenDestinations.ContainsKey($artifact.destination)) {
+        throw "Capability destination conflicts with profile artifact '$($artifact.destination)'"
+    }
+    if (-not (Test-Path -LiteralPath (Join-Path $Templates $artifact.source) -PathType Leaf)) {
+        throw "Capability template not found for '$($artifact.destination)': $($artifact.source)"
+    }
+}
+$SelectedArtifacts += @($CapabilityArtifacts | Where-Object { $_.capability -in $Capability })
 
 # Write UTF-8 without a BOM on every PowerShell edition. Windows PowerShell 5.1
 # "-Encoding utf8" emits a BOM, which corrupts the LF-normalized Markdown and
@@ -161,6 +189,7 @@ function Install-Generated {
             $metadata = [ordered]@{
                 schema_version = [int]$StandardVersion
                 profile = $Profile
+                capabilities = @($Capability)
                 source = $StandardSource
                 source_commit = $SourceCommit
                 created_at = $Today

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Atlassian MCP Setup"
+  short_description: "Настройка Jira и Confluence MCP"
+  default_prompt: "Use $setup-atlassian-mcp to configure safe Jira and Confluence MCP access."

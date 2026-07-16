@@ -35,11 +35,12 @@ function Assert-Metadata {
         $metadata = Get-Content -Raw -Encoding UTF8 $File | ConvertFrom-Json
         if ($metadata.schema_version -eq [int]$StandardVersion -and
                 $metadata.profile -eq $Profile -and
+                @($metadata.capabilities).Count -eq 0 -and
                 $metadata.source -eq "NightMadMax/new-project-rules" -and
                 $metadata.source_commit -match '^[0-9a-f]{40}$' -and
                 $metadata.created_at -match '^\d{4}-\d{2}-\d{2}$' -and
                 $metadata.adopted_at -match '^\d{4}-\d{2}-\d{2}$' -and
-                (($metadata.applied_migrations -join ',') -eq '0001-adopt-project-standard,0004-upgrade-project-standard-v2')) {
+                (($metadata.applied_migrations -join ',') -eq '0001-adopt-project-standard,0004-upgrade-project-standard-v2,0007-upgrade-project-standard-v3')) {
             Pass
         }
         else { Fail "${Tag}: metadata fields are invalid" }

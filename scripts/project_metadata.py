@@ -8,6 +8,7 @@ from typing import Optional, Sequence
 
 
 PROFILE_NAMES = {"minimal", "software", "operated", "all"}
+CAPABILITY_NAMES = {"jira-confluence"}
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
@@ -39,6 +40,17 @@ def validate_metadata(
         return [f"schema_version {schema} requires an explicit migration to {current_schema}"]
     if data.get("profile") not in PROFILE_NAMES:
         issues.append("profile must be minimal, software, operated, or all")
+    capabilities = data.get("capabilities", [])
+    if current_schema >= 3 and "capabilities" not in data:
+        issues.append("capabilities must be present in schema 3 metadata")
+    if not isinstance(capabilities, list) or not all(isinstance(item, str) for item in capabilities):
+        issues.append("capabilities must be a string array")
+    elif len(capabilities) != len(set(capabilities)):
+        issues.append("capabilities must not contain duplicates")
+    else:
+        unknown_capabilities = sorted(set(capabilities) - CAPABILITY_NAMES)
+        if unknown_capabilities:
+            issues.append(f"capabilities contains unknown IDs: {', '.join(unknown_capabilities)}")
     source = data.get("source")
     if not isinstance(source, str) or not SOURCE_RE.fullmatch(source):
         issues.append("source must use owner/repository format")
@@ -71,10 +83,12 @@ def build_legacy_metadata(
     source_commit: str,
     migration_ids: Sequence[str],
     adopted_at: Optional[str] = None,
+    capabilities: Sequence[str] = (),
 ) -> dict:
     return {
         "schema_version": schema,
         "profile": profile,
+        "capabilities": list(capabilities),
         "source": source,
         "source_commit": source_commit,
         "created_at": None,

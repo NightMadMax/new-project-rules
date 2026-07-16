@@ -1,0 +1,18 @@
+capability	source	destination	root_purpose	docs_section	docs_label
+jira-confluence	capabilities/jira-confluence/JIRA.template.md	JIRA.md	Рабочая модель Jira без секретов	Integrations	Jira
+jira-confluence	capabilities/jira-confluence/CONFLUENCE.template.md	CONFLUENCE.md	Рабочая модель Confluence без секретов	Integrations	Confluence
+jira-confluence	capabilities/jira-confluence/STATUS_MODEL.template.md	docs/jira/STATUS_MODEL.md	Модель статусов и переходов Jira	Jira	Status model
+jira-confluence	capabilities/jira-confluence/TRACEABILITY_MODEL.template.md	docs/jira/TRACEABILITY_MODEL.md	Связь задач Jira с документацией	Jira	Traceability model
+jira-confluence	capabilities/jira-confluence/JIRA_DATA_DICTIONARY.template.md	docs/analytics/JIRA_DATA_DICTIONARY.md	Словарь Jira-полей и их смысла	Analytics	Jira data dictionary
+jira-confluence	capabilities/jira-confluence/QUERY_CATALOG.template.md	docs/analytics/QUERY_CATALOG.md	Проверенные JQL и CQL запросы	Analytics	Query catalog
+jira-confluence	capabilities/jira-confluence/ANALYSIS_METHOD.template.md	docs/analytics/ANALYSIS_METHOD.md	Воспроизводимый анализ через MCP	Analytics	Analysis method
+jira-confluence	capabilities/jira-confluence/DOCUMENT_MODEL.template.md	docs/confluence/DOCUMENT_MODEL.md	Модель документации Confluence	Confluence	Document model
+jira-confluence	capabilities/jira-confluence/ATLASSIAN_MCP_RUNBOOK.template.md	docs/operations/ATLASSIAN_MCP_RUNBOOK.md	Настройка и диагностика Atlassian MCP	Operations	Atlassian MCP runbook
+jira-confluence	capabilities/jira-confluence/PROJECT_CONTROL_MODEL.template.md	docs/project-management/PROJECT_CONTROL_MODEL.md	Лёгкая модель управления проектом	Project management	Project control
+jira-confluence	capabilities/jira-confluence/RAID_MODEL.template.md	docs/project-management/RAID_MODEL.md	Модель рисков, допущений, проблем и зависимостей	Project management	RAID model
+jira-confluence	capabilities/jira-confluence/.agents/skills/setup-atlassian-mcp/SKILL.md	.agents/skills/setup-atlassian-mcp/SKILL.md	-	-	-
+jira-confluence	capabilities/jira-confluence/.agents/skills/setup-atlassian-mcp/agents/openai.yaml	.agents/skills/setup-atlassian-mcp/agents/openai.yaml	-	-	-
+jira-confluence	capabilities/jira-confluence/.agents/skills/setup-atlassian-mcp/references/configuration.md	.agents/skills/setup-atlassian-mcp/references/configuration.md	-	-	-
+jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confluence/SKILL.md	.agents/skills/work-with-jira-confluence/SKILL.md	-	-	-
+jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confluence/agents/openai.yaml	.agents/skills/work-with-jira-confluence/agents/openai.yaml	-	-	-
+jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confluence/references/models.md	.agents/skills/work-with-jira-confluence/references/models.md	-	-	-

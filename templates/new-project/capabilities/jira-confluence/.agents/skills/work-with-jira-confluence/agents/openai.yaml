@@ -1,0 +1,4 @@
+interface:
+  display_name: "Jira and Confluence Work"
+  short_description: "Анализ и документация через MCP"
+  default_prompt: "Use $work-with-jira-confluence to analyze Jira and update linked Confluence documentation through MCP."
