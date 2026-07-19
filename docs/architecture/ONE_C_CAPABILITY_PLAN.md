@@ -93,7 +93,9 @@ Capability должна поддерживать верхнеуровневую 
 3. Задать `is_production` в `1c-projects.tsv` (по умолчанию `false`, `true`
    только явным подтверждением) и описать назначение контура в
    `ENVIRONMENT_REGISTRY.md`.
-4. Инстанцировать `configurations/<base>/PROJECT_1C.md` из шаблона.
+4. Инстанцировать `configurations/<base>/PROJECT_1C.md` и шаблоны профилей
+   запуска EDT (`Запуск Toolkit`, `1С — обычное приложение (HTTP debug)`) с
+   плейсхолдерами, без ID/путей.
 5. До дозаписи строки в `1c-projects.tsv` прогнать проверку уникальности
    `project_id` и пары `project_id`+`environment_id`.
 6. Отклонить любые credentials, строки соединения и пароли; допускаются только
@@ -230,7 +232,7 @@ skills, а не на рантайм-запрете.
 | EDT toolchain | `1C/TOOLS.md` | Реестр проверяемых версий и команд без локальных путей |
 | Плагин обычного приложения EDT | `1C/docs/operations/EDT_ORDINARY_APPLICATION_PLUGIN.md` | Версионный preflight и инструкция установки/отката |
 | Безопасный `Run without update` | `1C/docs/operations/EDT_MCP_RUN_WITHOUT_UPDATE_PATCH.md` | Optional patch только для совместимой версии MCP EDT |
-| Два профиля EDT | `1C/docs/operations/EDT_DEBUGGING.md` | Шаблоны профилей без ID, имён баз и путей |
+| Два профиля EDT | `1C/docs/operations/EDT_DEBUGGING.md` | Поставляемые шаблоны `.launch` без ID, имён баз и путей (см. «Профили запуска EDT») |
 | Toolkit для обычного приложения | `1C/tools/mcp-toolkit-ordinary/` | Воспроизводимая сборка **двух** EPF (read-only и write-enabled), каждая с фиксируемым SHA-256 |
 | Skills Toolkit (язык запросов, REST API) | `ROCTUP/1c-mcp-toolkit/skills/` | **Не вендорить**: это skills самого сервера, привязать к версии исходников, из которых собрана EPF |
 | Замеры EDT + Toolkit | `1C/docs/quality/PLAYBOOK.md` | Skill и отчёт с числовыми метриками |
@@ -263,9 +265,33 @@ skills, а не на рантайм-запрете.
 - `docs/operations/TOOLCHAIN.md` — обнаруженные версии, plugin/patch state,
   SHA-256 обеих сборок EPF (read-only и write-enabled) и версия исходников
   Toolkit, с которой согласованы его skills; команды проверки.
-- `docs/operations/DEPLOYMENT_MODEL.md` — поставка, обновление базы и rollback.
+- Шаблоны профилей запуска EDT (`RuntimeClient`) — `Запуск Toolkit` (анализ,
+  `/Execute` на read-only EPF) и `1С — обычное приложение (HTTP debug)`
+  (отладка/замер). См. «Профили запуска EDT».
 - `docs/quality/TEST_MODEL.md` — syntax, smoke, regression и performance.
 - `docs/integrations/ONE_C_INTEGRATIONS.md` — HTTP, COM, файлы и обмены.
+
+### Профили запуска EDT
+
+Capability поставляет **два** шаблона профилей (`.launch`, тип `RuntimeClient`),
+взятых из проверенной схемы проекта `1C`:
+
+| Профиль | Назначение | Особенность |
+|---|---|---|
+| `Запуск Toolkit` | Анализ данных живой базы | `ATTR_STARTUP_OPTION=/Execute "<путь-к-read-only-EPF>"` — автозапуск обработки |
+| `1С — обычное приложение (HTTP debug)` | Отладка и совместный замер | Без `/Execute`; Toolkit открывается в том же runtime |
+
+- Переносимы **только** имена профилей и критические атрибуты, прежде всего
+  `ATTR_CLIENT_TYPE=ru.biatech.edt.ordinaryapp.OrdinaryClient`.
+- **Плейсхолдеры, а не значения:** `ATTR_PROJECT_NAME`, `ATTR_RUNTIME_INSTALLATION`,
+  путь к EPF. Профиль **не** хранит `ATTR_APPLICATION_ID` — приложение выбирает
+  EDT, а имя профиля остаётся переносимым между базами.
+- `/Execute` профиля `Запуск Toolkit` указывает на **read-only сборку**; запуск
+  write-enabled сборки для замера идёт через второй профиль под подтверждённую
+  задачу.
+- Профили инстанцирует `add-1c-base` (с плейсхолдерами), а `verify-1c-workspace`
+  проверяет их наличие и `ATTR_CLIENT_TYPE`; фактические project/runtime/путь
+  резолвятся через MCP EDT в текущем workspace, не копируются между базами.
 
 ### Схема `config/1c-projects.tsv`
 
