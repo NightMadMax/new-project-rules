@@ -57,6 +57,23 @@ Capability должна поддерживать верхнеуровневую 
 - Реальные строки соединения, пароли, токены, резервные копии и данные баз не
   записываются в Git.
 
+### Жизненный цикл: bootstrap против runtime
+
+Текущий механизм capability — это плоское копирование `source → destination`
+из `config/capabilities.tsv` один раз при bootstrap (одна строка = один файл).
+Он не умеет порождать заранее неизвестное число вложенных баз. Поэтому:
+
+- **При bootstrap** создаётся только общий каркас `1C/`: `ONE_C_WORKSPACE.md`,
+  пустой `config/1c-projects.tsv` с заголовком, `ENVIRONMENT_REGISTRY.md`,
+  каталоги `docs/integrations/` и `configurations/` без баз.
+- **Позже**, при добавлении конкретной базы, отдельный skill (`add-1c-base`
+  либо соответствующий режим `select-1c-project`) инстанцирует
+  `configurations/<base>/PROJECT_1C.md` из шаблона и добавляет строку в
+  `config/1c-projects.tsv`. `PROJECT_1C.md` — это runtime-шаблон, не bootstrap-
+  артефакт.
+- Уникальность `project_id` и `environment_id` проверяет `validate-project.py`;
+  дубликат идентификатора или контура — ошибка валидации, а не предупреждение.
+
 ## MCP-каталог и режимы
 
 | Сервер | Назначение | Режим по умолчанию | Условие подключения |
@@ -79,6 +96,10 @@ Capability должна поддерживать верхнеуровневую 
 явного запроса пользователя. В templates и командах используются переменные
 окружения, никогда не реальные ключи.
 
+Совместимость патча `Run without update` и Toolkit привязана к версии MCP EDT
+и платформы. В `docs/operations/TOOLCHAIN.md` фиксируется диапазон совместимых
+версий, а не только обнаруженная версия.
+
 ## Безопасность
 
 1. По умолчанию разрешены только инвентаризация, чтение, поиск и анализ.
@@ -92,6 +113,12 @@ Capability должна поддерживать верхнеуровневую 
    прекращается.
 5. Toolkit и другие write-capable MCP не получают режим записи как общий
    дефолт capability.
+6. `approved-write` не начинается, если не подтверждена свежая резервная копия
+   выбранной базы. Backup остаётся ответственностью пользователя и вне Git;
+   capability лишь требует подтверждения его наличия как предусловия.
+7. Признак production хранится как атрибут контура в
+   `docs/operations/ENVIRONMENT_REGISTRY.md`; `select-1c-project` читает его и
+   запрещает неявный выбор production.
 
 ## Заимствуемая проверенная база проекта `1C`
 
@@ -117,6 +144,11 @@ Capability должна поддерживать верхнеуровневую 
 Динамические application ID, runtime UUID, alias базы и серверная debug-цель
 всегда обнаруживаются текущим MCP EDT. Они не переносятся между базами.
 
+Эта схема взята из базы на **обычном приложении**. Большинство современных баз —
+управляемое приложение, поэтому плагин обычного приложения, `Run without update`
+и HTTP-debug профиль поставляются как **опциональные** артефакты для legacy-баз,
+а не как дефолт capability.
+
 ## Предлагаемые артефакты capability
 
 - `ONE_C_WORKSPACE.md` — назначение общей области и реестр вложенных проектов.
@@ -136,33 +168,70 @@ Capability должна поддерживать верхнеуровневую 
 
 1. `verify-1c-workspace` — проверяет EDT, платформу, Java, Docker/WSL,
    обязательный plugin, patch state, профили, свободные порты и MCP без
-   установки или изменения состояния.
+   установки или изменения состояния. На macOS корректно деградирует
+   (сообщает о недоступном software), а не падает.
 2. `select-1c-project` — выбирает `project_id` и `environment_id`; запрещает
    продолжение при неоднозначности или неявном production.
 3. `query-1c-infobase` — выбирает безопасный профиль, запускает Toolkit,
    подтверждает health-check и оформляет доказательство фактического
-   подключения.
+   подключения (стандартное место — `docs/operations/`).
 4. `measure-1c-performance` — фиксирует выборку и baseline, запускает
    Toolkit-таймеры и EDT profiling, возвращает total/average/min/max,
    ошибки, документов в секунду и структурный профиль.
 5. `work-with-1c-edt` — BSL, конфигурации, расширения, валидация и безопасный
    lifecycle EDT.
 
+Каждый skill поставляется с Codex-мостом `agents/openai.yaml` и `references/`
+по образцу skills `jira-confluence`; глобальные правила Codex-first, поэтому
+одного Claude `SKILL.md` недостаточно.
+
+## Точки подключения в коде
+
+Capability затрагивает те же места, что и `jira-confluence`; их надо изменить
+согласованно, иначе `1c` не будет распознан:
+
+- `config/capabilities.tsv` — строки bootstrap-артефактов capability.
+- `scripts/project_metadata.py` — добавить `1c` в `CAPABILITY_NAMES`.
+- `scripts/bootstrap-new-project.ps1` и `scripts/bootstrap-new-project.sh` —
+  снять захардкоженный guard `= jira-confluence`; shell принимает capability
+  одним позиционным `$4`, поэтому интерфейс надо переписать на **список**
+  capability, чтобы поддержать связку `[1c, jira-confluence]`.
+- `scripts/validate-project.py` — валидация артефактов `1c` и уникальности
+  строк `config/1c-projects.tsv`.
+- `.agents/skills/create-new-project/SKILL.md` — упоминание новой capability.
+
+## Синхронизация документации (в той же задаче)
+
+Правила `AGENTS.md` требуют обновлять в одной задаче со скриптами/skills:
+
+- `INDEX.md`, `docs/README.md` (реестр секций), `CHANGELOG.md`.
+- `docs/guides/CREATE_NEW_PROJECT.md` и `docs/guides/USE_THIS_PROJECT.md`.
+- `docs/quality/DEFECTS.md`/`PLAYBOOK.md` — по мере обнаружения дефектов и
+  проверенных паттернов capability.
+
 ## Этапы внедрения
 
 1. Утвердить состав MCP, режимы `analysis`/`approved-write` и правила хранения
    project memory.
 2. Добавить capability `1c` в manifest, schema, PowerShell и shell bootstrap;
-   сделать выбор нескольких capabilities единообразным.
-3. Добавить templates и registry для общей рабочей области и вложенных баз.
-4. Создать и валидировать пять project-local skills.
+   переписать однокапабилитный позиционный интерфейс shell на список и снять
+   захардкоженные guards `= jira-confluence`, чтобы поддержать комбинацию
+   capability.
+3. Добавить templates и registry для общей рабочей области; развести
+   bootstrap-каркас `1C/` и runtime-инстанцирование базы через `add-1c-base`.
+4. Создать и валидировать пять project-local skills с Codex-мостами
+   `agents/openai.yaml`.
 5. Добавить preflight-скрипт без установки и без доступа к секретам.
 6. Добавить MCP-инструкции и optional Docker deployment после отдельного
    утверждения состава, лицензий и хранилищ индексов.
-7. Добавить regression tests: одиночная база, несколько баз, сочетание с
-   `jira-confluence`, отсутствие секретов, production guard и shell/PowerShell
+7. Добавить regression tests: одиночная база, несколько баз, уникальность
+   `project_id`/`environment_id`, сочетание с `jira-confluence`, отсутствие
+   секретов и credentials-колонок в шаблонах и `1c-projects.tsv`, production
+   guard, backup-precondition, деградация preflight на macOS и shell/PowerShell
    parity.
-8. Провести общий bootstrap/validator test и review каждого этапа.
+8. Обновить в той же задаче docs/guides/skills (см. «Синхронизация
+   документации») и провести общий bootstrap/validator test и review каждого
+   этапа.
 
 ## Критерии готовности
 
@@ -173,4 +242,11 @@ Capability должна поддерживать верхнеуровневую 
   подтверждения.
 - Preflight объясняет недостающий software/MCP без попытки установки.
 - Templates, scripts и docs не содержат токенов, ключей, строк соединения,
-  абсолютных машинных путей или названий рабочих баз.
+  абсолютных машинных путей или названий рабочих баз; это проверяется тестом-
+  сканером, а не только на ревью.
+- Capability не предполагает обычное приложение по умолчанию: базы на
+  управляемом приложении работают без опциональных legacy-артефактов.
+- Preflight на macOS сообщает о недоступном 1С-software, а не завершается
+  ошибкой.
+- `approved-write` невозможен без подтверждённого backup и явно выбранного
+  непроизводственного контура.
