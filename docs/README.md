@@ -37,6 +37,7 @@ related:
 - [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002: версионируемый контракт проекта]]
 - [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003: двухъярусная архитектура знаний NPR и Best Practices]]
 - [[docs/architecture/PROJECT_STANDARD_SCHEMA|Schema project standard metadata]]
+- [[docs/architecture/ONE_C_CAPABILITY_PLAN|План capability 1С]]
 
 ## Исследования
 
