@@ -17,6 +17,9 @@
 
 ### Исправлено
 
+- POSIX contract fixture снова копирует обязательный `config/capabilities.tsv`;
+  сценарий изменённого manifest больше не падает с
+  `modified manifest bootstrap failed` ([[docs/quality/DEFECTS|дефект №72]]).
 - `standardize-existing-project` при `--profile auto` доверяет профилю, уже
   записанному в `.project-standard.json`, вместо вывода эвристикой по числу
   артефактов. Для adopted-проекта расхождение давало
