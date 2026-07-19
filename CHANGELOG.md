@@ -8,7 +8,9 @@
 
 - [[docs/architecture/ONE_C_CAPABILITY_PLAN|План capability `1c`]]: модель
   общей рабочей области с несколькими базами, состав MCP, режимы безопасности,
-  EDT/Toolkit-практики и этапы будущего внедрения.
+  EDT/Toolkit-практики и этапы будущего внедрения. Статус — `accepted`:
+  утверждён этап 1 (состав MCP, две сборки EPF, политика хранения project
+  memory).
 - Capability `jira-confluence`: переносимые Jira/Confluence модели, MCP runbook,
   аналитические документы, трассировка, project control и два профильных skill.
   Capability совместима с любым базовым профилем и стеком.

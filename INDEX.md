@@ -42,7 +42,7 @@
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/BEST_PRACTICES_CONTRACT|BEST_PRACTICES_CONTRACT.md]] | Pinned compatibility contract NPR ↔ Best Practices и процедура обновления |
 | [[docs/architecture/PROJECT_STANDARD_SCHEMA|PROJECT_STANDARD_SCHEMA.md]] | Schema `.project-standard.json` и provenance invariants |
-| [[docs/architecture/ONE_C_CAPABILITY_PLAN|ONE_C_CAPABILITY_PLAN.md]] | Согласованный план capability `1c`: MCP, EDT, Toolkit, несколько баз и безопасность |
+| [[docs/architecture/ONE_C_CAPABILITY_PLAN|ONE_C_CAPABILITY_PLAN.md]] | Утверждённый (`accepted`) план capability `1c`: MCP, EDT, Toolkit, несколько баз и безопасность |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]] | Решение о TSV contract и hybrid runtime |
 | [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003]] | Двухъярусная архитектура знаний: роли, маршрутизация, managed/unmanaged, судьба скиллов |
