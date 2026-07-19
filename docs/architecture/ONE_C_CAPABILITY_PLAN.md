@@ -70,13 +70,34 @@ Capability должна поддерживать верхнеуровневую 
 - **При bootstrap** создаётся только общий каркас `1C/`: `ONE_C_WORKSPACE.md`,
   пустой `config/1c-projects.tsv` с заголовком, `ENVIRONMENT_REGISTRY.md`,
   каталоги `docs/integrations/` и `configurations/` без баз.
-- **Позже**, при добавлении конкретной базы, отдельный skill (`add-1c-base`
-  либо соответствующий режим `select-1c-project`) инстанцирует
+- **Позже** отдельный skill `add-1c-base` (не режим `select-1c-project`, чтобы
+  выбор оставался без побочных эффектов) инстанцирует
   `configurations/<base>/PROJECT_1C.md` из шаблона и добавляет строку в
   `config/1c-projects.tsv`. `PROJECT_1C.md` — это runtime-шаблон, не bootstrap-
   артефакт.
 - Уникальность `project_id` и `environment_id` проверяет `validate-project.py`;
   дубликат идентификатора или контура — ошибка валидации, а не предупреждение.
+
+### Контракт `add-1c-base`
+
+Регистрация базы правит **только файлы репозитория** и **не запускает и не
+изменяет живую базу** — операция безопасна и обратима через git. Skill обязан:
+
+1. Собрать идентичность базы: уникальный `project_id`, папку
+   `configurations/<base>/`, конфигурацию, версию платформы, режим
+   совместимости, EDT workspace (через параметр/env, без машинного пути) и
+   EDT-профиль(и).
+2. Выделить endpoint/порт встроенного сервера: первой базе — `6003`, следующим —
+   следующий свободный; занятость порта подтверждается через
+   `verify-1c-workspace`.
+3. Зарегистрировать контуры базы в `ENVIRONMENT_REGISTRY.md` и **явно** пометить
+   production; production никогда не назначается по умолчанию.
+4. Инстанцировать `configurations/<base>/PROJECT_1C.md` из шаблона.
+5. До дозаписи строки в `1c-projects.tsv` прогнать проверку уникальности
+   `project_id` и пары `project_id`+`environment_id`.
+6. Отклонить любые credentials, строки соединения и пароли; допускаются только
+   имена переменных окружения.
+7. Обновить реестр в `ONE_C_WORKSPACE.md` и `INDEX.md`.
 
 ## MCP-каталог и режимы
 
@@ -262,6 +283,9 @@ skills, а не на рантайм-запрете.
    и структурный профиль.
 5. `work-with-1c-edt` — BSL, конфигурации, расширения, валидация и безопасный
    lifecycle EDT; знания EDT берутся динамически через `get_tool_guide`.
+6. `add-1c-base` — регистрирует новую базу в рабочей области (см. «Контракт
+   `add-1c-base`»): правит только файлы репозитория, не трогает живую базу,
+   проверяет уникальность и отсутствие credentials.
 
 Каждый skill поставляется с Codex-мостом `agents/openai.yaml` и `references/`
 по образцу skills `jira-confluence`; глобальные правила Codex-first, поэтому
@@ -304,7 +328,7 @@ Capability затрагивает те же места, что и `jira-confluen
    capability.
 3. Добавить templates и registry для общей рабочей области; развести
    bootstrap-каркас `1C/` и runtime-инстанцирование базы через `add-1c-base`.
-4. Создать и валидировать пять project-local skills с Codex-мостами
+4. Создать и валидировать шесть project-local skills с Codex-мостами
    `agents/openai.yaml`.
 5. Добавить preflight-скрипт без установки и без доступа к секретам.
 6. Добавить MCP-инструкции и optional Docker deployment после отдельного
@@ -314,7 +338,8 @@ Capability затрагивает те же места, что и `jira-confluen
    портом, разделение read-only/write-enabled сборок, сочетание с
    `jira-confluence`, отсутствие секретов и credentials-колонок в шаблонах и
    `1c-projects.tsv`, production guard, backup-precondition, server-vs-client
-   guard, деградация preflight на macOS и shell/PowerShell parity.
+   guard, `add-1c-base` не запускает живую базу и обратим через git, деградация
+   preflight на macOS и shell/PowerShell parity.
 8. Обновить в той же задаче docs/guides/skills (см. «Синхронизация
    документации») и провести общий bootstrap/validator test и review каждого
    этапа.
