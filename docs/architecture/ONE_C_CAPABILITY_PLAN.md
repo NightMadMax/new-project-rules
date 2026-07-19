@@ -90,8 +90,9 @@ Capability должна поддерживать верхнеуровневую 
 2. Выделить endpoint/порт встроенного сервера: первой базе — `6003`, следующим —
    следующий свободный; занятость порта подтверждается через
    `verify-1c-workspace`.
-3. Зарегистрировать контуры базы в `ENVIRONMENT_REGISTRY.md` и **явно** пометить
-   production; production никогда не назначается по умолчанию.
+3. Задать `is_production` в `1c-projects.tsv` (по умолчанию `false`, `true`
+   только явным подтверждением) и описать назначение контура в
+   `ENVIRONMENT_REGISTRY.md`.
 4. Инстанцировать `configurations/<base>/PROJECT_1C.md` из шаблона.
 5. До дозаписи строки в `1c-projects.tsv` прогнать проверку уникальности
    `project_id` и пары `project_id`+`environment_id`.
@@ -199,9 +200,10 @@ skills, а не на рантайм-запрете.
    это единственная защита от «ушёл не в ту базу».
 4. Production не выбирается автоматически. Обновление конфигурации базы,
    восстановление базы и массовое изменение данных запрещены без отдельного
-   подтверждения. Признак production хранится как атрибут контура в
-   `docs/operations/ENVIRONMENT_REGISTRY.md`; `select-1c-project` читает его и
-   запрещает неявный выбор production.
+   подтверждения. Машинный признак production — колонка `is_production` в
+   `config/1c-projects.tsv` (источник истины); `select-1c-project` читает её и
+   запрещает неявный выбор production. `ENVIRONMENT_REGISTRY.md` хранит
+   человеческую политику контура, а не флаг.
 5. Перед стартом и после него проверяется, что конфигурация базы не была
    обновлена. Если безопасный запуск без обновления не подтверждён, операция
    прекращается.
@@ -251,11 +253,11 @@ skills, а не на рантайм-запрете.
 ## Предлагаемые артефакты capability
 
 - `ONE_C_WORKSPACE.md` — назначение общей области и реестр вложенных проектов.
-- `config/1c-projects.tsv` — `project_id`, папка, конфигурация, платформа,
-  EDT workspace, EDT-профиль, endpoint/порт встроенного сервера, владелец и
-  доступные контуры; без credentials.
-- `docs/operations/ENVIRONMENT_REGISTRY.md` — назначение контуров, признак
-  production, политика данных, backup и rollback.
+- `config/1c-projects.tsv` — реестр баз, одна строка на пару
+  (`project_id`, `environment_id`); схема ниже; без credentials.
+- `docs/operations/ENVIRONMENT_REGISTRY.md` — назначение контуров, политика
+  данных, backup и rollback (человеческая политика; машинный признак production
+  живёт в `1c-projects.tsv`).
 - `PROJECT_1C.md` — карточка конкретной базы: конфигурация, расширения,
   совместимость и интеграции.
 - `docs/operations/TOOLCHAIN.md` — обнаруженные версии, plugin/patch state,
@@ -264,6 +266,33 @@ skills, а не на рантайм-запрете.
 - `docs/operations/DEPLOYMENT_MODEL.md` — поставка, обновление базы и rollback.
 - `docs/quality/TEST_MODEL.md` — syntax, smoke, regression и performance.
 - `docs/integrations/ONE_C_INTEGRATIONS.md` — HTTP, COM, файлы и обмены.
+
+### Схема `config/1c-projects.tsv`
+
+Tab-separated, одна строка на информационную базу (пара
+`project_id`+`environment_id`). Заголовок фиксирован; `validate-project.py`
+проверяет его и уникальность пары.
+
+```text
+project_id	environment_id	folder	configuration	platform_version	compatibility_mode	edt_workspace	edt_profile	server_port	is_production	owner
+```
+
+| Колонка | Смысл | Правило |
+|---|---|---|
+| `project_id` | Идентификатор базы/решения (slug) | Уникален в паре с `environment_id` |
+| `environment_id` | Контур (`dev`/`test`/`prod-...`) | Уникален внутри `project_id` |
+| `folder` | `configurations/<base>/` | Repo-relative; одинаков для контуров одной базы |
+| `configuration` | Прикладное решение (напр. `УТ 10`) | Без версий с машины |
+| `platform_version` | Версия платформы ИБ | Может отличаться между контурами |
+| `compatibility_mode` | Режим совместимости | — |
+| `edt_workspace` | Логическое имя/ссылка на env | **Не** абсолютный путь |
+| `edt_profile` | Профиль запуска read-only Toolkit | Имя, не ID |
+| `server_port` | Порт встроенного сервера ИБ | Уникален среди одновременно запущенных баз |
+| `is_production` | Машинный признак production | `true`/`false`; `select` запрещает неявный `true` |
+| `owner` | Ответственный | Роль/команда, не персональные данные |
+
+Колонки с credentials (строки соединения, пароли, токены) в схеме запрещены;
+`validate-project.py` отклоняет их появление.
 
 ## Skills
 
