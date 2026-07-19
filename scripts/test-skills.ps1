@@ -88,6 +88,8 @@ $sharedRuleLiterals = @(
     '`Open`, `Fixed`, or `Won''t Fix`',
     'move the entry to `Fixed`',
     'docs/quality/PLAYBOOK.md',
+    'automatically, without waiting for a user reminder',
+    'working solution found after testing',
     'raw memory directories.',
     'validator, script, or skill',
     'reusable engineering practice'

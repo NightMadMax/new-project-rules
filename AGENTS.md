@@ -77,7 +77,7 @@
 
 ## Pattern Playbook
 
-- Record a verified, reusable successful pattern in `docs/quality/PLAYBOOK.md` once it has proven correct at least twice — the success-side counterpart to the defect log, so the agent repeats the known-good approach.
+- Record a verified, reusable successful pattern in `docs/quality/PLAYBOOK.md` automatically, without waiting for a user reminder, when either it has proven correct at least twice or it is the working solution found after testing multiple unsuccessful alternatives. In the latter case, record it as soon as the successful result is verified so the known-good path replaces the costly trial-and-error sequence.
 - Each entry includes a short title, the date added, the component, the concrete known-good steps, and the evidence (commits/PRs or a passing test).
 - Keep entries project-specific; propose cross-project patterns for promotion instead of leaving them only here. Create the file from the template the first time a pattern qualifies; do not pre-create it empty.
 

@@ -9,9 +9,10 @@ related: []
 # Playbook
 
 Verified, reusable solutions that worked in this project. This is the
-success-side counterpart to the defect log: record a pattern here once it has
-proven correct at least twice, so the agent repeats the known-good approach
-instead of rediscovering it.
+success-side counterpart to the defect log: record a pattern here automatically
+once it has proven correct at least twice, or immediately after verification
+when it is the working solution found by testing multiple unsuccessful
+alternatives. This preserves the known-good path instead of rediscovering it.
 
 Keep entries project-specific. A pattern that is reusable across projects and
 free of private context should be proposed for promotion to the shared standard
