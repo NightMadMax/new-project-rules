@@ -6,6 +6,12 @@
 - Preserve commands, paths, identifiers, API names, and original error messages when translating them would reduce technical accuracy.
 - Use another language only when the user explicitly requests it.
 
+## Conciseness
+
+- Раздутый код и текст дороже читать, ревьюить и сопровождать. Пиши самую
+  короткую версию, которая остаётся ясной: если задача укладывается в 10 строк,
+  не пиши 50. Краткость не в ущерб читаемости, обработке ошибок и проверкам.
+
 ## Project Identity
 
 - Project: `Правила для нового проекта`
