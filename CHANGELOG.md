@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Schema стандарта повышена до 4: формализованы отдельные области
+  `GLOBAL_AGENT_INSTRUCTIONS.md`, project `AGENTS` baseline и локального
+  `AGENTS.md` репозитория стандартов; добавлены последовательные миграции
+  global/project/project-agents `3 → 4`.
 - [[docs/architecture/ONE_C_CAPABILITY_PLAN|План capability `1c`]]: модель
   общей рабочей области с несколькими базами, состав MCP, режимы безопасности,
   EDT/Toolkit-практики и этапы будущего внедрения. Статус — `accepted`:
@@ -22,6 +26,9 @@
 
 ### Исправлено
 
+- Устранены внутренние повторы правил о размере instruction chain, повторном
+  запуске Codex и создании репозиториев для подпапок; намеренный переносимый
+  safety subset project baseline теперь документирован явно.
 - POSIX contract fixture снова копирует обязательный `config/capabilities.tsv`;
   сценарий изменённого manifest больше не падает с
   `modified manifest bootstrap failed` ([[docs/quality/DEFECTS|дефект №72]]).

@@ -108,6 +108,25 @@ foreach ($file in @(
     Test-RequiredLiterals -File $file -Literals $sharedRuleLiterals
 }
 
+$agentsTemplate = Join-Path $Root "templates/new-project/AGENTS.template.md"
+foreach ($file in @((Join-Path $Root "AGENTS.md"), $agentsTemplate)) {
+    $text = Get-Content -Raw -Encoding UTF8 $file
+    $compactCount = ([regex]::Matches($text, [regex]::Escape('project_doc_max_bytes'))).Count
+    $processCount = ([regex]::Matches($text, [regex]::Escape('codex --ask-for-approval never'))).Count
+    if ($compactCount -ne 1) {
+        Write-Host "FAIL: $file must contain exactly one instruction-size rule"
+        $Failures++
+    }
+    if ($processCount -ne 1) {
+        Write-Host "FAIL: $file must contain exactly one new-process verification rule"
+        $Failures++
+    }
+}
+if ((Get-Content -Raw -Encoding UTF8 $agentsTemplate).Contains('do not create repositories')) {
+    Write-Host "FAIL: project baseline must not own new-project repository creation policy"
+    $Failures++
+}
+
 if ($Failures -ne 0) {
     Write-Host "$Failures skill check(s) failed."
     exit 1

@@ -42,7 +42,7 @@ def validate_metadata(
         issues.append("profile must be minimal, software, operated, or all")
     capabilities = data.get("capabilities", [])
     if current_schema >= 3 and "capabilities" not in data:
-        issues.append("capabilities must be present in schema 3 metadata")
+        issues.append("capabilities must be present in schema 3+ metadata")
     if not isinstance(capabilities, list) or not all(isinstance(item, str) for item in capabilities):
         issues.append("capabilities must be a string array")
     elif len(capabilities) != len(set(capabilities)):

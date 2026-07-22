@@ -96,6 +96,24 @@ if ! grep -Fq 'new-project-rules:begin schema=<SCHEMA_VERSION>' "$agents_templat
   fail=$((fail + 1))
 fi
 
+for file in "$root/AGENTS.md" "$agents_template"; do
+  compact_count=$(grep -Fc 'project_doc_max_bytes' "$file" || true)
+  process_count=$(grep -Fc 'codex --ask-for-approval never' "$file" || true)
+  if [ "$compact_count" -ne 1 ]; then
+    echo "FAIL: $file must contain exactly one instruction-size rule" >&2
+    fail=$((fail + 1))
+  fi
+  if [ "$process_count" -ne 1 ]; then
+    echo "FAIL: $file must contain exactly one new-process verification rule" >&2
+    fail=$((fail + 1))
+  fi
+done
+
+if grep -Fq 'do not create repositories' "$agents_template"; then
+  echo "FAIL: project baseline must not own new-project repository creation policy" >&2
+  fail=$((fail + 1))
+fi
+
 shared_rule_literals='docs/quality/DEFECTS.md
 immediately upon discovery
 section where the entry

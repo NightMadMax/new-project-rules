@@ -25,7 +25,9 @@ checkable conditions. Delete this section until the project has real criteria.
 The block below is the shared new-project-rules baseline. It is managed by
 migrations — do not edit between the markers. Add this project's own rules in the
 sections above (or in a scoped `AGENTS.md` in a subdirectory); local rules are
-never overwritten by a baseline update.
+never overwritten by a baseline update. The baseline intentionally repeats a
+small portable safety subset of global instructions so a cloned repository
+remains safe before a new computer has completed global setup.
 
 <!-- new-project-rules:begin schema=<SCHEMA_VERSION> -->
 ## Communication Language
@@ -48,10 +50,6 @@ never overwritten by a baseline update.
   broader rules for its subtree. An `AGENTS.override.md` replaces the
   instruction file at that directory level; plain `AGENTS.md` is concatenated
   with parent levels.
-- Keep `AGENTS.md` compact: Codex truncates the instruction chain past
-  `project_doc_max_bytes` (32 KiB by default). Move topic detail into `docs/`.
-- Instruction-file changes apply to new sessions. After changing them, start a
-  new session and verify the loaded instruction sources.
 - Keep `INDEX.md` current when files change purpose or location.
 - Use wikilinks for relationships between Markdown notes; code-formatted paths
   do not create Obsidian graph connections.
@@ -72,8 +70,6 @@ never overwritten by a baseline update.
 
 ## Repository Workflow
 
-- Use one GitHub repository for this project root; do not create repositories
-  for ordinary subdirectories unless the user explicitly makes them projects.
 - Commit and push completed repository changes unless the user asks not to.
 - Ask before pull requests, releases, issues, remote changes, or destructive
   history operations.

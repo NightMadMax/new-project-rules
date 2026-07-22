@@ -8,3 +8,6 @@ migration_id	target	from_schema	to_schema	handler	description
 0007-upgrade-project-standard-v3	project	2	3	project_metadata	Add explicit project capabilities to standard metadata
 0008-upgrade-global-managed-block-v3	global	2	3	global_managed_block	Refresh global managed policy and marker schema to 3
 0009-upgrade-project-agents-managed-block-v3	project-agents	2	3	project_agents_managed_block	Refresh project AGENTS baseline and marker schema to 3
+0010-upgrade-project-standard-v4	project	3	4	project_metadata	Record the clarified three-level agent policy contract
+0011-upgrade-global-managed-block-v4	global	3	4	global_managed_block	Advance the global managed marker for the policy contract release
+0012-upgrade-project-agents-managed-block-v4	project-agents	3	4	project_agents_managed_block	Remove redundant project rules and refresh the portable baseline

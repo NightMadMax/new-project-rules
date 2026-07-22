@@ -15,7 +15,9 @@
 ## Project Identity
 
 - Project: `Правила для нового проекта`
-- This folder is the git repository root and a project folder inside the parent Obsidian vault.
+- This folder is both the project root and its git repository root inside the
+  parent Obsidian vault; `templates/`, `scripts/`, and `docs/` are ordinary
+  subdirectories of this project, not separate projects.
 - Project navigation: [[README]], [[INDEX]], [[PROJECT]], and [[TEMPLATES]].
 
 ## Markdown Workflow
@@ -26,8 +28,6 @@
 - Use wikilinks for relationships between Markdown notes; code-formatted paths do not create Obsidian graph connections.
 - `AGENTS.md` is the single source of agent rules. `CLAUDE.md` only contains `@AGENTS.md` so Claude Code reads the same file; never duplicate rules there.
 - For scoped subdirectory instructions, create an adjacent `AGENTS.md`/`CLAUDE.md` pair. A nearer `AGENTS.md` specializes or overrides broader rules for its subtree. An `AGENTS.override.md` replaces the instruction file at that directory level; plain `AGENTS.md` is concatenated with parent levels.
-- Keep `AGENTS.md` compact: Codex truncates the instruction chain past `project_doc_max_bytes` (32 KiB by default). Move topic detail into `docs/`.
-- Instruction-file changes apply to new sessions. After changing them, start a new session and verify the loaded instruction sources.
 
 ## Rule Authoring
 
@@ -59,10 +59,13 @@
 - Required core: `README.md`, `AGENTS.md`, `INDEX.md`, and `PROJECT.md`.
 - Keep durable artifacts under `docs/` (indexed by `docs/README.md`) and reusable files under `templates/new-project/`.
 - Store one decision per ADR, one investigation per research file, one review per review file; do not create empty documents without a current purpose.
+- Use `ACTIONS.md` only for consequential actions outside git.
 - Keep user docs current, not one-shot: when you add or change a script or skill, update `docs/guides/USE_THIS_PROJECT.md` or `MANUAL_SCRIPTS.md` in the same task.
 - Treat machine-readable API specifications, lock files, generated SBOM files, and `.github/CODEOWNERS` as authoritative.
 - Never commit secrets, tokens, private keys, passwords, or real credentials.
-- When these reusable conventions change, update `GLOBAL_AGENT_INSTRUCTIONS.md`, the bootstrap documentation, affected templates, related skills, and the active global `~/.codex/AGENTS.md` in the same task. Never update rules without updating the skills that implement them.
+- When a reusable convention changes, update only its affected canonical
+  sources, generated templates, migrations, documentation, skills, and active
+  managed copies. Do not touch unrelated policy surfaces merely for parity.
 
 ## Defect Tracking
 

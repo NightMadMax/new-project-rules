@@ -3,4 +3,6 @@ AGENTS.md	## Defect Tracking
 AGENTS.md	## Knowledge Promotion
 templates/new-project/AGENTS.template.md	## Defect Tracking
 templates/new-project/AGENTS.template.md	## Knowledge Promotion
+templates/new-project/AGENTS.template.md	small portable safety subset of global instructions
+docs/architecture/ARCHITECTURE.md	Инструкции агента имеют три разные области ответственности
 CLAUDE.md	@AGENTS.md

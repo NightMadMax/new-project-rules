@@ -15,11 +15,11 @@ related:
 `.project-standard.json` фиксирует применённую schema, профиль и provenance
 стандарта. Это машиночитаемый state migrator, а не описание проекта.
 
-Текущая schema `3`:
+Текущая schema `4`:
 
 ```json
 {
-  "schema_version": 3,
+  "schema_version": 4,
   "profile": "software",
   "capabilities": ["jira-confluence"],
   "source": "NightMadMax/new-project-rules",
@@ -28,7 +28,9 @@ related:
   "adopted_at": "YYYY-MM-DD",
   "applied_migrations": [
     "0001-adopt-project-standard",
-    "0004-upgrade-project-standard-v2"
+    "0004-upgrade-project-standard-v2",
+    "0007-upgrade-project-standard-v3",
+    "0010-upgrade-project-standard-v4"
   ]
 }
 ```
@@ -40,6 +42,9 @@ related:
 - `capabilities` — независимые от профиля подключаемые возможности. Сейчас
   поддерживается `jira-confluence`; пустой массив означает, что capability не
   выбрана. Возможности дополняют профиль и не меняют его состав.
+- Schema 4 фиксирует трёхуровневый контракт инструкций агента; формат metadata
+  относительно schema 3 не меняется, но sequential history подтверждает
+  применение обновлённого global/project policy contract.
 - `source` берётся из `config/standard-source.txt`, а `source_commit` — из
   проверенного commit репозитория правил; локальный путь и remote с credentials
   не записываются.

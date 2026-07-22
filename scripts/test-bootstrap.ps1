@@ -40,7 +40,7 @@ function Assert-Metadata {
                 $metadata.source_commit -match '^[0-9a-f]{40}$' -and
                 $metadata.created_at -match '^\d{4}-\d{2}-\d{2}$' -and
                 $metadata.adopted_at -match '^\d{4}-\d{2}-\d{2}$' -and
-                (($metadata.applied_migrations -join ',') -eq '0001-adopt-project-standard,0004-upgrade-project-standard-v2,0007-upgrade-project-standard-v3')) {
+                (($metadata.applied_migrations -join ',') -eq '0001-adopt-project-standard,0004-upgrade-project-standard-v2,0007-upgrade-project-standard-v3,0010-upgrade-project-standard-v4')) {
             Pass
         }
         else { Fail "${Tag}: metadata fields are invalid" }
