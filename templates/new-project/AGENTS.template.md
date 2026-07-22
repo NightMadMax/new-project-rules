@@ -3,8 +3,8 @@
 ## Project Identity
 
 - Project: `<PROJECT_NAME>`
-- This folder is the git repository root and a project folder inside the parent
-  Obsidian vault.
+- This folder is both the project root and its git repository root inside the
+  parent Obsidian vault; ordinary subdirectories remain part of this project.
 - Project navigation: [[README]], [[INDEX]], and [[PROJECT]].
 
 ## Commands
@@ -72,7 +72,8 @@ never overwritten by a baseline update.
 
 ## Repository Workflow
 
-- Use a separate GitHub repository for this project.
+- Use one GitHub repository for this project root; do not create repositories
+  for ordinary subdirectories unless the user explicitly makes them projects.
 - Commit and push completed repository changes unless the user asks not to.
 - Ask before pull requests, releases, issues, remote changes, or destructive
   history operations.
