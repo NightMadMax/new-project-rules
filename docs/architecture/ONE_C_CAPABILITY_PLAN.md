@@ -52,6 +52,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.10. Синхронизация после upstream-разбора | выполнено 2026-07-25 | Хвост плана приведён к решениям S.1–S.13: Docker сохранён обязательным, но lifecycle контейнеров оставлен внешнему MCP provider; preflight унифицирован под именем `doctor-1c`; состав поставки, зависимости, этапы и критерии готовности дополнены import/release artifacts, upstream skills, agents/commands, OpenSpec и Codex/Claude projections. Ограничение Windows относится только к runtime-операциям 1С. Оставленные на этом проходе противоречия портов №81–82 впоследствии закрыты пересмотренным решением 1.8. |
 | 1.11. Позднее подключение AI-клиента | согласовано 2026-07-25 | Обе статические проекции поставляются всегда, но наличие обоих CLI не требуется. `activate-1c-client codex|claude` идемпотентно активирует позднее установленный клиент без re-bootstrap: проверяет CLI, рендерит только owned client state из актуальной topology, сохраняет пользовательские настройки и другой работающий клиент, не выдаёт trust, запускает client-scoped `doctor-1c` и сообщает о необходимости новой сессии. Статическая проверка обеих проекций обязательна; runtime smoke отсутствующего клиента получает `SKIP`, не ошибку. |
 | 1.12. Контракт агрегатного release | согласовано 2026-07-25 | Build-time канон минимизирован до `config/1c-release.json` (паспорт, source pins, dependencies, MCP/EPF contract) и `config/1c-artifacts.tsv` (полный source→action→owner→target ledger). Допустимы только `copy`, `adapt`, `compile`, `route`; `exclude` запрещён. Созданный проект получает итоговые managed/seed артефакты, краткую запись release в `.project-standard.json` и стабильные hashes в generic `.project-standard-artifacts.json`; build inputs/staging туда не копируются. Смешанные файлы обновляются только в owned blocks/keys, user-owned/local state и project-seed не перезаписываются. Удаление managed target разрешено лишь при совпадении installed hash; drift блокирует транзакцию. |
+| 1.13. Release lifecycle стандарта и проектов | согласовано 2026-07-25 | Процессы разделены. 2A: weekly check нашего `new-project-rules` только создаёт/обновляет уведомление о новом upstream commit и не меняет код; ручной maintainer refresh строит временный candidate, показывает diff/tests и после явного принятия делает прямой commit/push в `main` без draft PR. Capability имеет собственный SemVer и детерминированный release id. 2B: созданные проекты не следят за upstream и не обновляются автоматически; владелец явно применяет уже опубликованный release через offline plan/apply migration. Ошибки исправляются только forward patch release, автоматического downgrade нет. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -80,8 +81,8 @@ runtime-файлы upstream сохраняются. Реальные credentials
 
 | Пунк источника | Статус | Решение |
 |---|---|---|
-| S.1. Жизненный цикл интеграции | согласовано 2026-07-25 | Build-time: maintainer workflow загружает pinned commit `ai_rules_1c` в staging, адаптирует и проверяет пакет, после чего канонические артефакты попадают в шаблоны capability. Создание проекта не зависит от сети и upstream installer. Периодическая проверка сравнивает lock с upstream `main`; изменение создаёт reviewable refresh candidate с diff и тестами, но не обновляет пакет и проекты без review. |
-| S.2. Полнота и периодичность | согласовано 2026-07-25 | Каждый tracked-файл upstream обязан иметь явную запись в `config/1c-artifacts.tsv`; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; новый commit создаёт candidate с diff и тестами. Merge в стандарт и plan/apply в существующие проекты требуют review. |
+| S.1. Жизненный цикл интеграции | согласовано 2026-07-25; direct-commit flow уточнён в 1.13 | Build-time: maintainer workflow загружает pinned commit `ai_rules_1c` в staging, адаптирует и проверяет пакет, после чего канонические артефакты попадают в шаблоны capability. Создание проекта не зависит от сети и upstream installer. Weekly check только уведомляет о новом commit. Ручной refresh создаёт временный reviewable candidate с diff/tests и после явного принятия делает прямой commit/push в `main`; draft PR не используется. |
+| S.2. Полнота и периодичность | согласовано 2026-07-25; direct-commit flow уточнён в 1.13 | Каждый tracked-файл upstream обязан иметь явную запись в `config/1c-artifacts.tsv`; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; weekly check не меняет код, а ручной candidate после review напрямую фиксируется в `main`. Plan/apply в существующие проекты остаётся отдельным явным действием владельца. |
 | S.3. Единица поставки и владение | согласовано 2026-07-25 | Принят вариант А′: `1c` — одна логическая capability, одна версия поставки и один кандидат обновления для создаваемого проекта. Внутри release артефакты обязательно классифицируются как project-managed, project-seed, provider-only или pinned external component. Канонические источники могут находиться в разных репозиториях: build-time сборка фиксирует совместимые commits и выпускает их как один агрегат, поэтому одновременные commits в репозиториях не требуются. |
 | S.4.1. Источники конфигурации | пересмотрено и согласовано 2026-07-25 | Принята upstream-first модель. `config/1c-projects.tsv` остаётся только shared-реестром идентичности, production/MCP/EDT topology и портов. Точная upstream `.dev.env.example` поставляется как managed template, gitignored `.dev.env` хранит default-базу, пути, dev/test credentials и process settings. Gitignored `.v8-project.json` сохраняет исходную upstream-схему локального multi-base registry; `databases[].id` связывается с TSV соглашением `<project_id>-<environment_id>`. `config/1c.local*.json` и не имеющий конкретной схемы `config/1c-policy.json` исключены. Явный session lock имеет приоритет; non-default параметры передаются инструментам без переписывания `.dev.env`; `doctor-1c` сообщает о рассогласовании default-записи. |
 | S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25; входы обновлены вслед за S.4.1 | `config/1c-mcp-catalog.json` остаётся единым нейтральным каталогом MCP. Renderer объединяет его с shared `config/1c-projects.tsv` и локальными `.dev.env`/`.v8-project.json`, затем транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
@@ -189,6 +190,55 @@ CLI; позднюю активацию второго клиента; повто
 удаление/rename managed target и owned key; внешний provider present/missing с
 динамическими портами; отсутствие optional dependencies; offline
 bootstrap/migration; запрет снять capability и shell/PowerShell parity.
+
+### Жизненный цикл release и созданных проектов
+
+#### 2A. Выпуск capability в `new-project-rules`
+
+Weekly automation сравнивает pinned source commits с upstream. При изменении
+она создаёт или обновляет одно уведомление с commit/inventory summary, но не
+меняет файлы, ветки или release. Draft PR не создаётся.
+
+Ручной maintainer workflow:
+
+1. загружает новый source commit во временный staging;
+2. строит `1c-release.json`, `1c-artifacts.tsv`, outputs и полный diff;
+3. применяет правила changed/new/deleted source: новый файл = `unmapped`,
+   изменённый `adapt`/selector = `review-required`, удалённый source требует
+   явной removal/route migration;
+4. запускает deterministic build и release/project fixtures без сети;
+5. показывает semantic changes, permissions, MCP/EPF/dependency changes;
+6. после явного принятия фиксирует release прямым commit и push в `main`.
+
+Capability имеет собственный SemVer: patch — совместимое исправление/содержание,
+minor — новый skill/agent/route/optional MCP/managed artifact, major —
+несовместимая schema/ownership/lifecycle/runtime boundary. `release_id` —
+детерминированный SHA-256 канонических `1c-release.json` и
+`1c-artifacts.tsv`; timestamp в идентификатор не входит.
+
+Изменение любого pinned source (Best Practices `1c`, Toolkit/EPF, OpenSpec или
+adapter contract) создаёт новый агрегатный release. Новая EPF дополнительно
+требует provenance, hash, application-kind и read/write-boundary review.
+
+#### 2B. Применение release в созданном проекте
+
+Созданный проект не проверяет `ai_rules_1c`, не загружает upstream и не
+обновляется автоматически. Новые проекты получают последний принятый release;
+существующий остаётся pinned до решения владельца.
+
+Обновление идёт только через обычный migration workflow:
+
+1. построить offline plan `installed → published`;
+2. показать managed updates, conflicts, removals и seed preservation;
+3. получить явное approval;
+4. транзакционно применить всю цепочку `capability_artifacts`;
+5. обновить `.project-standard.json` и `.project-standard-artifacts.json`;
+6. запустить validator и `doctor-1c`.
+
+Несколько версий можно пропустить, если существует полная migration chain.
+Автоматического downgrade нет: дефектный release блокируется для новых
+установок и исправляется forward patch release; пользовательские проекты
+получают его тем же plan/apply процессом.
 
 ### Источники конфигурации
 
@@ -565,7 +615,7 @@ Codex и Claude получают поддерживаемые их клиент�
 | `loadfrom1cbase` | `export-1c-source`, режим `full` | Полностью синхронизирует выбранную базу в source tree |
 | `update1cbase` | `deploy-1c-source` | Загружает source tree в выбранную базу |
 | `updatemcp` | `manage-1c-mcp`, режим `update` | Делегирует обновление внешнему provider |
-| `updaterules` | maintainer workflow `refresh-1c-capability` | Создаёт reviewed candidate из pinned upstream commit |
+| `updaterules` | maintainer workflow `refresh-1c-capability` | Строит временный candidate из pinned upstream commit; после явного принятия делает direct commit/push |
 
 `doctor-1c` объединяет диагностику capability release/ledger, companion files,
 skills/agents, client projections, provider identity/health/tools,
