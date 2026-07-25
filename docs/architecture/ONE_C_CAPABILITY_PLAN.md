@@ -68,7 +68,8 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.2. Полнота и периодичность | согласовано 2026-07-25 | Каждый tracked-файл upstream обязан иметь явную запись в import map; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; новый commit создаёт candidate с diff и тестами. Merge в стандарт и plan/apply в существующие проекты требуют review. |
 | S.3. Единица поставки и владение | согласовано 2026-07-25 | Принят вариант А′: `1c` — одна логическая capability, одна версия поставки и один кандидат обновления для создаваемого проекта. Внутри release артефакты обязательно классифицируются как project-managed, project-seed, provider-only или pinned external component. Канонические источники могут находиться в разных репозиториях: build-time сборка фиксирует совместимые commits и выпускает их как один агрегат, поэтому одновременные commits в репозиториях не требуются. |
 | S.4.1. Источники конфигурации | согласовано 2026-07-25 | Принята слоистая модель: `config/1c-projects.tsv` хранит версионируемую идентичность и стабильные несекретные параметры баз/контуров; `config/1c-policy.json` — версионируемую политику разработки; gitignored `config/1c.local.json` — машинные пути и endpoints без секретов; секреты разрешаются только из environment или системного credential store. Upstream `.dev.env` и описанный им `.v8-project.json` учитываются в semantic map, но не поставляются как runtime-источники истины. |
-| S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25 | `config/1c-mcp-catalog.json` становится единым нейтральным каталогом MCP. Один renderer объединяет его с реестром баз, policy и допустимым локальным слоем, затем транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
+| S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25 | `config/1c-mcp-catalog.json` становится единым нейтральным каталогом MCP. Один renderer объединяет его с committed реестром баз и policy; local-слой используется только для runtime resolution и проверок. Затем renderer транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
+| S.4.3. Многобазовая маршрутизация MCP | согласовано 2026-07-25 | Приняты отдельные namespaces без runtime-router и три scope: `shared`, `per-workspace`, `per-base`. Для разрешённой базы renderer создаёт стабильный `onec-...` server id; `select-1c-project` не переписывает config, а проверяет фактическую базу через точный namespace и создаёт session lock. `mcp_enabled` управляет экспозицией: dev/test по умолчанию включены, production — выключен до явного решения. Новая сессия нужна только после изменения топологии MCP или невозможности переподключить endpoint. |
 
 ### Единица поставки и внутреннее владение
 
@@ -133,14 +134,17 @@ Upstream `.dev.env.example`, логика `.dev.env` и спецификация
 ### Адаптеры Codex и Claude Code
 
 `config/1c-mcp-catalog.json` — project-managed нейтральный каталог. Он хранит
-стабильный letter-leading server id (`onec-...`), scope (`shared`/`per-base`),
-transport, endpoint template, обязательность, таймауты, security class и имена
-переменных окружения, но не синтаксис конкретного AI-клиента и не дублирует
-строки баз из `config/1c-projects.tsv`.
+стабильный letter-leading server id (`onec-...`), scope
+(`shared`/`per-workspace`/`per-base`), transport, endpoint template,
+обязательность, таймауты, security class и имена переменных окружения, но не
+синтаксис конкретного AI-клиента и не дублирует строки баз из
+`config/1c-projects.tsv`.
 
-Renderer объединяет каталог с `config/1c-projects.tsv`,
-`config/1c-policy.json` и разрешёнными несекретными значениями
-`config/1c.local.json`, после чего строит три проекции:
+Renderer объединяет каталог с committed `config/1c-projects.tsv` и
+`config/1c-policy.json`, после чего строит три проекции. Local-слой участвует
+только в runtime resolution и проверках: его машинные значения не записываются
+литералами в shared Git-файлы; допустимы лишь стабильные committed значения,
+имена переменных и поддерживаемые клиентом плейсхолдеры.
 
 1. `.codex/config.toml` — только маркированный managed-блок таблиц
    `[mcp_servers.<id>]`. Остальной TOML сохраняется; upstream-поля
@@ -174,6 +178,44 @@ managed-блока, owned server key или owned permission rule вручную
 
 Capability не устанавливает доверие проекту/MCP, не включает обход разрешений
 и не задаёт общие model/provider/sandbox defaults пользователя.
+
+### Многобазовая маршрутизация MCP
+
+Runtime-router не вводится: он стал бы новым привилегированным прокси, единой
+точкой отказа и источником гонок между сессиями. Client config содержит
+отдельные namespaces:
+
+- `shared` — один server на проект (Syntax, Help, SSL, Templates,
+  CodeChecker);
+- `per-workspace` — один EDT MCP на уникальный логический EDT workspace;
+- `per-base` — отдельный Toolkit и другие live-base servers на пару
+  `project_id`+`environment_id`.
+
+Server id детерминирован и начинается с буквы, например
+`onec-edt-main`, `onec-toolkit-erp-dev`. Несколько баз могут ссылаться на один
+`per-workspace` endpoint, но `per-base` endpoint не разделяется.
+
+`mcp_enabled` в `config/1c-projects.tsv` определяет, попадает ли per-base
+namespace в обе client-specific проекции. Для dev/test default = `true`; для
+production default = `false`, а включение требует явного решения. Этот флаг
+только экспонирует endpoint и не снимает гейты production или записи.
+
+`select-1c-project` не меняет Git-файлы и не переподключает server. Он:
+
+1. разрешает точный namespace по выбранной паре;
+2. проверяет, что namespace доступен в текущем клиенте;
+3. выполняет через него identity-вызов и сравнивает фактическую базу;
+4. создаёт в памяти сессии lock из `project_id`, `environment_id`,
+   `mcp_server_id`, ожидаемого endpoint, фактического fingerprint,
+   `application_kind`, `is_production` и времени проверки;
+5. разрешает live-base skills только через namespace из lock.
+
+Повторный `select`, ошибка/health-check failure или перезапуск runtime
+аннулирует lock. Переключение между уже объявленными доступными namespaces не
+требует новой сессии; добавление/удаление базы, изменение server id,
+endpoint/порта или состава MCP требует перегенерации обеих проекций и нового
+процесса. Если endpoint был недоступен при старте и клиент не умеет
+переподключить его, также требуется новая сессия.
 
 ## Решение
 
@@ -745,8 +787,9 @@ Capability должна поддерживать верхнеуровневую 
    из реестра; при занятости посторонним ПО берётся следующий свободный, при
    исчерпании диапазона — явная остановка.
 3. Задать `is_production` в `1c-projects.tsv` (по умолчанию `false`, `true`
-   только явным подтверждением) и описать назначение контура в
-   `ENVIRONMENT_REGISTRY.md`.
+   только явным подтверждением) и `mcp_enabled` (`true` для dev/test по
+   умолчанию; `false` для production до отдельного явного решения), затем
+   описать назначение контура в `ENVIRONMENT_REGISTRY.md`.
 4. Инстанцировать `configurations/<base>/PROJECT_1C.md` и шаблоны профилей
    запуска EDT с плейсхолдерами, без ID/путей: `Запуск Toolkit` — всегда,
    `1С — обычное приложение (HTTP debug)` — только при
@@ -827,7 +870,7 @@ Tab-separated, одна строка на информационную базу 
 проверяет его и уникальность пары.
 
 ```text
-project_id	environment_id	folder	configuration	platform_version	compatibility_mode	application_kind	edt_workspace	edt_profile	server_port	is_production	owner
+project_id	environment_id	folder	configuration	platform_version	compatibility_mode	application_kind	edt_workspace	edt_profile	server_port	is_production	mcp_enabled	owner
 ```
 
 | Колонка | Смысл | Правило |
@@ -843,6 +886,7 @@ project_id	environment_id	folder	configuration	platform_version	compatibility_mo
 | `edt_profile` | Профиль запуска Toolkit для режима `analysis` | Имя, не ID |
 | `server_port` | Порт встроенного сервера ИБ | Уникален среди одновременно запущенных баз |
 | `is_production` | Машинный признак production | `true`/`false`; `select` запрещает неявный `true` |
+| `mcp_enabled` | Экспозиция per-base MCP в client configs | `true`/`false`; для production default = `false`; не снимает гейты |
 | `owner` | Ответственный | Роль/команда, не персональные данные |
 
 Колонки с credentials (строки соединения, пароли, токены) в схеме запрещены;
@@ -859,8 +903,10 @@ project_id	environment_id	folder	configuration	platform_version	compatibility_mo
    не поддерживается» (см. «Требования к среде»), а не деградирует и не ставит
    software.
 2. `select-1c-project` — выбирает `project_id` и `environment_id`, резолвит
-   EDT-профиль и порт; запрещает продолжение при неоднозначности или неявном
-   production; подтверждает фактическую базу за портом реальным MCP-вызовом.
+   EDT-профиль, порт и точный `onec-...` namespace; запрещает продолжение при
+   неоднозначности, `mcp_enabled=false` или неявном production; подтверждает
+   фактическую базу реальным вызовом через этот namespace и создаёт session
+   lock, обязательный для последующих live-base skills.
 3. `query-1c-infobase` — переводит базу в режим `analysis` по её
    `application_kind`: для `ordinary` запускает **read-only сборку**, для
    `managed` подтверждает выключенный переключатель записи. Затем подтверждает
