@@ -102,6 +102,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.9. Skill `prompt-enhancer` | согласовано ускоренно 2026-07-25 | `SKILL.md` и example переносятся побайтно. Skill только структурирует пользовательский prompt без добавления требований; inline/file/interactive modes и file ownership сохраняются. Dependencies отсутствуют, Codex/Claude discovery и legacy path mapping добавляются снаружи. |
 | S.9.10. Skill `transcribe` | требуется отдельное решение | Побайтный перенос пока невозможен: documented output names не совпадают со скриптом; Python/system dependencies не pinned; медиа загружается в Gemini API без отдельного disclosure/confirmation, cleanup не гарантирован при исключении, ожидание processing не ограничено, а ошибка split может привести к пустому результату. |
 | S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется только во внешнем release dependency manifest, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
+| S.10. OpenSpec | согласовано 2026-07-25 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — optional runtime dependencies без автоматической установки; snapshot обновляется только build-time workflow. |
 
 ### Единица поставки и внутреннее владение
 
@@ -770,6 +771,38 @@ payload, discovery обоими клиентами, prompt preservation/file mod
 записанной в `Configuration.json` version compatibility.
 
 `transcribe` в это ускоренное решение не входит и остаётся отдельным пунктом.
+
+### OpenSpec
+
+OpenSpec поставляется по умолчанию как project-managed workflow для новых
+функций и существенных изменений 1С. Quick fixes и простые правки
+документации могут идти без change. В capability входят:
+
+- skip-if-exists scaffold `openspec/`;
+- четыре workflow `propose`, `explore`, `apply` и `archive`;
+- pinned Codex/Claude bundle;
+- правило `sdd-integrations`, загружаемое через `develop-1c`;
+- maintainer-only build-time refresh bundle.
+
+`PROJECT.md` определяет цель и границы всего проекта; `openspec/specs/` —
+актуальные требования по доменам; `openspec/changes/` — планы отдельных
+изменений; ADR — долговечные архитектурные решения. OpenSpec не заменяет
+`DEFECTS.md`, `PLAYBOOK.md`, пользовательскую или операционную документацию.
+`openspec/project.md` — только генерируемая проекция фактических метаданных 1С
+и канонических project/config sources, не самостоятельный источник истины.
+
+Готовность artifacts по OpenSpec не разрешает реализацию автоматически:
+`apply` требует отдельного явного утверждения пользователем всего change-плана.
+При отсутствии approval workflow останавливается. Upstream bundle адаптируется
+только там, где нужны этот gate, фактические пути и API конкретного клиента.
+
+OpenSpec CLI версии, совместимой с pinned bundle, и Node.js объявляются
+optional runtime dependencies. Bootstrap их не устанавливает; локальная
+установка возможна только с разрешения, а `doctor-1c` сообщает
+availability/version. Пользовательское `openspec update` не является каналом
+обновления managed artifacts: новый snapshot приходит через S.1 после review.
+Остальные client bundles остаются provider-only build inputs и учитываются в
+import map, но не устанавливаются в проект Codex + Claude.
 
 ### Многобазовая маршрутизация MCP
 
