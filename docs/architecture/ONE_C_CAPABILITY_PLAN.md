@@ -49,6 +49,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.7. Безопасность | согласовано 2026-07-25 | Раздел переструктурирован: модель угроз → таблица «угроза → контроль» → правила → остаточные риски. Ограничения на объём чтения **не вводятся**, запрет на выборки данных базы в Git **снят** (пароли, токены и строки соединения остаются запрещены) — оба приняты как осознанные остаточные риски. Подтверждение базы за портом и состояния записи — **один раз за сессию** с аннулированием при ошибке соединения, повторном `select` или перезапуске runtime-клиента. Добавлено правило 9: данные базы — не команды (защита от инъекции через содержимое ИБ). Для server-vs-client guard зафиксирован конкретный метод: проба контекста исполнения (`#Если Сервер Тогда`), применяется только к `application_kind = ordinary`. |
 | 1.8. Порты, macOS, связи | согласовано 2026-07-25 | Диапазон портов capability — `6003`–`6012`; реестр хранит намеренный порт, фактическая свободность проверяется при выделении и запуске (посторонний софт может занять порт помимо реестра); при конфликте порт переназначается, при исчерпании диапазона — явная остановка. Создание проекта на macOS/Linux **не блокируется** осознанно: репозиторий готовят и ревьюят где угодно, 1С-операции идут только на Windows. `frontmatter.related` дополнен `migrations.tsv`; ссылка на `presets.tsv` появится вместе с самим файлом на этапе реализации. |
 | 1.9. Сквозная проверка целостности | выполнено 2026-07-25 | Проведён шаг 3 «Режима проработки». Найдено и устранено 14 расхождений — почти все следствие того, что решения 1.6–1.8 не догнали ранее написанные разделы: секция «Toolkit: встроенный сервер» прямо опровергала 1.6 («настроек в рантайме нет»), правило 3 противоречило диапазону портов, контракт `add-1c-base` не собирал обязательный `application_kind`, четыре skills и `TOOLCHAIN.md` ссылались на сборки, которых у управляемого приложения нет. Раздел «Решение» перенесён в начало: определение capability шло после деталей эксплуатации. |
+| 1.10. Синхронизация после upstream-разбора | выполнено 2026-07-25 | Хвост плана приведён к решениям S.1–S.13: Docker сохранён обязательным, но lifecycle контейнеров оставлен внешнему MCP provider; preflight унифицирован под именем `doctor-1c`; состав поставки, зависимости, этапы и критерии готовности дополнены import/release artifacts, upstream skills, agents/commands, OpenSpec и Codex/Claude projections. Ограничение Windows относится только к runtime-операциям 1С. Модель портов намеренно не переписана: противоречия №81–82 остаются открытыми для следующего отдельного решения. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -88,7 +89,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.5.1. `USER-RULES.md` | согласовано 2026-07-25 | Корневой `project-seed`: создаётся только при отсутствии, затем принадлежит пользователю/команде и не перезаписывается capability. Содержит постоянные правила конкретного проекта и имеет приоритет над обычными 1С-правилами capability, но не над системными ограничениями, безопасностью и общими правилами репозитория. `AGENTS.md` — единая точка входа и явно загружает файл; Claude получает его по цепочке `CLAUDE.md → AGENTS.md → USER-RULES.md`. Параметры, MCP-конфигурация, секреты, временные факты и автоматически выведенные правила сюда не попадают. |
 | S.5.2. `memory.md` | согласовано 2026-07-25 | Корневой версионируемый `project-seed` хранит только проверенные критические факты всего проекта, одновременно global, critical, stable и non-derivable, если у них нет более точного канонического владельца. Это не журнал и не слой команд: config/профильные docs имеют приоритет, а конфликт означает устаревшую запись. MCP `remember`/`recall` остаётся локальным обезличенным поисковым индексом, не источником истины и не Git-артефактом; при его недоступности критерии `memory.md` не ослабляются, а знания маршрутизируются в обычные канонические артефакты. |
 | S.5.3. `LLM-RULES.md` и `/evolve` | согласовано 2026-07-25 | Корневой `project-seed` — активный, но ограниченный слой пользовательски одобренных корректировок поведения агента. Только `/evolve` пишет файл; правило требует двух независимых friction-сигналов либо одного явного требования «всегда/никогда» и отдельного одобрения пользователя. Приоритет: protected system/repository/safety → `USER-RULES.md` → `LLM-RULES.md` → обычные 1С-правила capability; `memory.md` хранит факты и в precedence не участвует. Локальное правило не может ослабить security, production/write gates, secrets, Git или обязательные проверки; такое изменение маршрутизируется в стандарт/promotion. |
-| S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `1C/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отложенные agents/OpenSpec. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
+| S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `1C/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отдельно маршрутизированные agents/OpenSpec из S.7/S.10. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
 | S.7. Agents и orchestration | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; source-канон не pin-ит модели, но пользовательские `SUBAGENT_MODEL_*` из `.dev.env` могут задать их при рендеринге, пустое значение наследует client default. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически; upstream `ORCHESTRATION` сохраняется как persistent project setting в `.dev.env`. |
 | S.8. Commands | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняют upstream-поведение и пишут соответственно `CAVEMAN`, `ORCHESTRATION`, `VERIFICATION_DEPTH`/`UI_TESTING` в `.dev.env`; их upstream safety floor сохраняет mandatory gates. Реальные credentials не коммитятся, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
 | S.9.1. Skill `1c-metadata-manage` | согласовано 2026-07-25 | Весь upstream skill переносится побайтно как project-managed payload: 91 файл, включая `SKILL.md`, документацию, presets/references и PowerShell tooling. Его внутренние файлы, формат `.dev.env` и схема `.v8-project.json` не адаптируются. Codex discovery metadata, Claude bridge и mapping устаревших upstream-путей добавляются снаружи и не входят в vendored subtree. Refresh заменяет subtree из нового pinned commit и запрещает скрытые локальные правки. |
@@ -385,7 +386,7 @@ Semantic routing группирует правила так:
 Router-файлы `coding-standards` и `verification-checklist` поглощаются
 `develop-1c/SKILL.md`; `dev-standards-env` маршрутизируется в S.4,
 `getconfigfiles` — в профильный skill/command, orchestration rules — в S.7,
-`sdd-integrations` — в отдельный разбор OpenSpec. Ни один файл не исчезает:
+`sdd-integrations` маршрутизируется в принятый OpenSpec-контракт S.10. Ни один файл не исчезает:
 каждая строка import map указывает адаптированный reference либо конкретный
 semantic owner.
 
@@ -980,12 +981,12 @@ Preset существует **только в момент создания**; �
 
 ## Требования к среде
 
-Capability `1c` — **только для Windows**. EDT, платформа 1С, встроенный Toolkit
-и отладка предполагают Windows-хост; работу 1С на macOS/Linux capability не
-поддерживает. Кросс-платформенность самого стандарта это не отменяет —
-Windows-требование относится к capability, а не к bootstrap-скриптам.
+Runtime-операции capability `1c` — **только для Windows**. EDT, платформа 1С,
+встроенный Toolkit и отладка предполагают Windows-хост; запуск этих операций
+на macOS/Linux не поддерживается. Bootstrap, Git, документация, review и
+валидаторы стандарта остаются кросс-платформенными.
 
-`verify-1c-workspace` — источник истины по фактическому наличию и версиям;
+`doctor-1c` — источник истины по фактическому наличию и версиям;
 таблица ниже фиксирует, что обязано присутствовать.
 
 | Компонент | Обязательность | Версия/диапазон | Назначение |
@@ -1010,9 +1011,10 @@ Windows-требование относится к capability, а не к bootst
   Bootstrap кросс-платформенный и намеренно не блокируется на macOS/Linux:
   репозиторий готовят, ревьюят и синхронизируют где угодно, а 1С-работа идёт на
   Windows-машине. Это разделение осознанное, а не недосмотр.
-- На **не-Windows** `verify-1c-workspace` завершается явной ошибкой «платформа не
-  поддерживается» — это отказ, а не частичная/«мягкая» проверка. Отказывают
-  именно 1С-операции; git, документация и валидаторы стандарта работают штатно.
+- На **не-Windows** `doctor-1c` помечает Windows runtime как недоступный и
+  блокирует 1С-операции. При этом он продолжает доступные проверки Git,
+  документации, release artifacts и конфигурации; валидаторы стандарта работают
+  штатно.
 - **Version-sensitive компонент один — платформа 1С** (минимум `8.3.24.1819`):
   её версия определяет поведение базы и совместимость обработок. Остальной софт
   берётся актуальной версией, диапазоны для него не поддерживаются.
@@ -1030,10 +1032,14 @@ Windows-требование относится к capability, а не к bootst
 | Python | Скрипты стандарта и валидаторы | обязателен |
 | git | Версионирование | обязателен |
 | uv | Управление Python-инструментами | опционально |
-| Node.js | Веб-тестирование, если понадобится | опционально |
+| Node.js 18 LTS или ≥20 | OpenSpec, `md-to-docx` и веб-тестирование | опционально; обязателен только для вызванного workflow |
+| npm package `docx` | Генерация DOCX skill `md-to-docx` | опционально; project-local из lock |
+| Pillow | Skill `img-grid-analysis` | опционально; project-local |
+| Python package `v8unpack` | Skill `v8unpack-cf` | опционально; project-local, tested version из release manifest |
+| OpenSpec CLI | OpenSpec workflows | опционально; версия совместима с pinned bundle |
 
 Отдельная системная Java не требуется: EDT использует свой bundled JDK.
-`verify-1c-workspace` проверяет наличие **без установки** и сообщает, чего не
+`doctor-1c` проверяет наличие **без установки** и сообщает, чего не
 хватает.
 
 ### 1С:Напарник: доступ и ключ
@@ -1106,9 +1112,14 @@ capability использует встроенный Toolkit.
 - <https://github.com/ROCTUP/1c-mcp-toolkit>
 - <https://docs.onerpa.ru/mcp-servery-1c>
 
-Установка контейнеров, регистрация MCP и ввод секретов выполняются только после
-явного запроса пользователя. В templates и командах используются переменные
-окружения, никогда не реальные ключи.
+Docker-развёртывание внешнего MCP provider — обязательное предусловие
+полноценной 1С-среды, но capability не создаёт второй комплект контейнеров и не
+владеет их lifecycle. `doctor-1c` обнаруживает provider и проверяет
+identity/health/tools; при отсутствии provider 1С-workflow блокируется.
+`manage-1c-mcp` может по явному запросу делегировать установку или обновление
+штатному workflow provider. Регистрация обнаруженных endpoint и ввод секретов
+также выполняются только по явному запросу; в templates и командах используются
+переменные окружения, никогда не реальные ключи.
 
 **Правка кода и запись в базу — разные классы риска.** Напарник изменяет
 исходный код: это обратимо через git и проходит обычное ревью, поэтому
@@ -1166,7 +1177,7 @@ skills.
 приложения — штатная из upstream MCP, для обычного — две собранные сборки.
 Capability поставляет готовые файлы, а не воспроизводимую сборку. EPF — кодовый
 артефакт, а не данные базы, поэтому в Git допустим; `TOOLCHAIN.md` хранит их
-SHA-256, `verify-1c-workspace` сверяет фактические файлы.
+SHA-256, `doctor-1c` сверяет фактические файлы.
 
 ### Маршрутизация по возможности MCP
 
@@ -1251,7 +1262,7 @@ EDT — **не ванильная установка**: capability исполь�
    совместимую версию MCP EDT.
 6. Профили запуска (см. «Профили запуска EDT»).
 
-Каждый шаг — по запросу пользователя; `verify-1c-workspace` подтверждает результат
+Каждый шаг — по запросу пользователя; `doctor-1c` подтверждает результат
 (наличие, версии, patch state), но ничего не устанавливает и не изменяет.
 
 ### Профили запуска
@@ -1260,7 +1271,7 @@ EDT — **не ванильная установка**: capability исполь�
   профилей и критические атрибуты (`ATTR_CLIENT_TYPE`), не ID и не пути.
 - Динамические `ATTR_APPLICATION_ID`, runtime UUID, alias базы и debug-цель
   резолвит **текущий MCP EDT** в своём workspace; между базами не переносятся.
-- `verify-1c-workspace` проверяет наличие профилей и `ATTR_CLIENT_TYPE`.
+- `doctor-1c` проверяет наличие профилей и `ATTR_CLIENT_TYPE`.
 - Детальная таблица двух профилей и их атрибутов — в разделе «Профили запуска EDT».
 
 ## Жизненный цикл: откат, обновление, дрейф
@@ -1309,7 +1320,7 @@ write-enabled: не совпал ни с одной из двух известн
 неизвестный код с доступом к базе. В обоих случаях блокируется весь Toolkit,
 включая чтение. Остальные домены деградируют точечно.
 
-`verify-1c-workspace` сообщает **какой именно** домен разошёлся и что из-за этого
+`doctor-1c` сообщает **какой именно** домен разошёлся и что из-за этого
 недоступно, а не выдаёт общий отказ.
 
 ## Безопасность
@@ -1464,7 +1475,7 @@ Capability должна поддерживать верхнеуровневую 
 - **Реестр хранит намерение, а не факт.** `server_port` в `1c-projects.tsv` — это
   назначенный порт, но занять его мог **посторонний софт**, о котором реестр
   ничего не знает. Поэтому свободность проверяется фактически при выделении
-  (`add-1c-base`) и при запуске (`verify-1c-workspace`), а не выводится из TSV.
+  (`add-1c-base`) и при запуске (`doctor-1c`), а не выводится из TSV.
 - **Конфликт с чужим ПО** — не ошибка конфигурации: порт переназначается на
   следующий свободный, изменение записывается в реестр и в профиль запуска.
 - **Диапазон исчерпан** — операция останавливается с явным сообщением; агент не
@@ -1535,6 +1546,23 @@ Capability должна поддерживать верхнеуровневую 
   маркированным MCP-блоком.
 - `.mcp.json` и `.claude/settings.json` — shared Claude Code config, где
   capability владеет только своими server keys и permission rules.
+- Build-time lock, import/semantic maps, generated-output map, release manifest,
+  artifact ledger и dependency manifest — provider-only/release артефакты,
+  которые доказывают полноту upstream inventory, фиксируют commits, hashes,
+  ownership и optional runtime dependencies.
+- `.agents/skills/**` — канонические capability-native и принятые upstream
+  skills; побайтные vendored subtrees обновляются только из pinned build-time
+  refresh, а адаптации и legacy path mapping находятся снаружи.
+- `.codex/agents/*.toml` и `.claude/agents/*.md` — сгенерированные проекции всех
+  13 ролей; соответствующее command behavior принадлежит skills и тонким
+  client bridges, а не второму канону slash-команд.
+- `openspec/` и четыре workflow `propose`/`explore`/`apply`/`archive` —
+  project-managed/seed OpenSpec scaffold с отдельным approval перед `apply`.
+- `USER-RULES.md`, `memory.md` и `LLM-RULES.md` — project-seed companion-файлы
+  с уже согласованными владельцами и precedence; обновления capability их не
+  перезаписывают.
+- `References.md` — побайтный project-managed upstream-справочник с внешней
+  provenance/index-обёрткой.
 - `docs/operations/ENVIRONMENT_REGISTRY.md` — назначение контуров, политика
   данных, backup и rollback (человеческая политика; машинный признак production
   живёт в `1c-projects.tsv`).
@@ -1576,7 +1604,7 @@ Capability поставляет **два** шаблона профилей (`.la
 - `/Execute` профиля `Запуск Toolkit` указывает на **read-only сборку**; запуск
   write-enabled сборки для замера идёт через второй профиль под подтверждённую
   задачу.
-- Профили инстанцирует `add-1c-base` (с плейсхолдерами), а `verify-1c-workspace`
+- Профили инстанцирует `add-1c-base` (с плейсхолдерами), а `doctor-1c`
   проверяет их наличие и `ATTR_CLIENT_TYPE`; фактические project/runtime/путь
   резолвятся через MCP EDT в текущем workspace, не копируются между базами.
 
@@ -1614,16 +1642,16 @@ upstream schema: её `id` равен `<project_id>-<environment_id>`. Connectio
 aliases, branches, `configSrc`, `v8path`, user/password остаются локальными
 полями исходного формата `.v8-project.json`.
 
-## Skills
+## Capability-native operational skills
 
-1. `verify-1c-workspace` — проверяет EDT, платформу, Java, Docker/WSL,
+1. `doctor-1c` — проверяет EDT, платформу, Java, Docker/WSL,
    обязательный plugin, patch state, профили, свободные порты, все поставляемые
-   обработки Toolkit по SHA-256 и MCP без установки или изменения состояния.
+   обработки Toolkit по SHA-256 и внешний MCP provider без установки или
+   изменения состояния.
    Проверки, зависящие от `application_kind`: плагин обычного приложения и
    server-vs-client guard — только для `ordinary`.
-   Capability — Windows-only: на не-Windows завершается явной ошибкой «платформа
-   не поддерживается» (см. «Требования к среде»), а не деградирует и не ставит
-   software.
+   На не-Windows блокирует runtime-операции 1С, но выполняет доступные
+   кросс-платформенные проверки и ничего не устанавливает.
 2. `select-1c-project` — выбирает `project_id` и `environment_id`, резолвит
    EDT-профиль, порт и точный `onec-...` namespace; запрещает продолжение при
    неоднозначности, `mcp_enabled=false` или неявном production; подтверждает
@@ -1646,11 +1674,15 @@ aliases, branches, `configSrc`, `v8path`, user/password остаются лок�
    `add-1c-base`»): правит только файлы репозитория, не трогает живую базу,
    проверяет уникальность и отсутствие credentials.
 
-Каждый skill поставляется с Codex-мостом `agents/openai.yaml` и `references/`
-по образцу skills `jira-confluence`; глобальные правила Codex-first, поэтому
-одного Claude `SKILL.md` недостаточно. Skills capability **не дублируют**
-серверные справочники (`composing-1c-queries`, `calling-1c-rest-api-via-curl`),
-а ссылаются на них; версия этих skills согласуется с версией собранной EPF.
+Это только capability-native operational layer, а не полный счётчик поставки:
+к нему добавляются `develop-1c`, принятые upstream skills, command-owner
+workflows и OpenSpec. Канонический runtime живёт в `.agents/skills/**`;
+побайтные upstream skills не получают внутренних `agents/openai.yaml` или
+`references/`, если этих файлов нет в исходнике. Codex discovery metadata и
+Claude bridges добавляются внешними тонкими проекциями. Skills capability **не
+дублируют** серверные справочники (`composing-1c-queries`,
+`calling-1c-rest-api-via-curl`), а ссылаются на них; версия этих skills
+согласуется с версией собранной EPF.
 
 ## Заимствуемая проверенная база проекта `1C`
 
@@ -1735,35 +1767,39 @@ Capability затрагивает те же места, что и `jira-confluen
 
 ## Предварительный черновик этапов внедрения
 
-1. Проверить состав MCP (десять явно сопоставленных ролей: семь initial и три
-   optional), реализацию режимов
-   `analysis`/`approved-write` по типу приложения (решение 1.6: две сборки EPF у
-   `ordinary`, переключатель записи у `managed`) и политику хранения project
-   memory (см. «Политика хранения project memory»).
+1. Зафиксировать агрегатный release: pinned commits всех источников, полный
+   upstream inventory, import/semantic/generated-output maps, ownership,
+   dependency manifest и hashes. Проверить десять MCP-ролей, готовые EPF и
+   режимы `analysis`/`approved-write` по `application_kind`.
 2. Добавить capability `1c` в manifest, schema, PowerShell и shell bootstrap;
-   переписать однокапабилитный позиционный интерфейс shell на список и снять
-   захардкоженные guards `= jira-confluence`, чтобы поддержать комбинацию
-   capability.
-3. Перенести артефакты из `1C/` в `templates/new-project/capabilities/1c/`
-   (готовые обработки — копией с `NOTICE`/`LICENSE`, без сборщика; профили и доки — шаблонами
-   с плейсхолдерами; см. «Перенос при реализации»); добавить registry для общей
-   рабочей области; развести bootstrap-каркас `1C/` и runtime-инстанцирование
-   базы через `add-1c-base`.
-4. Создать и валидировать шесть project-local skills с Codex-мостами
-   `agents/openai.yaml`.
-5. Добавить preflight-скрипт без установки и без доступа к секретам:
-   проверяет обязательные компоненты из «Требований к среде», Windows-целевой,
-   на не-Windows — явный отказ.
-6. Добавить MCP-инструкции и **обязательное** Docker-развёртывание контейнерных
-   серверов после отдельного утверждения состава, лицензий и хранилищ индексов.
+   переписать однокапабилитный позиционный интерфейс shell на список, снять
+   захардкоженные guards `= jira-confluence` и добавить
+   `capability_artifacts` в migrations/ledger.
+3. Реализовать maintainer-only build-time importer pinned `ai_rules_1c`:
+   проверить полноту каждого tracked-файла, побайтно перенести принятые payload,
+   применить только согласованные адаптации и скомпилировать Codex/Claude
+   descriptors. Runtime bootstrap и созданный проект не обращаются в upstream.
+4. Собрать полный проектный каркас capability: артефакты из `1C/`, реестры и
+   профили с плейсхолдерами, `.dev.env.example`, MCP catalog, companion
+   project-seed, `References.md`, OpenSpec и документацию. Развести bootstrap
+   рабочей области и runtime-инстанцирование базы через `add-1c-base`.
+5. Создать и валидировать полный состав из release/import manifest:
+   capability-native operational skills, `develop-1c`, принятые upstream
+   skills, command-owner workflows, 13 agent projections и тонкие
+   Codex/Claude bridges. Внутренность побайтных vendored skills не менять.
+6. Добавить read-only `doctor-1c` и consumer-интеграцию с **обязательным**
+   Docker provider: обнаруживать существующий внешний deployment, проверять
+   identity/health/tools и рендерить owned client projections. Вторые
+   контейнеры не разворачивать; `manage-1c-mcp` только делегирует штатному
+   provider workflow по явному запросу.
 7. Добавить regression tests: одиночная база, несколько баз на разных портах,
    уникальность `project_id`/`environment_id`, подтверждение фактической базы за
    портом, разделение read-only/write-enabled сборок, сочетание с
    `jira-confluence`, отсутствие секретов и credentials-колонок в шаблонах и
    `1c-projects.tsv`, production guard, backup-precondition, server-vs-client
-   guard, `add-1c-base` не запускает живую базу и обратим через git, явный отказ
-   preflight на не-Windows (Windows-only capability), наличие обязательных
-   компонентов из «Требований к среде», shell/PowerShell parity скриптов
+   guard, `add-1c-base` не запускает живую базу и обратим через git, блокировку
+   runtime-операций 1С на не-Windows при сохранении кросс-платформенных проверок,
+   наличие обязательных компонентов из «Требований к среде», shell/PowerShell parity скриптов
    стандарта, а также механику preset: раскрытие `1c` из `presets.tsv`,
    подъём профиля ниже `operated`, отказ при попытке понизить ядро, отказ при
    отсутствии стека `1c`, отклонение неизвестного preset и совпадение раскрытия
@@ -1773,7 +1809,11 @@ Capability затрагивает те же места, что и `jira-confluen
    Toolkit, но не разработку). Отдельно — тип приложения: обязательность
    `application_kind`, требование плагина только для `ordinary`, выбор модели
    гейта записи по типу (SHA для `ordinary`, подтверждение переключателя для
-   `managed`) и применение server-vs-client guard только к `ordinary`. Также
+   `managed`) и применение server-vs-client guard только к `ordinary`.
+   Отдельно — полноту upstream import map, hashes vendored payload, Codex/Claude
+   parity, 13 agent roles, semantic coverage команд, project-seed preservation,
+   OpenSpec approval gate, optional dependency disclosure, отсутствие runtime
+   network update и reuse внешнего Docker provider без вторых контейнеров. Также
    выделение портов: назначение из диапазона, обход занятого посторонним ПО,
    явная остановка при исчерпании `6003`–`6012` и уникальность `server_port`.
 8. Обновить в той же задаче docs/guides/skills (см. «Синхронизация
@@ -1788,24 +1828,41 @@ Capability затрагивает те же места, что и `jira-confluen
   остаются на усмотрение ревью.
 - В общей рабочей области можно зарегистрировать несколько баз без смешения
   идентификаторов и окружений; параллельные базы разведены по портам.
+- Каждый tracked-файл pinned upstream имеет явный import/semantic route;
+  побайтные payload совпадают по hash, а каждая адаптация отдельно разрешена и
+  проверена. Создание и runtime-обновление проекта не требуют сети.
+- Один release и одна `capability_artifacts`-миграция согласованно доставляют
+  managed artifacts, сохраняют project-seed/user-owned state и выявляют drift.
 - Режим `analysis` запускает read-only сборку; write-enabled сборка
   запускается только под подтверждённую задачу на не-prod базе.
 - Перед любым вызовом Toolkit подтверждена фактическая база за портом.
 - Агент не выполняет write-операцию без явного выбора базы/контура и
   подтверждения.
 - Обязательные и опциональные компоненты явно перечислены («Требования к
-  среде»); `verify-1c-workspace` сверяет фактические версии с диапазоном.
-- Preflight объясняет недостающий software/MCP без попытки установки.
+  среде»); `doctor-1c` сверяет фактические версии с диапазоном. Pillow,
+  Node.js/`docx`, OpenSpec CLI и `v8unpack` также названы отдельными строками в
+  пользовательской документации.
+- `doctor-1c` объясняет недостающий software/MCP без попытки установки.
+- Docker provider обязателен и обнаруживается как внешний deployment;
+  capability не создаёт дублирующие контейнеры и проверяет
+  identity/health/tools до регистрации endpoint.
 - Templates, scripts и docs не содержат токенов, ключей, строк соединения,
   абсолютных машинных путей или названий рабочих баз; это проверяется тестом-
   сканером, а не только на ревью.
 - Capability не предполагает обычное приложение по умолчанию: базы на
   управляемом приложении работают без опциональных legacy-артефактов.
-- Capability — Windows-only: на не-Windows preflight явно сообщает о
-  неподдерживаемой платформе (отказ, а не деградация) и не выполняет 1С-проверок.
+- На не-Windows runtime-операции 1С блокируются, но bootstrap, Git,
+  документация, review, release/config checks и валидаторы продолжают работать.
 - Настройка EDT (отредактированный MCP EDT, патч, профили) описана как
-  процедура и проверяется `verify`, а не только упоминается.
+  процедура и проверяется `doctor-1c`, а не только упоминается.
 - `approved-write` невозможен без подтверждённого backup и явно выбранного
   непроизводственного контура.
 - Рабочая область `1C/` объявлена проектом разработки кода: правила «документация
   вместо проб» и evidence доставлены в scoped `AGENTS.md`, а не только в план.
+- Все 13 ролей и поведение всех 13 upstream-команд доступны в согласованных
+  Codex/Claude projections без второго канона; mutating roles соблюдают
+  последовательную запись/worktree isolation и родительские approval gates.
+- `USER-RULES.md`, `memory.md` и `LLM-RULES.md` создаются как project-seed,
+  видны Codex и Claude по принятой precedence и не перезаписываются refresh.
+- OpenSpec поставлен с четырьмя workflow; `apply` не начинается без отдельного
+  явного утверждения всего change-плана.
