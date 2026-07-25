@@ -78,6 +78,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.5.2. `memory.md` | согласовано 2026-07-25 | Корневой версионируемый `project-seed` хранит только проверенные критические факты всего проекта, одновременно global, critical, stable и non-derivable, если у них нет более точного канонического владельца. Это не журнал и не слой команд: config/профильные docs имеют приоритет, а конфликт означает устаревшую запись. MCP `remember`/`recall` остаётся локальным обезличенным поисковым индексом, не источником истины и не Git-артефактом; при его недоступности критерии `memory.md` не ослабляются, а знания маршрутизируются в обычные канонические артефакты. |
 | S.5.3. `LLM-RULES.md` и `/evolve` | согласовано 2026-07-25 | Корневой `project-seed` — активный, но ограниченный слой пользовательски одобренных корректировок поведения агента. Только `/evolve` пишет файл; правило требует двух независимых friction-сигналов либо одного явного требования «всегда/никогда» и отдельного одобрения пользователя. Приоритет: protected system/repository/safety → `USER-RULES.md` → `LLM-RULES.md` → обычные 1С-правила capability; `memory.md` хранит факты и в precedence не участвует. Локальное правило не может ослабить security, production/write gates, secrets, Git или обязательные проверки; такое изменение маршрутизируется в стандарт/promotion. |
 | S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `1C/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отложенные agents/OpenSpec. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
+| S.7. Agents и orchestration | согласовано 2026-07-25 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; конкретные модели не pin-ятся, prompts загружают канонические skills. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически, economy mode — только по явному запросу/client settings. |
 
 ### Единица поставки и внутреннее владение
 
@@ -365,6 +366,64 @@ capability-миграцией с conflict detection. Pipeline проверяет
 combined native AGENTS chain ≤ 32 КиБ, разрешимость ссылок, отсутствие
 upstream-путей `content/rules/...`, единый skill для Codex/Claude и
 on-demand-routing ключевых доменов.
+
+### Agents и orchestration
+
+Все 13 upstream-ролей сохраняются: `1c-explorer`, `1c-analytic`, `1c-planner`,
+`1c-architect`, `1c-arch-reviewer`, `1c-developer`, `1c-metadata-manager`,
+`1c-refactoring`, `1c-performance-optimizer`, `1c-error-fixer`, `1c-tester`,
+`1c-code-reviewer`, `1c-doc-writer`.
+
+Provider pipeline хранит один нейтральный канон роли (id, trigger, permission
+class, MCP/skills, scope, output и concurrency), из которого рендерятся
+project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`. Concrete model
+ids не pin-ятся: agents наследуют модель/effort родителя, а upstream
+`modelTier` остаётся лишь provider metadata. Prompts не дублируют ruleset, а
+загружают `develop-1c` и профильные skills.
+
+Permission classes:
+
+- `1c-explorer`, `1c-arch-reviewer`, `1c-code-reviewer` — read-only;
+- `1c-analytic`, `1c-planner`, `1c-architect`, `1c-doc-writer` — реальная
+  запись в назначенные docs/specs;
+- `1c-developer`, `1c-metadata-manager`, `1c-refactoring`,
+  `1c-performance-optimizer`, `1c-error-fixer` — полноценная запись BSL/XML в
+  согласованном workspace/file scope;
+- `1c-tester` — запись test artifacts/reports и live-действия только через
+  session lock выбранного non-prod контура.
+
+Codex mutating projections получают `workspace-write`, Claude — `Write`,
+`Edit` и необходимые shell/MCP tools без `bypassPermissions`; parent runtime
+policy всё равно не может быть расширена дочерним agent. В одном working copy
+mutating agents выполняются последовательно. Параллельная запись допустима
+только в отдельных worktrees с непересекающимся scope и явным integration
+plan; read-only проверки можно выполнять параллельно.
+
+Upstream `Use PROACTIVELY` и общий `allowParallel: true` не переносятся.
+Делегирование запускается явным запросом пользователя либо конкретным
+task/skill trigger, когда объём оправдывает отдельный контекст. Code reviewer
+работает только по явному запросу review, tester — только по явному запросу
+deploy/UI/runtime-проверки; trivial edits остаются у родителя.
+
+Родитель владеет triage, постановкой и scope, вопросами/approvals, выбором базы,
+архитектурными решениями, plan-compliance, closing verification, integration,
+commit/push и финальным отчётом. Subagent самостоятельно редактирует
+назначенные файлы и запускает проверки, но не расширяет scope и не публикует
+Git-результат.
+
+Pipeline: parent triage → optional research/plan agent → один mutating agent →
+parent plan-compliance → reviewer только по запросу → parent closing gate.
+Structured handoff сохраняется как навигация, но не заменяет актуальный
+source: следующий writer проверяет текущий файл перед изменением. Persistent
+per-agent memory не включается. Upstream economy mode из `.dev.env` заменяется
+явным session request или пользовательскими client-level settings и не
+ослабляет gates.
+
+Тесты проверяют inventory 13/13 и discovery обоими клиентами, permission
+classes, write-доступ mutating ролей, отсутствие hardcoded models,
+skills/MCP routing, запрет concurrent write в одном worktree, explicit-only
+reviewer/tester, отсутствие отдельной persistent memory и parent-owned closing
+gate.
 
 ### Многобазовая маршрутизация MCP
 
