@@ -97,6 +97,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.4. Skill `handoff` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно. Skill создаёт user-owned session artifact `handoffs/handoff-*.md`, ссылается на канонические артефакты вместо копирования и не пишет secrets или memory автоматически. Решение о добавлении `handoffs/` в `.gitignore` остаётся пользователю: локальный handoff подходит клиентам одного workspace, а для другой машины пользователь задаёт переносимый target или отдельно передаёт файл. |
 | S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется optional runtime dependency в release manifest: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
 | S.9.6. Skill `md-to-docx` | согласовано 2026-07-25 | Все четыре upstream-файла (`SKILL.md`, JS, `package.json`, lock) переносятся побайтно. Node.js 18 LTS или ≥20 и локальный `docx` объявляются optional dependencies; `npm ci --prefix` выполняется только с разрешения, `node_modules/` — gitignored runtime state вне managed hashes. `doctor-1c` диагностирует runtime, а пользовательская документация отдельной строкой называет обе зависимости. |
+| S.9.7. Skill `mermaid-diagrams` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно, без renderer/npm dependency. Skill применяется только когда диаграмма материально улучшает понимание; для каждого Mermaid-блока сохраняется обязательный text sidecar, Mermaid остаётся источником истины. Codex/Claude bridges внешние; `mermaid.live` не получает приватные данные автоматически. |
 
 ### Единица поставки и внутреннее владение
 
@@ -694,6 +695,26 @@ Codex metadata и Claude bridge добавляются снаружи. Пров�
 tables/images/links/bookmarks, отсутствие изменения managed-файлов после
 install и отдельную dependency-строку в пользовательской документации.
 Внутренней адаптации нет.
+
+### Skill `mermaid-diagrams`
+
+Единственный `content/skills/mermaid-diagrams/SKILL.md` переносится побайтно в
+`.agents/skills/mermaid-diagrams/SKILL.md`. Это documentation guidance без
+scripts, renderer и runtime dependencies; сам факт наличия skill не требует
+создавать диаграмму, если обычный текст или короткий список яснее.
+
+Когда диаграмма оправдана, сохраняется upstream-контракт: консервативный Mermaid
+syntax, quoted labels, `<br/>` вместо literal newline, fallback flowcharts для
+экспериментальных типов и обязательный fenced `text` sidecar сразу после
+каждого Mermaid-блока. Mermaid — source of truth, sidecar — синхронная
+human/agent-readable проекция.
+
+`mermaid.live` остаётся лишь ручной troubleshooting-ссылкой: capability не
+открывает сайт и не передаёт туда содержимое приватного проекта автоматически.
+Codex metadata и Claude bridge добавляются снаружи. Проверки требуют hash
+skill, discovery обоими клиентами, парность Mermaid/sidecar, fences с нулевой
+колонки, совместимые labels/line breaks и отсутствие обязательной внешней
+зависимости. Внутренней адаптации нет.
 
 ### Многобазовая маршрутизация MCP
 
