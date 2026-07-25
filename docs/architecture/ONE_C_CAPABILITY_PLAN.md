@@ -68,6 +68,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.2. Полнота и периодичность | согласовано 2026-07-25 | Каждый tracked-файл upstream обязан иметь явную запись в import map; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; новый commit создаёт candidate с diff и тестами. Merge в стандарт и plan/apply в существующие проекты требуют review. |
 | S.3. Единица поставки и владение | согласовано 2026-07-25 | Принят вариант А′: `1c` — одна логическая capability, одна версия поставки и один кандидат обновления для создаваемого проекта. Внутри release артефакты обязательно классифицируются как project-managed, project-seed, provider-only или pinned external component. Канонические источники могут находиться в разных репозиториях: build-time сборка фиксирует совместимые commits и выпускает их как один агрегат, поэтому одновременные commits в репозиториях не требуются. |
 | S.4.1. Источники конфигурации | согласовано 2026-07-25 | Принята слоистая модель: `config/1c-projects.tsv` хранит версионируемую идентичность и стабильные несекретные параметры баз/контуров; `config/1c-policy.json` — версионируемую политику разработки; gitignored `config/1c.local.json` — машинные пути и endpoints без секретов; секреты разрешаются только из environment или системного credential store. Upstream `.dev.env` и описанный им `.v8-project.json` учитываются в semantic map, но не поставляются как runtime-источники истины. |
+| S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25 | `config/1c-mcp-catalog.json` становится единым нейтральным каталогом MCP. Один renderer объединяет его с реестром баз, policy и допустимым локальным слоем, затем транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
 
 ### Единица поставки и внутреннее владение
 
@@ -128,6 +129,51 @@ Upstream `.dev.env.example`, логика `.dev.env` и спецификация
 `.v8-project.json` полностью учитываются в import/semantic maps. Их параметры
 раскладываются по перечисленным владельцам; сами `.dev.env` и
 `.v8-project.json` не поставляются и не читаются capability во время работы.
+
+### Адаптеры Codex и Claude Code
+
+`config/1c-mcp-catalog.json` — project-managed нейтральный каталог. Он хранит
+стабильный letter-leading server id (`onec-...`), scope (`shared`/`per-base`),
+transport, endpoint template, обязательность, таймауты, security class и имена
+переменных окружения, но не синтаксис конкретного AI-клиента и не дублирует
+строки баз из `config/1c-projects.tsv`.
+
+Renderer объединяет каталог с `config/1c-projects.tsv`,
+`config/1c-policy.json` и разрешёнными несекретными значениями
+`config/1c.local.json`, после чего строит три проекции:
+
+1. `.codex/config.toml` — только маркированный managed-блок таблиц
+   `[mcp_servers.<id>]`. Остальной TOML сохраняется; upstream-поля
+   `connection_id` и `description`, отсутствующие в публичном контракте Codex,
+   не переносятся.
+2. `.mcp.json` — только принадлежащие capability ключи внутри `mcpServers`.
+   Сторонние серверы и прочие top-level keys сохраняются семантически.
+3. `.claude/settings.json` — только принадлежащие capability элементы
+   `permissions.allow`/`ask`/`deny`; точное распределение инструментов по
+   классам разрешений рассматривается в пункте безопасности.
+
+Обе клиентские проекции поставляются всегда, даже если один CLI отсутствует на
+текущей машине. `.claude/settings.local.json`, локальные MCP в
+`~/.claude.json`, пользовательский Codex config и другие user-level слои
+capability не изменяет.
+
+Client-specific файлы — generated outputs, а не источники истины. Изменение
+managed-блока, owned server key или owned permission rule вручную считается
+дрейфом: plan показывает конфликт и не перезаписывает его молча. Настройки
+меняют в каталоге, policy, реестре баз или local-слое по их владельцу.
+
+Обновление выполняется одной транзакцией:
+
+1. проверить все входные слои и artifact ledger;
+2. построить три результата без записи;
+3. показать единый diff и остановиться при конфликте;
+4. записать временные файлы, применить все проекции или откатить все;
+5. обновить ledger только после успешной записи;
+6. проверить синтаксис обоих форматов и фактическую загрузку доступными
+   клиентами; отсутствие клиента даёт `not_available`, а не ошибку проекта.
+
+Capability не устанавливает доверие проекту/MCP, не включает обход разрешений
+и не задаёт общие model/provider/sandbox defaults пользователя.
 
 ## Решение
 
@@ -720,9 +766,15 @@ Capability должна поддерживать верхнеуровневую 
   (`project_id`, `environment_id`); схема ниже; без credentials.
 - `config/1c-policy.json` — versioned-политика разработки 1С без
   машинозависимых параметров и настроек AI-клиентов.
+- `config/1c-mcp-catalog.json` — нейтральные определения MCP и их security
+  classes; источник generated-проекций Codex и Claude Code.
 - `config/1c.local.example.json` — безопасная схема локальных привязок;
   создаваемый по ней `config/1c.local.json` gitignored, consumer-owned и не
   содержит секретов.
+- `.codex/config.toml` — shared Codex config, где capability владеет только
+  маркированным MCP-блоком.
+- `.mcp.json` и `.claude/settings.json` — shared Claude Code config, где
+  capability владеет только своими server keys и permission rules.
 - `docs/operations/ENVIRONMENT_REGISTRY.md` — назначение контуров, политика
   данных, backup и rollback (человеческая политика; машинный признак production
   живёт в `1c-projects.tsv`).
