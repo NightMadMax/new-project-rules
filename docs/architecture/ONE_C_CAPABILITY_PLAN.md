@@ -96,6 +96,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.3. Skill `caveman` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно как project-managed payload. Сохраняются default `CAVEMAN=on`, режимы `on`/`auto`/`off`, session levels `lite`/`full`/`ultra`, precedence session force над `.dev.env` и все safety boundaries. Внешние Codex/Claude bridges и path mapping не меняют skill. Команда из S.8 изменяет только ключ `CAVEMAN`, без renderer или restart. |
 | S.9.4. Skill `handoff` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно. Skill создаёт user-owned session artifact `handoffs/handoff-*.md`, ссылается на канонические артефакты вместо копирования и не пишет secrets или memory автоматически. Решение о добавлении `handoffs/` в `.gitignore` остаётся пользователю: локальный handoff подходит клиентам одного workspace, а для другой машины пользователь задаёт переносимый target или отдельно передаёт файл. |
 | S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется optional runtime dependency в release manifest: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
+| S.9.6. Skill `md-to-docx` | согласовано 2026-07-25 | Все четыре upstream-файла (`SKILL.md`, JS, `package.json`, lock) переносятся побайтно. Node.js 18 LTS или ≥20 и локальный `docx` объявляются optional dependencies; `npm ci --prefix` выполняется только с разрешения, `node_modules/` — gitignored runtime state вне managed hashes. `doctor-1c` диагностирует runtime, а пользовательская документация отдельной строкой называет обе зависимости. |
 
 ### Единица поставки и внутреннее владение
 
@@ -665,6 +666,34 @@ Pillow только внутри `SKILL.md` или manifest недостаточ
 guard, PNG/JPEG, auto и explicit rows/cols, output path, zero/flat inputs,
 отсутствующую Pillow, project-local install gate, discovery обоими клиентами и
 обязательную отдельную dependency-строку в пользовательской документации.
+
+### Skill `md-to-docx`
+
+Все четыре upstream-файла переносятся побайтно в
+`.agents/skills/md-to-docx/`: `SKILL.md`, `scripts/md_to_docx.js`,
+`package.json` и `package-lock.json`. Skill конвертирует Markdown в DOCX с
+headings, tables, lists, code, links/bookmarks, images, headers/footers и core
+properties; созданный DOCX — user-owned artifact.
+
+Bundled lock остаётся каноническим dependency lock, поэтому `npm ci --prefix
+"<skill-dir>"` устанавливает точные версии локально. `node_modules/`
+gitignored, не входит в managed hashes и не считается drift. Bootstrap не
+устанавливает Node/npm packages автоматически; первый запуск запрашивает
+разрешение. Отказ или отсутствие runtime отключает только этот skill.
+
+Effective runtime по bundled dependencies — Node.js 18 LTS или ≥20.
+`doctor-1c` проверяет версию Node и локальный package `docx`. Пользовательский
+1С-гайд и `TOOLS.md` обязаны содержать отдельную строку:
+
+```text
+Зависимости: Node.js 18 или ≥20; npm package docx устанавливается локально из package-lock.json.
+```
+
+Codex metadata и Claude bridge добавляются снаружи. Проверки требуют hashes
+4/4, `node --check`, clean `npm ci`, conversion fixture, структуру DOCX,
+tables/images/links/bookmarks, отсутствие изменения managed-файлов после
+install и отдельную dependency-строку в пользовательской документации.
+Внутренней адаптации нет.
 
 ### Многобазовая маршрутизация MCP
 
