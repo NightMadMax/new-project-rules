@@ -53,6 +53,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.11. Позднее подключение AI-клиента | согласовано 2026-07-25 | Обе статические проекции поставляются всегда, но наличие обоих CLI не требуется. `activate-1c-client codex|claude` идемпотентно активирует позднее установленный клиент без re-bootstrap: проверяет CLI, рендерит только owned client state из актуальной topology, сохраняет пользовательские настройки и другой работающий клиент, не выдаёт trust, запускает client-scoped `doctor-1c` и сообщает о необходимости новой сессии. Статическая проверка обеих проекций обязательна; runtime smoke отсутствующего клиента получает `SKIP`, не ошибку. |
 | 1.12. Контракт агрегатного release | согласовано 2026-07-25 | Build-time канон минимизирован до `config/1c-release.json` (паспорт, source pins, dependencies, MCP/EPF contract) и `config/1c-artifacts.tsv` (полный source→action→owner→target ledger). Допустимы только `copy`, `adapt`, `compile`, `route`; `exclude` запрещён. Созданный проект получает итоговые managed/seed артефакты, краткую запись release в `.project-standard.json` и стабильные hashes в generic `.project-standard-artifacts.json`; build inputs/staging туда не копируются. Смешанные файлы обновляются только в owned blocks/keys, user-owned/local state и project-seed не перезаписываются. Удаление managed target разрешено лишь при совпадении installed hash; drift блокирует транзакцию. |
 | 1.13. Release lifecycle стандарта и проектов | согласовано 2026-07-25 | Процессы разделены. 2A: weekly check нашего `new-project-rules` только создаёт/обновляет уведомление о новом upstream commit и не меняет код; ручной maintainer refresh строит временный candidate, показывает diff/tests и после явного принятия делает прямой commit/push в `main` без draft PR. Capability имеет собственный SemVer и детерминированный release id. 2B: созданные проекты не следят за upstream и не обновляются автоматически; владелец явно применяет уже опубликованный release через offline plan/apply migration. Ошибки исправляются только forward patch release, автоматического downgrade нет. |
+| 1.14. Bootstrap, setup и классы зависимостей | согласовано 2026-07-25 | Пользовательский workflow един, но имеет две границы отказа: `create-new-project` транзакционно создаёт только репозиторий, затем сразу предлагает `setup-1c-environment`, который через read-only `doctor-1c` строит machine-change plan, переиспользует найденный Docker provider и после явного approval устанавливает разрешённые обязательные/conditional компоненты. Ручные credentials, trust, лицензирование и перезапуск остаются явными шагами. Зависимости делятся на `required`, `conditional` и `optional`; Node.js, `docx`, Pillow, `v8unpack` и OpenSpec CLI — conditional feature dependencies, а не необязательные удобства. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -99,14 +100,14 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.2. Skill `mcp-1c-tools` | согласовано 2026-07-25 | Project-managed behavioral dispatcher поставляет основной `SKILL.md` и восемь серверных справочников. Восемь файлов переносятся побайтно; в `docs/1c-templates-mcp.md` минимально изменяется только fallback записи: при недоступности `remember` факт маршрутизируется каноническому владельцу, а `memory.md` получает его лишь по критериям S.5.2. Runtime topology остаётся у `config/1c-mcp-catalog.json`; skill владеет task→tool routing, availability, retries и call policies. EDT и Toolkit остаются отдельными skills. |
 | S.9.3. Skill `caveman` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно как project-managed payload. Сохраняются default `CAVEMAN=on`, режимы `on`/`auto`/`off`, session levels `lite`/`full`/`ultra`, precedence session force над `.dev.env` и все safety boundaries. Внешние Codex/Claude bridges и path mapping не меняют skill. Команда из S.8 изменяет только ключ `CAVEMAN`, без renderer или restart. |
 | S.9.4. Skill `handoff` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно. Skill создаёт user-owned session artifact `handoffs/handoff-*.md`, ссылается на канонические артефакты вместо копирования и не пишет secrets или memory автоматически. Решение о добавлении `handoffs/` в `.gitignore` остаётся пользователю: локальный handoff подходит клиентам одного workspace, а для другой машины пользователь задаёт переносимый target или отдельно передаёт файл. |
-| S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется optional runtime dependency в `config/1c-release.json`: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
-| S.9.6. Skill `md-to-docx` | согласовано 2026-07-25 | Все четыре upstream-файла (`SKILL.md`, JS, `package.json`, lock) переносятся побайтно. Node.js 18 LTS или ≥20 и локальный `docx` объявляются optional dependencies; `npm ci --prefix` выполняется только с разрешения, `node_modules/` — gitignored runtime state вне managed hashes. `doctor-1c` диагностирует runtime, а пользовательская документация отдельной строкой называет обе зависимости. |
+| S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25; dependency class уточнён в 1.14 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется conditional feature dependency в `config/1c-release.json`: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
+| S.9.6. Skill `md-to-docx` | согласовано 2026-07-25; dependency class уточнён в 1.14 | Все четыре upstream-файла (`SKILL.md`, JS, `package.json`, lock) переносятся побайтно. Node.js 18 LTS или ≥20 и локальный `docx` объявляются conditional dependencies; `npm ci --prefix` выполняется только с разрешения, `node_modules/` — gitignored runtime state вне managed hashes. `doctor-1c` диагностирует runtime, а пользовательская документация отдельной строкой называет обе зависимости. |
 | S.9.7. Skill `mermaid-diagrams` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно, без renderer/npm dependency. Skill применяется только когда диаграмма материально улучшает понимание; для каждого Mermaid-блока сохраняется обязательный text sidecar, Mermaid остаётся источником истины. Codex/Claude bridges внешние; `mermaid.live` не получает приватные данные автоматически. |
 | S.9.8. Skill `powershell-windows` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно и активируется только для Windows/PowerShell/Docker/HTTP-задач. Сохраняются Windows PowerShell 5.1-compatible separation, quoting, native exit-code, HTTP, wait, JSON и process правила. Docker Compose command принадлежит внешнему provider workflow; `doctor-1c` проверяет доступный entrypoint. Runtime dependencies отсутствуют. |
 | S.9.9. Skill `prompt-enhancer` | согласовано ускоренно 2026-07-25 | `SKILL.md` и example переносятся побайтно. Skill только структурирует пользовательский prompt без добавления требований; inline/file/interactive modes и file ownership сохраняются. Dependencies отсутствуют, Codex/Claude discovery и legacy path mapping добавляются снаружи. |
 | S.9.10. Skill `transcribe` | исключён из capability 2026-07-25 | `transcribe` не относится к 1С и не входит в release, зависимости, шаблоны или критерии готовности capability. Оба upstream-файла явно маршрутизируются в отдельный отложенный план общего skill [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN]]; предложенная локальная Whisper-архитектура сохранена там и будет разобрана позже независимо от 1С. |
-| S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется в `config/1c-release.json`, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
-| S.10. OpenSpec | согласовано 2026-07-25 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — optional runtime dependencies без автоматической установки; snapshot обновляется только build-time workflow. |
+| S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25; dependency class уточнён в 1.14 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется в `config/1c-release.json`, dependency conditional для этого skill, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
+| S.10. OpenSpec | согласовано 2026-07-25; dependency class уточнён в 1.14 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — conditional dependencies для CLI-операций, не для прямой работы с Markdown artifacts; snapshot обновляется только build-time workflow. |
 | S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в `config/1c-artifacts.tsv` как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
 | S.12. Upstream installer | согласовано 2026-07-25 | `install.ps1` и `AGENT-INSTALL.md` сохраняются побайтно как provider-only reference и в проекты не ставятся: второй installer/manifest конфликтовал бы с bootstrap, migrations, validator и запретом снять `1c`. Полезные контракты маршрутизируются существующим владельцам: hashes/ownership/userModified/force-path — `capability_artifacts`; seed semantics — bootstrap; external MCP discovery — renderer/provider contract; metadata detection и diagnostics — `doctor-1c`; legacy `infobasesettings.md` — standardization migration. `.ai-rules.json` не вводится, runtime network update/add/remove/eject отсутствуют. |
 | S.13. Корневые вспомогательные файлы | согласовано 2026-07-25 | `README.md`, `References.md` и `.gitignore` полностью учтены. Upstream README остаётся provider-only и служит источником адаптированного user guide, не заменяя README проекта. `References.md` переносится побайтно как project-managed on-demand справочник с внешней provenance/index-обёрткой. Строки `.dev.env` и `node_modules/` из upstream `.gitignore` сливаются в генерируемый project ignore вместе с уже обязательными `.v8-project.json` и локальными runtime dependencies; пользовательские ignore-правила обновление не перезаписывает. |
@@ -135,7 +136,8 @@ Capability `1c` — единый агрегатный release. Пользова�
 Build-time канон состоит из двух файлов:
 
 - `config/1c-release.json` — версия/release id, pinned commits, external
-  compatibility, десять MCP-ролей, hashes трёх EPF и optional dependencies;
+  compatibility, десять MCP-ролей, hashes трёх EPF и зависимости классов
+  `required`/`conditional`/`optional`;
 - `config/1c-artifacts.tsv` — `source_path`, `source_selector`,
   `source_sha256`, `action`, `action_id`, `ownership`, `target_path` и
   `target_sha256` для каждого tracked upstream-файла и generated output.
@@ -188,7 +190,7 @@ current и installed hash; seed/user-owned не удаляются, непуст
 CLI; позднюю активацию второго клиента; повторный bootstrap; update/no-op/drift;
 сохранение seeds, `.dev.env`, `.v8-project.json`, сторонних MCP/permissions;
 удаление/rename managed target и owned key; внешний provider present/missing с
-динамическими портами; отсутствие optional dependencies; offline
+динамическими портами; отсутствие conditional dependencies; offline
 bootstrap/migration; запрет снять capability и shell/PowerShell parity.
 
 ### Жизненный цикл release и созданных проектов
@@ -782,8 +784,8 @@ JSON DSL, после чего используется цепочка
 строки. Переписывание на PowerShell/System.Drawing или отказ от Pillow не
 допускаются.
 
-Pillow — optional runtime dependency capability, а не глобальная предпосылка
-всего 1С-проекта:
+Pillow — conditional feature dependency capability, а не глобальная
+предпосылка всего 1С-проекта:
 
 - tested version фиксируется в `config/1c-release.json`;
 - bootstrap не выполняет глобальный `pip install`;
@@ -891,7 +893,7 @@ user-owned `*-enhanced.md`. Runtime dependencies отсутствуют.
 
 `v8unpack-cf` поставляет побайтно один `SKILL.md`. Он описывает извлечение
 CF/CFE/EPF в JSON+BSL и обратную сборку без платформы 1С, когда доступен только
-binary artifact. Python package `v8unpack` — optional dependency: tested
+binary artifact. Python package `v8unpack` — conditional dependency этого skill: tested
 version фиксируется в `config/1c-release.json`, установка project-local и
 только с разрешения, `doctor-1c` проверяет availability/version. В
 пользовательской документации отдельная строка:
@@ -934,9 +936,10 @@ OpenSpec поставляется по умолчанию как project-managed
 только там, где нужны этот gate, фактические пути и API конкретного клиента.
 
 OpenSpec CLI версии, совместимой с pinned bundle, и Node.js объявляются
-optional runtime dependencies. Bootstrap их не устанавливает; локальная
-установка возможна только с разрешения, а `doctor-1c` сообщает
-availability/version. Пользовательское `openspec update` не является каналом
+conditional dependencies CLI-операций. Прямое чтение и изменение Markdown
+artifacts от них не зависит. `setup-1c-environment` предлагает установку после
+явного разрешения, а `doctor-1c` сообщает availability/version. Пользовательское
+`openspec update` не является каналом
 обновления managed artifacts: новый snapshot приходит через S.1 после review.
 Остальные client bundles остаются provider-only build inputs и учитываются в
 `config/1c-artifacts.tsv`, но не устанавливаются в проект Codex + Claude.
@@ -1163,15 +1166,50 @@ Runtime-операции capability `1c` — **только для Windows**. ED
 | Python | Скрипты стандарта и валидаторы | обязателен |
 | git | Версионирование | обязателен |
 | uv | Управление Python-инструментами | опционально |
-| Node.js 18 LTS или ≥20 | OpenSpec, `md-to-docx` и веб-тестирование | опционально; обязателен только для вызванного workflow |
-| npm package `docx` | Генерация DOCX skill `md-to-docx` | опционально; project-local из lock |
-| Pillow | Skill `img-grid-analysis` | опционально; project-local |
-| Python package `v8unpack` | Skill `v8unpack-cf` | опционально; project-local, tested version из `config/1c-release.json` |
-| OpenSpec CLI | OpenSpec workflows | опционально; версия совместима с pinned bundle |
+| Node.js 18 LTS или ≥20 | OpenSpec CLI, `md-to-docx` и Node-based веб-тестирование | conditional; обязателен для вызванной функции |
+| npm package `docx` | Генерация DOCX skill `md-to-docx` | conditional; project-local из lock |
+| Pillow | Skill `img-grid-analysis` | conditional; project-local |
+| Python package `v8unpack` | Skill `v8unpack-cf` | conditional; project-local, tested version из `config/1c-release.json` |
+| OpenSpec CLI | CLI-операции OpenSpec | conditional; версия совместима с pinned bundle |
 
 Отдельная системная Java не требуется: EDT использует свой bundled JDK.
 `doctor-1c` проверяет наличие **без установки** и сообщает, чего не
 хватает.
+
+Классы зависимостей:
+
+- `required` — без компонента не работает основной 1С-workflow;
+- `conditional` — компонент обязателен только для явно используемой функции;
+- `optional` — удобство, отсутствие которого не отключает заявленную функцию.
+
+### Создание проекта и настройка среды
+
+Пользователь видит один последовательный workflow, но операции разделены по
+границе отказа:
+
+```text
+create-new-project → setup-1c-environment → doctor-1c
+```
+
+`create-new-project` транзакционно создаёт и валидирует только репозиторий. После
+успеха он сразу предлагает второй этап. `doctor-1c` read-only собирает
+machine-change plan: найденные компоненты переиспользуются, обязательные
+отсутствующие предлагаются к установке, conditional перечисляются по функциям,
+optional не выбираются автоматически.
+
+`setup-1c-environment` применяет план только после явного approval:
+
+- сначала обнаруживает и переиспользует существующий Docker MCP provider;
+- не переустанавливает найденные компоненты;
+- ставит разрешённые packages project-local, если применимо;
+- отдельно останавливается на admin/reboot, credentials, токенах, лицензировании
+  и trust;
+- записывает consequential machine actions по общему контракту `ACTIONS.md`;
+- после каждого домена и в конце повторно запускает `doctor-1c`.
+
+Ошибка setup не откатывает уже готовый репозиторий и не маскируется как успешная
+полная среда: отчёт показывает готовые, отсутствующие и ожидающие ручного шага
+компоненты.
 
 ### 1С:Напарник: доступ и ключ
 
@@ -1712,7 +1750,7 @@ Capability должна поддерживать верхнеуровневую 
   живёт в `1c-projects.tsv`).
 - `PROJECT_1C.md` — карточка конкретной базы: конфигурация, расширения,
   совместимость и интеграции.
-- `docs/operations/TOOLCHAIN.md` — обязательные/опциональные компоненты и
+- `docs/operations/TOOLCHAIN.md` — required/conditional/optional компоненты и
   диапазоны версий («Требования к среде»), обнаруженные версии, plugin/patch
   state, SHA-256 **всех** поставляемых обработок Toolkit (две сборки обычного
   приложения и штатная управляемого) и версия исходников Toolkit, с которой
@@ -1821,6 +1859,10 @@ aliases, branches, `configSrc`, `v8path`, user/password остаются лок�
    или Claude Code, рендерит только owned state выбранного клиента, сохраняет
    другой клиент и пользовательские настройки, не выдаёт trust и завершает
    client-scoped диагностикой.
+8. `setup-1c-environment` — после создания репозитория получает read-only план
+   от `doctor-1c`, переиспользует найденные компоненты и применяет только явно
+   одобренные machine changes; required предлагает сразу, conditional — по
+   выбранным функциям, optional — только по отдельному выбору.
 
 Это только capability-native operational layer, а не полный счётчик поставки:
 к нему добавляются `develop-1c`, принятые upstream skills, command-owner
@@ -1923,7 +1965,8 @@ Capability затрагивает те же места, что и `jira-confluen
    переписать однокапабилитный позиционный интерфейс shell на список, снять
    захардкоженные guards `= jira-confluence` и добавить
    `capability_artifacts` в migrations и generic
-   `.project-standard-artifacts.json`.
+   `.project-standard-artifacts.json`; после успешного create предложить
+   отдельный `setup-1c-environment`, не смешивая repo и machine transaction.
 3. Реализовать maintainer-only build-time importer pinned `ai_rules_1c`:
    проверить полноту каждого tracked-файла, побайтно перенести принятые payload,
    применить только согласованные адаптации и скомпилировать Codex/Claude
@@ -1961,8 +2004,10 @@ Capability затрагивает те же места, что и `jira-confluen
    `managed`) и применение server-vs-client guard только к `ordinary`.
    Отдельно — полноту `config/1c-artifacts.tsv`, hashes vendored payload, Codex/Claude
    parity, 13 agent roles, semantic coverage команд, project-seed preservation,
-   OpenSpec approval gate, optional dependency disclosure, отсутствие runtime
-   network update, позднее подключение Codex/Claude без re-bootstrap и
+   OpenSpec approval gate, классификацию и disclosure
+   required/conditional/optional dependencies, двухфазный
+   `create → setup → doctor`, отказ setup без повреждения готового репозитория,
+   отсутствие runtime network update, позднее подключение Codex/Claude без re-bootstrap и
    сохранение уже активного клиента, reuse внешнего Docker provider без вторых
    контейнеров. Также
    выделение портов: отдельность provider/Toolkit spaces, максимум десять
@@ -1994,10 +2039,14 @@ Capability затрагивает те же места, что и `jira-confluen
 - Перед любым вызовом Toolkit подтверждена фактическая база за портом.
 - Агент не выполняет write-операцию без явного выбора базы/контура и
   подтверждения.
-- Обязательные и опциональные компоненты явно перечислены («Требования к
-  среде»); `doctor-1c` сверяет фактические версии с диапазоном. Pillow,
-  Node.js/`docx`, OpenSpec CLI и `v8unpack` также названы отдельными строками в
+- Required, conditional и optional компоненты явно разделены («Требования к
+  среде»); `doctor-1c` сверяет фактические версии с диапазоном. Node.js/`docx`,
+  Pillow, OpenSpec CLI и `v8unpack` названы conditional отдельными строками в
   пользовательской документации.
+- После успешного создания проекта `setup-1c-environment` предлагает настройку
+  required/выбранных conditional компонентов, переиспользует внешний Docker
+  provider и применяет machine changes только после approval; его ошибка не
+  повреждает готовый репозиторий.
 - `doctor-1c` объясняет недостающий software/MCP без попытки установки.
 - Docker provider обязателен и обнаруживается как внешний deployment;
   capability не создаёт дублирующие контейнеры и проверяет
