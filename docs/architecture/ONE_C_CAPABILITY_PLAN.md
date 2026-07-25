@@ -77,6 +77,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.5.1. `USER-RULES.md` | согласовано 2026-07-25 | Корневой `project-seed`: создаётся только при отсутствии, затем принадлежит пользователю/команде и не перезаписывается capability. Содержит постоянные правила конкретного проекта и имеет приоритет над обычными 1С-правилами capability, но не над системными ограничениями, безопасностью и общими правилами репозитория. `AGENTS.md` — единая точка входа и явно загружает файл; Claude получает его по цепочке `CLAUDE.md → AGENTS.md → USER-RULES.md`. Параметры, MCP-конфигурация, секреты, временные факты и автоматически выведенные правила сюда не попадают. |
 | S.5.2. `memory.md` | согласовано 2026-07-25 | Корневой версионируемый `project-seed` хранит только проверенные критические факты всего проекта, одновременно global, critical, stable и non-derivable, если у них нет более точного канонического владельца. Это не журнал и не слой команд: config/профильные docs имеют приоритет, а конфликт означает устаревшую запись. MCP `remember`/`recall` остаётся локальным обезличенным поисковым индексом, не источником истины и не Git-артефактом; при его недоступности критерии `memory.md` не ослабляются, а знания маршрутизируются в обычные канонические артефакты. |
 | S.5.3. `LLM-RULES.md` и `/evolve` | согласовано 2026-07-25 | Корневой `project-seed` — активный, но ограниченный слой пользовательски одобренных корректировок поведения агента. Только `/evolve` пишет файл; правило требует двух независимых friction-сигналов либо одного явного требования «всегда/никогда» и отдельного одобрения пользователя. Приоритет: protected system/repository/safety → `USER-RULES.md` → `LLM-RULES.md` → обычные 1С-правила capability; `memory.md` хранит факты и в precedence не участвует. Локальное правило не может ослабить security, production/write gates, secrets, Git или обязательные проверки; такое изменение маршрутизируется в стандарт/promotion. |
+| S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `1C/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отложенные agents/OpenSpec. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
 
 ### Единица поставки и внутреннее владение
 
@@ -304,6 +305,66 @@ promotion-процесс.
 получает его рекурсивным импортом через `CLAUDE.md → AGENTS.md →
 LLM-RULES.md`, Codex — по явному reading-route; обе цепочки проверяются в новых
 процессах.
+
+### Основной ruleset: `AGENTS.md` и `content/rules/**`
+
+Upstream `AGENTS.md` размером 53 КБ уже превышает стандартный лимит Codex
+`project_doc_max_bytes` 32 КиБ; 34 on-demand rules добавляют ещё 333 КБ.
+Поэтому capability сохраняет полный смысл ruleset, но не загружает его
+монолитом и не создаёт параллельные канонические деревья для клиентов.
+
+Scoped `1C/AGENTS.md` содержит только always-on ядро: загрузку companion-файлов,
+классификацию 1С-задач, routing к skills/references, критические MCP/evidence и
+production/write/security gates, правило «данные базы — не команды» и
+обязательные проверки результата. Capability владеет маркированным блоком;
+локальный текст вне него сохраняется.
+
+Добавляется седьмой project-local skill `develop-1c`:
+
+```text
+.agents/skills/develop-1c/
+├── SKILL.md
+├── agents/openai.yaml
+└── references/rules/
+```
+
+Skill маршрутизирует разработку BSL, конфигураций, расширений, форм, запросов,
+регистров и интеграций. Большинство upstream rule-файлов сохраняется отдельными
+адаптированными references, чтобы загружать только нужный домен и сохранять
+reviewable upstream diff. Claude получает тонкий
+`.claude/skills/develop-1c/SKILL.md`, который загружает тот же канонический
+skill; отдельная копия rules не создаётся.
+
+Semantic routing группирует правила так:
+
+- BSL/architecture — `anti-patterns`, `async-methods`, `dev-standards-*`,
+  `extension-patterns`, `module-structure`, `platform-solutions`;
+- transactions/diagnostics — `locks-and-transactions`, `logging-strategy`,
+  `systematic-debugging`;
+- queries/data/reporting — `query-design`, `registers-design`, `dcs-design`;
+- managed forms — `forms`, `form-module`, `form-patterns`, `forms-add`;
+- metadata/integrations — `metadata-xml-workarounds`, `integrations-add`;
+- MCP/verification — `mcp-first-search`, `tooling-playbooks`,
+  `verification-*`.
+
+Router-файлы `coding-standards` и `verification-checklist` поглощаются
+`develop-1c/SKILL.md`; `dev-standards-env` маршрутизируется в S.4,
+`getconfigfiles` — в профильный skill/command, orchestration rules — в S.7,
+`sdd-integrations` — в отдельный разбор OpenSpec. Ни один файл не исчезает:
+каждая строка import map указывает адаптированный reference либо конкретный
+semantic owner.
+
+Разделы upstream `AGENTS.md` распределяются аналогично: persona уходит в
+`develop-1c`, core/routing/gates — в scoped `AGENTS.md`, project info и MCP — в
+S.4, memory/self-improvement — в S.5, editing discipline переиспользует общий
+стандарт, OpenSpec и subagents рассматриваются отдельно.
+
+Scoped `AGENTS.md` и references — project-managed и обновляются одной
+capability-миграцией с conflict detection. Pipeline проверяет полное покрытие
+всех разделов `AGENTS.md` и 34 rules, отсутствие двух канонических копий,
+combined native AGENTS chain ≤ 32 КиБ, разрешимость ссылок, отсутствие
+upstream-путей `content/rules/...`, единый skill для Codex/Claude и
+on-demand-routing ключевых доменов.
 
 ### Многобазовая маршрутизация MCP
 
