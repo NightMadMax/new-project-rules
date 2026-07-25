@@ -51,6 +51,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.9. Сквозная проверка целостности | выполнено 2026-07-25 | Проведён шаг 3 «Режима проработки». Найдено и устранено 14 расхождений — почти все следствие того, что решения 1.6–1.8 не догнали ранее написанные разделы: секция «Toolkit: встроенный сервер» прямо опровергала 1.6 («настроек в рантайме нет»), правило 3 противоречило диапазону портов, контракт `add-1c-base` не собирал обязательный `application_kind`, четыре skills и `TOOLCHAIN.md` ссылались на сборки, которых у управляемого приложения нет. Раздел «Решение» перенесён в начало: определение capability шло после деталей эксплуатации. |
 | 1.10. Синхронизация после upstream-разбора | выполнено 2026-07-25 | Хвост плана приведён к решениям S.1–S.13: Docker сохранён обязательным, но lifecycle контейнеров оставлен внешнему MCP provider; preflight унифицирован под именем `doctor-1c`; состав поставки, зависимости, этапы и критерии готовности дополнены import/release artifacts, upstream skills, agents/commands, OpenSpec и Codex/Claude projections. Ограничение Windows относится только к runtime-операциям 1С. Оставленные на этом проходе противоречия портов №81–82 впоследствии закрыты пересмотренным решением 1.8. |
 | 1.11. Позднее подключение AI-клиента | согласовано 2026-07-25 | Обе статические проекции поставляются всегда, но наличие обоих CLI не требуется. `activate-1c-client codex|claude` идемпотентно активирует позднее установленный клиент без re-bootstrap: проверяет CLI, рендерит только owned client state из актуальной topology, сохраняет пользовательские настройки и другой работающий клиент, не выдаёт trust, запускает client-scoped `doctor-1c` и сообщает о необходимости новой сессии. Статическая проверка обеих проекций обязательна; runtime smoke отсутствующего клиента получает `SKIP`, не ошибку. |
+| 1.12. Контракт агрегатного release | согласовано 2026-07-25 | Build-time канон минимизирован до `config/1c-release.json` (паспорт, source pins, dependencies, MCP/EPF contract) и `config/1c-artifacts.tsv` (полный source→action→owner→target ledger). Допустимы только `copy`, `adapt`, `compile`, `route`; `exclude` запрещён. Созданный проект получает итоговые managed/seed артефакты, краткую запись release в `.project-standard.json` и стабильные hashes в generic `.project-standard-artifacts.json`; build inputs/staging туда не копируются. Смешанные файлы обновляются только в owned blocks/keys, user-owned/local state и project-seed не перезаписываются. Удаление managed target разрешено лишь при совпадении installed hash; drift блокирует транзакцию. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -80,7 +81,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | Пунк источника | Статус | Решение |
 |---|---|---|
 | S.1. Жизненный цикл интеграции | согласовано 2026-07-25 | Build-time: maintainer workflow загружает pinned commit `ai_rules_1c` в staging, адаптирует и проверяет пакет, после чего канонические артефакты попадают в шаблоны capability. Создание проекта не зависит от сети и upstream installer. Периодическая проверка сравнивает lock с upstream `main`; изменение создаёт reviewable refresh candidate с diff и тестами, но не обновляет пакет и проекты без review. |
-| S.2. Полнота и периодичность | согласовано 2026-07-25 | Каждый tracked-файл upstream обязан иметь явную запись в import map; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; новый commit создаёт candidate с diff и тестами. Merge в стандарт и plan/apply в существующие проекты требуют review. |
+| S.2. Полнота и периодичность | согласовано 2026-07-25 | Каждый tracked-файл upstream обязан иметь явную запись в `config/1c-artifacts.tsv`; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; новый commit создаёт candidate с diff и тестами. Merge в стандарт и plan/apply в существующие проекты требуют review. |
 | S.3. Единица поставки и владение | согласовано 2026-07-25 | Принят вариант А′: `1c` — одна логическая capability, одна версия поставки и один кандидат обновления для создаваемого проекта. Внутри release артефакты обязательно классифицируются как project-managed, project-seed, provider-only или pinned external component. Канонические источники могут находиться в разных репозиториях: build-time сборка фиксирует совместимые commits и выпускает их как один агрегат, поэтому одновременные commits в репозиториях не требуются. |
 | S.4.1. Источники конфигурации | пересмотрено и согласовано 2026-07-25 | Принята upstream-first модель. `config/1c-projects.tsv` остаётся только shared-реестром идентичности, production/MCP/EDT topology и портов. Точная upstream `.dev.env.example` поставляется как managed template, gitignored `.dev.env` хранит default-базу, пути, dev/test credentials и process settings. Gitignored `.v8-project.json` сохраняет исходную upstream-схему локального multi-base registry; `databases[].id` связывается с TSV соглашением `<project_id>-<environment_id>`. `config/1c.local*.json` и не имеющий конкретной схемы `config/1c-policy.json` исключены. Явный session lock имеет приоритет; non-default параметры передаются инструментам без переписывания `.dev.env`; `doctor-1c` сообщает о рассогласовании default-записи. |
 | S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25; входы обновлены вслед за S.4.1 | `config/1c-mcp-catalog.json` остаётся единым нейтральным каталогом MCP. Renderer объединяет его с shared `config/1c-projects.tsv` и локальными `.dev.env`/`.v8-project.json`, затем транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
@@ -97,15 +98,15 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.2. Skill `mcp-1c-tools` | согласовано 2026-07-25 | Project-managed behavioral dispatcher поставляет основной `SKILL.md` и восемь серверных справочников. Восемь файлов переносятся побайтно; в `docs/1c-templates-mcp.md` минимально изменяется только fallback записи: при недоступности `remember` факт маршрутизируется каноническому владельцу, а `memory.md` получает его лишь по критериям S.5.2. Runtime topology остаётся у `config/1c-mcp-catalog.json`; skill владеет task→tool routing, availability, retries и call policies. EDT и Toolkit остаются отдельными skills. |
 | S.9.3. Skill `caveman` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно как project-managed payload. Сохраняются default `CAVEMAN=on`, режимы `on`/`auto`/`off`, session levels `lite`/`full`/`ultra`, precedence session force над `.dev.env` и все safety boundaries. Внешние Codex/Claude bridges и path mapping не меняют skill. Команда из S.8 изменяет только ключ `CAVEMAN`, без renderer или restart. |
 | S.9.4. Skill `handoff` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно. Skill создаёт user-owned session artifact `handoffs/handoff-*.md`, ссылается на канонические артефакты вместо копирования и не пишет secrets или memory автоматически. Решение о добавлении `handoffs/` в `.gitignore` остаётся пользователю: локальный handoff подходит клиентам одного workspace, а для другой машины пользователь задаёт переносимый target или отдельно передаёт файл. |
-| S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется optional runtime dependency в release manifest: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
+| S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется optional runtime dependency в `config/1c-release.json`: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
 | S.9.6. Skill `md-to-docx` | согласовано 2026-07-25 | Все четыре upstream-файла (`SKILL.md`, JS, `package.json`, lock) переносятся побайтно. Node.js 18 LTS или ≥20 и локальный `docx` объявляются optional dependencies; `npm ci --prefix` выполняется только с разрешения, `node_modules/` — gitignored runtime state вне managed hashes. `doctor-1c` диагностирует runtime, а пользовательская документация отдельной строкой называет обе зависимости. |
 | S.9.7. Skill `mermaid-diagrams` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно, без renderer/npm dependency. Skill применяется только когда диаграмма материально улучшает понимание; для каждого Mermaid-блока сохраняется обязательный text sidecar, Mermaid остаётся источником истины. Codex/Claude bridges внешние; `mermaid.live` не получает приватные данные автоматически. |
 | S.9.8. Skill `powershell-windows` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно и активируется только для Windows/PowerShell/Docker/HTTP-задач. Сохраняются Windows PowerShell 5.1-compatible separation, quoting, native exit-code, HTTP, wait, JSON и process правила. Docker Compose command принадлежит внешнему provider workflow; `doctor-1c` проверяет доступный entrypoint. Runtime dependencies отсутствуют. |
 | S.9.9. Skill `prompt-enhancer` | согласовано ускоренно 2026-07-25 | `SKILL.md` и example переносятся побайтно. Skill только структурирует пользовательский prompt без добавления требований; inline/file/interactive modes и file ownership сохраняются. Dependencies отсутствуют, Codex/Claude discovery и legacy path mapping добавляются снаружи. |
 | S.9.10. Skill `transcribe` | исключён из capability 2026-07-25 | `transcribe` не относится к 1С и не входит в release, зависимости, шаблоны или критерии готовности capability. Оба upstream-файла явно маршрутизируются в отдельный отложенный план общего skill [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN]]; предложенная локальная Whisper-архитектура сохранена там и будет разобрана позже независимо от 1С. |
-| S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется только во внешнем release dependency manifest, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
+| S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется в `config/1c-release.json`, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
 | S.10. OpenSpec | согласовано 2026-07-25 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — optional runtime dependencies без автоматической установки; snapshot обновляется только build-time workflow. |
-| S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в import map как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
+| S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в `config/1c-artifacts.tsv` как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
 | S.12. Upstream installer | согласовано 2026-07-25 | `install.ps1` и `AGENT-INSTALL.md` сохраняются побайтно как provider-only reference и в проекты не ставятся: второй installer/manifest конфликтовал бы с bootstrap, migrations, validator и запретом снять `1c`. Полезные контракты маршрутизируются существующим владельцам: hashes/ownership/userModified/force-path — `capability_artifacts`; seed semantics — bootstrap; external MCP discovery — renderer/provider contract; metadata detection и diagnostics — `doctor-1c`; legacy `infobasesettings.md` — standardization migration. `.ai-rules.json` не вводится, runtime network update/add/remove/eject отсутствуют. |
 | S.13. Корневые вспомогательные файлы | согласовано 2026-07-25 | `README.md`, `References.md` и `.gitignore` полностью учтены. Upstream README остаётся provider-only и служит источником адаптированного user guide, не заменяя README проекта. `References.md` переносится побайтно как project-managed on-demand справочник с внешней provenance/index-обёрткой. Строки `.dev.env` и `node_modules/` из upstream `.gitignore` сливаются в генерируемый project ignore вместе с уже обязательными `.v8-project.json` и локальными runtime dependencies; пользовательские ignore-правила обновление не перезаписывает. |
 
@@ -115,7 +116,7 @@ Capability `1c` — единый агрегатный release. Пользова�
 и обновляет его как один пакет; внутреннее расположение канонических источников
 не становится частью пользовательского workflow.
 
-Каждый элемент import map и semantic map относится ровно к одному классу:
+Каждая строка `config/1c-artifacts.tsv` относится ровно к одному классу:
 
 1. **Project-managed** — устанавливается в проект и обновляется через
    `capability_artifacts` с проверкой предыдущего состояния.
@@ -123,19 +124,71 @@ Capability `1c` — единый агрегатный release. Пользова�
    пользователю и автоматически не перезаписывается. Сюда относятся
    `USER-RULES.md`, `memory.md` и `LLM-RULES.md`; их точное размещение и
    precedence рассматриваются отдельным пунктом.
-3. **Provider-only** — lock, staging, import/semantic/generated-output maps,
-   адаптеры, преобразования и тесты refresh. В создаваемый проект не попадает.
+3. **Provider-only** — release manifest/ledger, staging, адаптеры,
+   преобразования и тесты refresh. В создаваемый проект не попадает.
 4. **Pinned external component** — канонический компонент из другого
    репозитория, в том числе обязательный стек Best Practices `1c`. Release
    фиксирует его commit и совместимость, но не создаёт второй канонический
    экземпляр содержимого в этом репозитории.
 
-Один upstream-файл можно семантически расщепить между несколькими целевыми
-артефактами, но каждый блок обязан быть отражён в semantic map. Build-time
-сборка разрешает разные физические источники только после проверки их
-совместимости и выпускает один versioned release capability. Созданный проект
-видит один план обновления; частичное применение компонентов одного release
-запрещено.
+Build-time канон состоит из двух файлов:
+
+- `config/1c-release.json` — версия/release id, pinned commits, external
+  compatibility, десять MCP-ролей, hashes трёх EPF и optional dependencies;
+- `config/1c-artifacts.tsv` — `source_path`, `source_selector`,
+  `source_sha256`, `action`, `action_id`, `ownership`, `target_path` и
+  `target_sha256` для каждого tracked upstream-файла и generated output.
+
+Допустимы только четыре действия:
+
+- `copy` — побайтный перенос, output hash равен source hash;
+- `adapt:<id>` — минимальный reviewable patch с исходным/output hash и
+  regression test;
+- `compile:<id>` — детерминированная клиентская проекция, одинаковый input
+  обязан дать побайтно одинаковый output;
+- `route:<owner>` — прямого output нет, но selector имеет конкретного
+  semantic owner. `exclude` запрещён; даже `transcribe` маршрутизирован во
+  внешний общий план.
+
+Один upstream-файл можно расщепить по устойчивым heading selectors; изменение
+selector требует review. Build разрешает разные физические источники только
+после проверки совместимости и выпускает один versioned release. Созданный
+проект видит один план обновления; частичное применение запрещено.
+
+Release получает `ready`, `blocked` или `review-required`. Механика блокирует
+неполный inventory, неизвестные actions, hash/owner/target conflicts,
+недетерминированную компиляцию, неразрешимый route, неполный MCP/agents/commands/
+OpenSpec/EPF/dependency contract и утечку secrets/машинных путей. Новый source
+hash, selector, adaptation, generator, permission, MCP role, EPF или dependency
+всегда требует semantic review. После pinned staging сборка и project fixtures
+работают без сети.
+
+В проект не попадают `1c-release.json`, `1c-artifacts.tsv`, upstream staging,
+11 raw adapters, installer/README, generators, patches и build fixtures.
+Project-managed payload обновляется через migrations; смешанные
+`.codex/config.toml`, `.mcp.json`, `.claude/settings.json`, `AGENTS.md` и
+`1c-projects.tsv` изменяются только в owned blocks/keys/schema.
+`USER-RULES.md`, `memory.md`, `LLM-RULES.md` и OpenSpec content — seed/user-owned;
+`.dev.env`, `.v8-project.json`, session locks, handoffs и dependency state —
+локальные user-owned.
+
+`.project-standard.json` хранит краткую версию/release id/source provenance,
+а generic `.project-standard-artifacts.json` — owner, policy и installed hash
+стабильных managed Git-артефактов. Машинные пути, CLI/Docker availability,
+runtime ports и local state в ledger не попадают.
+
+Повторный bootstrap той же версии — no-op. Migration сначала показывает полный
+diff, затем транзакционно обновляет managed state; drift останавливает запись.
+Удалять или переименовывать старый managed target можно только при совпадении
+current и installed hash; seed/user-owned не удаляются, непустые каталоги
+сохраняются.
+
+Обязательные fixtures покрывают чистый проект с одним Codex, одним Claude и без
+CLI; позднюю активацию второго клиента; повторный bootstrap; update/no-op/drift;
+сохранение seeds, `.dev.env`, `.v8-project.json`, сторонних MCP/permissions;
+удаление/rename managed target и owned key; внешний provider present/missing с
+динамическими портами; отсутствие optional dependencies; offline
+bootstrap/migration; запрет снять capability и shell/PowerShell parity.
 
 ### Источники конфигурации
 
@@ -157,9 +210,9 @@ Capability `1c` — единый агрегатный release. Пользова�
 4. `config/1c-mcp-catalog.json` — версионируемые нейтральные определения MCP;
    фактические provider endpoints дополняются из внешнего provider
    manifest/registry.
-5. `.project-standard.json` и отдельный artifact ledger хранят версию
-   агрегатной capability, provenance и состояние управляемых артефактов, а не
-   рабочие параметры базы.
+5. `.project-standard.json` и `.project-standard-artifacts.json` хранят версию
+   агрегатной capability, provenance и stable managed hashes, а не рабочие
+   параметры базы или машинное состояние.
 
 Явный выбор `project_id`+`environment_id` записывается только в session lock и
 имеет приоритет над default/branch resolution. TSV даёт shared topology,
@@ -217,7 +270,7 @@ managed-блока, owned server key или owned permission rule вручную
 
 Обновление выполняется одной транзакцией:
 
-1. проверить все входные слои и artifact ledger;
+1. проверить все входные слои и `.project-standard-artifacts.json`;
 2. построить три результата без записи;
 3. показать единый diff и остановиться при конфликте;
 4. записать временные файлы, применить все проекции или откатить все;
@@ -413,8 +466,8 @@ Router-файлы `coding-standards` и `verification-checklist` поглоща�
 `develop-1c/SKILL.md`; `dev-standards-env` маршрутизируется в S.4,
 `getconfigfiles` — в профильный skill/command, orchestration rules — в S.7,
 `sdd-integrations` маршрутизируется в принятый OpenSpec-контракт S.10. Ни один файл не исчезает:
-каждая строка import map указывает адаптированный reference либо конкретный
-semantic owner.
+каждая строка `config/1c-artifacts.tsv` указывает адаптированный reference либо
+конкретный semantic owner.
 
 Разделы upstream `AGENTS.md` распределяются аналогично: persona уходит в
 `develop-1c`, core/routing/gates — в scoped `AGENTS.md`, project info и MCP — в
@@ -545,7 +598,8 @@ Upstream safety floor остаётся: syntax checks, high-risk full cycle, imp
 gates, session lock и production/write confirmations не отключаются.
 
 `refresh-1c-capability` доступен только maintainer workflow стандарта и
-реализует S.1: проверка upstream, pinned commit, полный import-map diff,
+реализует S.1: проверка upstream, pinned commit, полный
+`config/1c-artifacts.tsv` diff,
 адаптация, тесты и review. Созданный 1С-проект никогда не клонирует latest
 upstream и не запускает его installer напрямую.
 
@@ -681,7 +735,7 @@ JSON DSL, после чего используется цепочка
 Pillow — optional runtime dependency capability, а не глобальная предпосылка
 всего 1С-проекта:
 
-- tested version фиксируется во внешнем release dependency manifest;
+- tested version фиксируется в `config/1c-release.json`;
 - bootstrap не выполняет глобальный `pip install`;
 - `doctor-1c` сообщает `available` или `missing: Pillow`;
 - установка выполняется только после разрешения пользователя в project-local
@@ -788,7 +842,7 @@ user-owned `*-enhanced.md`. Runtime dependencies отсутствуют.
 `v8unpack-cf` поставляет побайтно один `SKILL.md`. Он описывает извлечение
 CF/CFE/EPF в JSON+BSL и обратную сборку без платформы 1С, когда доступен только
 binary artifact. Python package `v8unpack` — optional dependency: tested
-version фиксируется во внешнем release manifest, установка project-local и
+version фиксируется в `config/1c-release.json`, установка project-local и
 только с разрешения, `doctor-1c` проверяет availability/version. В
 пользовательской документации отдельная строка:
 
@@ -835,12 +889,12 @@ optional runtime dependencies. Bootstrap их не устанавливает; �
 availability/version. Пользовательское `openspec update` не является каналом
 обновления managed artifacts: новый snapshot приходит через S.1 после review.
 Остальные client bundles остаются provider-only build inputs и учитываются в
-import map, но не устанавливаются в проект Codex + Claude.
+`config/1c-artifacts.tsv`, но не устанавливаются в проект Codex + Claude.
 
 ### Адаптеры AI-клиентов
 
 Все 11 `adapters/*.yaml` из upstream сохраняются побайтно как provider-only
-build inputs и получают явные import-map записи. Capability устанавливает
+build inputs и получают явные строки `config/1c-artifacts.tsv`. Capability устанавливает
 проекции только для Codex и Claude Code; остальные адаптеры остаются
 доступными для будущего расширения, но не создают лишние client directories.
 
@@ -892,7 +946,7 @@ installer contract получил ровно одного владельца и 
 
 ### Корневые вспомогательные файлы
 
-Три оставшихся root-файла получают явные import-map routes:
+Три оставшихся root-файла получают явные строки `config/1c-artifacts.tsv`:
 
 - upstream `README.md` остаётся provider-only reference; его актуальные
   сведения про состав capability, зависимости, MCP и использование
@@ -1062,7 +1116,7 @@ Runtime-операции capability `1c` — **только для Windows**. ED
 | Node.js 18 LTS или ≥20 | OpenSpec, `md-to-docx` и веб-тестирование | опционально; обязателен только для вызванного workflow |
 | npm package `docx` | Генерация DOCX skill `md-to-docx` | опционально; project-local из lock |
 | Pillow | Skill `img-grid-analysis` | опционально; project-local |
-| Python package `v8unpack` | Skill `v8unpack-cf` | опционально; project-local, tested version из release manifest |
+| Python package `v8unpack` | Skill `v8unpack-cf` | опционально; project-local, tested version из `config/1c-release.json` |
 | OpenSpec CLI | OpenSpec workflows | опционально; версия совместима с pinned bundle |
 
 Отдельная системная Java не требуется: EDT использует свой bundled JDK.
@@ -1585,10 +1639,11 @@ Capability должна поддерживать верхнеуровневую 
   маркированным MCP-блоком.
 - `.mcp.json` и `.claude/settings.json` — shared Claude Code config, где
   capability владеет только своими server keys и permission rules.
-- Build-time lock, import/semantic maps, generated-output map, release manifest,
-  artifact ledger и dependency manifest — provider-only/release артефакты,
-  которые доказывают полноту upstream inventory, фиксируют commits, hashes,
-  ownership и optional runtime dependencies.
+- `config/1c-release.json` и `config/1c-artifacts.tsv` — provider-only
+  build-time паспорт и единый source/action/ownership/target ledger; в
+  создаваемый проект не копируются.
+- `.project-standard.json` и `.project-standard-artifacts.json` — краткий
+  project release record и generic ledger стабильных managed hashes.
 - `.agents/skills/**` — канонические capability-native и принятые upstream
   skills; побайтные vendored subtrees обновляются только из pinned build-time
   refresh, а адаптации и legacy path mapping находятся снаружи.
@@ -1810,14 +1865,15 @@ Capability затрагивает те же места, что и `jira-confluen
 
 ## Предварительный черновик этапов внедрения
 
-1. Зафиксировать агрегатный release: pinned commits всех источников, полный
-   upstream inventory, import/semantic/generated-output maps, ownership,
-   dependency manifest и hashes. Проверить десять MCP-ролей, готовые EPF и
-   режимы `analysis`/`approved-write` по `application_kind`.
+1. Зафиксировать агрегатный release в `config/1c-release.json` и
+   `config/1c-artifacts.tsv`: pinned sources, полный inventory, четыре actions,
+   ownership, targets, dependencies и hashes. Проверить десять MCP-ролей,
+   готовые EPF и режимы `analysis`/`approved-write` по `application_kind`.
 2. Добавить capability `1c` в manifest, schema, PowerShell и shell bootstrap;
    переписать однокапабилитный позиционный интерфейс shell на список, снять
    захардкоженные guards `= jira-confluence` и добавить
-   `capability_artifacts` в migrations/ledger.
+   `capability_artifacts` в migrations и generic
+   `.project-standard-artifacts.json`.
 3. Реализовать maintainer-only build-time importer pinned `ai_rules_1c`:
    проверить полноту каждого tracked-файла, побайтно перенести принятые payload,
    применить только согласованные адаптации и скомпилировать Codex/Claude
@@ -1853,7 +1909,7 @@ Capability затрагивает те же места, что и `jira-confluen
    `application_kind`, требование плагина только для `ordinary`, выбор модели
    гейта записи по типу (SHA для `ordinary`, подтверждение переключателя для
    `managed`) и применение server-vs-client guard только к `ordinary`.
-   Отдельно — полноту upstream import map, hashes vendored payload, Codex/Claude
+   Отдельно — полноту `config/1c-artifacts.tsv`, hashes vendored payload, Codex/Claude
    parity, 13 agent roles, semantic coverage команд, project-seed preservation,
    OpenSpec approval gate, optional dependency disclosure, отсутствие runtime
    network update, позднее подключение Codex/Claude без re-bootstrap и
@@ -1876,11 +1932,13 @@ Capability затрагивает те же места, что и `jira-confluen
 - В общей рабочей области число зарегистрированных баз не ограничено портами;
   до десяти строк с `mcp_enabled=true` разведены по `6003`–`6012`, а локальный
   конфликт не меняет shared topology автоматически.
-- Каждый tracked-файл pinned upstream имеет явный import/semantic route;
+- Каждый tracked-файл pinned upstream имеет явную строку
+  `config/1c-artifacts.tsv`;
   побайтные payload совпадают по hash, а каждая адаптация отдельно разрешена и
   проверена. Создание и runtime-обновление проекта не требуют сети.
 - Один release и одна `capability_artifacts`-миграция согласованно доставляют
-  managed artifacts, сохраняют project-seed/user-owned state и выявляют drift.
+  managed artifacts, сохраняют project-seed/user-owned state, обновляют
+  `.project-standard-artifacts.json` и выявляют drift.
 - Режим `analysis` запускает read-only сборку; write-enabled сборка
   запускается только под подтверждённую задачу на не-prod базе.
 - Перед любым вызовом Toolkit подтверждена фактическая база за портом.
