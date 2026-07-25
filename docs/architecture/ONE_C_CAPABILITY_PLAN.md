@@ -103,6 +103,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.10. Skill `transcribe` | требуется отдельное решение | Побайтный перенос пока невозможен: documented output names не совпадают со скриптом; Python/system dependencies не pinned; медиа загружается в Gemini API без отдельного disclosure/confirmation, cleanup не гарантирован при исключении, ожидание processing не ограничено, а ошибка split может привести к пустому результату. |
 | S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется только во внешнем release dependency manifest, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
 | S.10. OpenSpec | согласовано 2026-07-25 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — optional runtime dependencies без автоматической установки; snapshot обновляется только build-time workflow. |
+| S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в import map как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
 
 ### Единица поставки и внутреннее владение
 
@@ -803,6 +804,33 @@ availability/version. Пользовательское `openspec update` не я
 обновления managed artifacts: новый snapshot приходит через S.1 после review.
 Остальные client bundles остаются provider-only build inputs и учитываются в
 import map, но не устанавливаются в проект Codex + Claude.
+
+### Адаптеры AI-клиентов
+
+Все 11 `adapters/*.yaml` из upstream сохраняются побайтно как provider-only
+build inputs и получают явные import-map записи. Capability устанавливает
+проекции только для Codex и Claude Code; остальные адаптеры остаются
+доступными для будущего расширения, но не создают лишние client directories.
+
+На build-time два целевых YAML компилируются в компактные project-managed
+runtime descriptors, читаемые штатным toolchain без YAML-библиотеки. Они
+используются renderer из S.4.2 и не становятся вторым установщиком.
+
+От upstream mapping сохраняются фактические client formats и целевые project
+paths. Принятые ранее контракты имеют приоритет:
+
+- канонические skills живут в `.agents/skills/**`, клиентам выдаются bridges;
+- `CLAUDE.md` содержит только `@AGENTS.md`;
+- agents рендерятся по S.7 с принятой моделью прав и наследованием model;
+- MCP берётся из `config/1c-mcp-catalog.json` и текущей topology, а managed
+  projections сливаются без потери пользовательских ключей;
+- project workflow не пишет `~/.codex/prompts/` и другие global paths;
+- trust не выдаётся автоматически.
+
+Hashes всех upstream adapters и детерминированный результат компиляции входят
+в release verification. Тесты проверяют idempotence, отсутствие global writes,
+сохранение сторонних client settings и parity смысловых rules/skills/agents/MCP
+между Codex и Claude.
 
 ### Многобазовая маршрутизация MCP
 
