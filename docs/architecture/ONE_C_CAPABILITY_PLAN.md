@@ -64,22 +64,24 @@ validators, skills, MCP-конфигурацию и другие артефак�
 
 Предварительные оценки «брать» или «не брать» не являются решениями.
 
-Базовое правило адаптации: сохранять функциональность, operational choices и
-модель безопасности upstream без дополнительного ужесточения только потому,
-что оно технически возможно. Изменение допускается лишь при конкретном
-конфликте с уже принятым решением плана, поддерживаемым контрактом AI-клиента
-или обязательным правилом стандарта. Целевые 1С-репозитории считаются
-приватными; password-параметры и локальные runtime-файлы upstream сохраняются.
-Реальные credentials по обязательному правилу стандарта не коммитятся и
-остаются в gitignored/local state.
+Базовое правило — **минимальная адаптация**: если upstream-файл можно поставить
+и использовать без изменения, он переносится побайтно. Client discovery,
+path mapping и обязательную интеграцию добавлять внешними тонкими bridges, а
+не переписывать vendored payload. Менять содержимое разрешено лишь при
+доказанном конфликте с уже принятым решением плана, поддерживаемым контрактом
+AI-клиента или обязательным правилом стандарта; сам факт, что иной дизайн
+кажется чище или безопаснее, причиной адаптации не является. Целевые
+1С-репозитории считаются приватными; password-параметры и локальные
+runtime-файлы upstream сохраняются. Реальные credentials по обязательному
+правилу стандарта не коммитятся и остаются в gitignored/local state.
 
 | Пунк источника | Статус | Решение |
 |---|---|---|
 | S.1. Жизненный цикл интеграции | согласовано 2026-07-25 | Build-time: maintainer workflow загружает pinned commit `ai_rules_1c` в staging, адаптирует и проверяет пакет, после чего канонические артефакты попадают в шаблоны capability. Создание проекта не зависит от сети и upstream installer. Периодическая проверка сравнивает lock с upstream `main`; изменение создаёт reviewable refresh candidate с diff и тестами, но не обновляет пакет и проекты без review. |
 | S.2. Полнота и периодичность | согласовано 2026-07-25 | Каждый tracked-файл upstream обязан иметь явную запись в import map; ничего не отбрасывается незаметно. Build-input остаётся в provider pipeline, а в проект попадает функционально полная проекция для выбранных AI-инструментов. Upstream проверяется еженедельно и вручную; новый commit создаёт candidate с diff и тестами. Merge в стандарт и plan/apply в существующие проекты требуют review. |
 | S.3. Единица поставки и владение | согласовано 2026-07-25 | Принят вариант А′: `1c` — одна логическая capability, одна версия поставки и один кандидат обновления для создаваемого проекта. Внутри release артефакты обязательно классифицируются как project-managed, project-seed, provider-only или pinned external component. Канонические источники могут находиться в разных репозиториях: build-time сборка фиксирует совместимые commits и выпускает их как один агрегат, поэтому одновременные commits в репозиториях не требуются. |
-| S.4.1. Источники конфигурации | согласовано 2026-07-25 | Принята слоистая модель: `config/1c-projects.tsv` хранит версионируемую идентичность и стабильные несекретные параметры баз/контуров; `config/1c-policy.json` — версионируемую политику разработки; gitignored `config/1c.local.json` — машинные пути и endpoints без секретов; секреты разрешаются только из environment или системного credential store. Upstream `.dev.env` и описанный им `.v8-project.json` учитываются в semantic map, но не поставляются как runtime-источники истины. |
-| S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25 | `config/1c-mcp-catalog.json` становится единым нейтральным каталогом MCP. Один renderer объединяет его с committed реестром баз и policy; local-слой используется только для runtime resolution и проверок. Затем renderer транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
+| S.4.1. Источники конфигурации | пересмотрено и согласовано 2026-07-25 | Принята upstream-first модель. `config/1c-projects.tsv` остаётся только shared-реестром идентичности, production/MCP/EDT topology и портов. Точная upstream `.dev.env.example` поставляется как managed template, gitignored `.dev.env` хранит default-базу, пути, dev/test credentials и process settings. Gitignored `.v8-project.json` сохраняет исходную upstream-схему локального multi-base registry; `databases[].id` связывается с TSV соглашением `<project_id>-<environment_id>`. `config/1c.local*.json` и не имеющий конкретной схемы `config/1c-policy.json` исключены. Явный session lock имеет приоритет; non-default параметры передаются инструментам без переписывания `.dev.env`; `doctor-1c` сообщает о рассогласовании default-записи. |
+| S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25; входы обновлены вслед за S.4.1 | `config/1c-mcp-catalog.json` остаётся единым нейтральным каталогом MCP. Renderer объединяет его с shared `config/1c-projects.tsv` и локальными `.dev.env`/`.v8-project.json`, затем транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
 | S.4.3. Многобазовая маршрутизация MCP | согласовано 2026-07-25 | Приняты отдельные namespaces без runtime-router и три scope: `provider-shared`, `per-workspace`, `per-base`. Для разрешённой базы renderer создаёт стабильный `onec-...` server id; `select-1c-project` не переписывает config, а проверяет фактическую базу через точный namespace и создаёт session lock. `mcp_enabled` управляет экспозицией: dev/test по умолчанию включены, production — выключен до явного решения. Новая сессия нужна только после изменения топологии MCP или невозможности переподключить endpoint. |
 | S.4.4. Карта MCP provider | согласовано 2026-07-25 | Полный inventory содержит десять ролей: начальные семь — пять существующих provider-shared MCP из `ai_rules_1c` плюс EDT и встроенный Toolkit; ещё три upstream MCP (`Code Metadata`, `Graph Metadata`, `Data`) учтены как optional. Provider-shared контейнеры и порты повторно не разворачиваются. Codex и Claude сохраняют канонические upstream ids; `onec-*` используется для наших generated namespaces и только тех клиентов, которым нужна нормализация. |
 | S.4.5. Внутреннее состояние внешнего MCP provider | закрыто без отдельного проектирования 2026-07-25 | Порты, mounts, индексы, container lifecycle и state isolation принадлежат внешнему MCP-проекту и не дублируются в capability. Наш consumer-контракт ограничен обнаружением provider manifest/registry или согласованных static endpoints, проверкой identity/health/tools и безопасной регистрацией в клиентах. |
@@ -87,8 +89,9 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.5.2. `memory.md` | согласовано 2026-07-25 | Корневой версионируемый `project-seed` хранит только проверенные критические факты всего проекта, одновременно global, critical, stable и non-derivable, если у них нет более точного канонического владельца. Это не журнал и не слой команд: config/профильные docs имеют приоритет, а конфликт означает устаревшую запись. MCP `remember`/`recall` остаётся локальным обезличенным поисковым индексом, не источником истины и не Git-артефактом; при его недоступности критерии `memory.md` не ослабляются, а знания маршрутизируются в обычные канонические артефакты. |
 | S.5.3. `LLM-RULES.md` и `/evolve` | согласовано 2026-07-25 | Корневой `project-seed` — активный, но ограниченный слой пользовательски одобренных корректировок поведения агента. Только `/evolve` пишет файл; правило требует двух независимых friction-сигналов либо одного явного требования «всегда/никогда» и отдельного одобрения пользователя. Приоритет: protected system/repository/safety → `USER-RULES.md` → `LLM-RULES.md` → обычные 1С-правила capability; `memory.md` хранит факты и в precedence не участвует. Локальное правило не может ослабить security, production/write gates, secrets, Git или обязательные проверки; такое изменение маршрутизируется в стандарт/promotion. |
 | S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `1C/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отложенные agents/OpenSpec. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
-| S.7. Agents и orchestration | согласовано 2026-07-25 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; конкретные модели не pin-ятся, prompts загружают канонические skills. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически, economy mode — только по явному запросу/client settings. |
-| S.8. Commands | согласовано 2026-07-25 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует только официальный workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняются как session-only controls без записи `.dev.env`; lite/economy не ослабляют mandatory gates. Secrets не пишутся в Git/memory, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
+| S.7. Agents и orchestration | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; source-канон не pin-ит модели, но пользовательские `SUBAGENT_MODEL_*` из `.dev.env` могут задать их при рендеринге, пустое значение наследует client default. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически; upstream `ORCHESTRATION` сохраняется как persistent project setting в `.dev.env`. |
+| S.8. Commands | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняют upstream-поведение и пишут соответственно `CAVEMAN`, `ORCHESTRATION`, `VERIFICATION_DEPTH`/`UI_TESTING` в `.dev.env`; их upstream safety floor сохраняет mandatory gates. Реальные credentials не коммитятся, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
+| S.9.1. Skill `1c-metadata-manage` | согласовано 2026-07-25 | Весь upstream skill переносится побайтно как project-managed payload: 91 файл, включая `SKILL.md`, документацию, presets/references и PowerShell tooling. Его внутренние файлы, формат `.dev.env` и схема `.v8-project.json` не адаптируются. Codex discovery metadata, Claude bridge и mapping устаревших upstream-путей добавляются снаружи и не входят в vendored subtree. Refresh заменяет subtree из нового pinned commit и запрещает скрытые локальные правки. |
 
 ### Единица поставки и внутреннее владение
 
@@ -122,33 +125,40 @@ Capability `1c` — единый агрегатный release. Пользова�
 
 Для каждого факта существует один канонический владелец:
 
-1. `config/1c-projects.tsv` — версионируемая идентичность баз и контуров,
-   стабильные несекретные параметры и логические ссылки.
-2. `config/1c-policy.json` — версионируемая машинно-проверяемая политика
-   разработки 1С. Файл не содержит параметры AI-клиента, машинные пути и
-   credentials.
-3. `config/1c.local.json` — consumer-owned локальное сопоставление логических
-   ссылок с путями, установленными runtime и endpoints конкретной машины. Файл
-   добавляется в `.gitignore`, не содержит секретов и не обновляется
-   capability автоматически. Версионируемый
-   `config/1c.local.example.json` задаёт только схему и безопасные
-   плейсхолдеры.
-4. Environment или системный credential store — единственные источники
-   паролей, токенов и других секретов. В проектных файлах допустимы только
-   имена переменных или `credential_ref`, но не значения.
+1. `config/1c-projects.tsv` — версионируемая shared-идентичность баз и
+   контуров, `application_kind`, production/MCP flags, логические EDT-ссылки и
+   назначенные порты. Машинных путей и credentials в TSV нет.
+2. `.dev.env.example` — побайтно сохраняемый upstream managed template.
+   Gitignored `.dev.env` — user-owned источник параметров default-базы,
+   генерации кода, локальных путей, dev/test credentials, UI testing,
+   model tiers, orchestration, triage, verification и caveman mode. Capability
+   создаёт файл только при отсутствии и не перезаписывает значения при refresh.
+3. `.v8-project.json` — gitignored user-owned локальный multi-base registry в
+   исходной upstream-схеме: connections, aliases, branch bindings, `configSrc`
+   и `v8path`. Для связи без расширения schema используется соглашение
+   `databases[].id = <project_id>-<environment_id>`. Для одной default-базы
+   файл необязателен; для локальной работы с несколькими базами — обязателен.
+4. `config/1c-mcp-catalog.json` — версионируемые нейтральные определения MCP;
+   фактические provider endpoints дополняются из внешнего provider
+   manifest/registry.
 5. `.project-standard.json` и отдельный artifact ledger хранят версию
    агрегатной capability, provenance и состояние управляемых артефактов, а не
    рабочие параметры базы.
 
-Выбор `project_id`+`environment_id` действует только как состояние текущей
-сессии и не создаёт новый конфигурационный файл. Сгенерированный
-client-specific config является проекцией канонических слоёв, а не ещё одним
-редактируемым источником.
+Явный выбор `project_id`+`environment_id` записывается только в session lock и
+имеет приоритет над default/branch resolution. TSV даёт shared topology,
+совпадающая запись `.v8-project.json` — локальное подключение, `.dev.env` —
+default-базу и process settings. Для non-default базы workflow передаёт
+resolved параметры upstream-скриптам напрямую и не переписывает `.dev.env`.
+Если default-запись `.v8-project.json` расходится с `.dev.env`, `doctor-1c`
+сообщает о конфликте и не исправляет его автоматически.
 
-Upstream `.dev.env.example`, логика `.dev.env` и спецификация
-`.v8-project.json` полностью учитываются в import/semantic maps. Их параметры
-раскладываются по перечисленным владельцам; сами `.dev.env` и
-`.v8-project.json` не поставляются и не читаются capability во время работы.
+Реальные credentials допускаются в gitignored `.dev.env` и
+`.v8-project.json` в рамках исходной модели upstream, но не коммитятся.
+Upstream не рекомендует хранить там production-пароли; capability сохраняет
+это предупреждение без дополнительной собственной схемы secrets.
+Сгенерированный client-specific config является проекцией перечисленных
+источников, а не ещё одним редактируемым источником.
 
 ### Адаптеры Codex и Claude Code
 
@@ -163,11 +173,10 @@ Upstream `.dev.env.example`, логика `.dev.env` и спецификация
 нормализация provider id допустима только в адаптере клиента, который её
 действительно требует.
 
-Renderer объединяет каталог с committed `config/1c-projects.tsv` и
-`config/1c-policy.json`, после чего строит три проекции. Local-слой участвует
-только в runtime resolution и проверках: его машинные значения не записываются
-литералами в shared Git-файлы; допустимы лишь стабильные committed значения,
-имена переменных и поддерживаемые клиентом плейсхолдеры.
+Renderer объединяет каталог с committed `config/1c-projects.tsv` и локальными
+`.dev.env`/`.v8-project.json`, после чего строит три проекции. Машинные значения
+не записываются литералами в shared Git-файлы; допустимы лишь стабильные
+committed значения, имена переменных и поддерживаемые клиентом плейсхолдеры.
 
 1. `.codex/config.toml` — только маркированный managed-блок таблиц
    `[mcp_servers.<id>]`. Остальной TOML сохраняется; upstream-поля
@@ -187,7 +196,8 @@ capability не изменяет.
 Client-specific файлы — generated outputs, а не источники истины. Изменение
 managed-блока, owned server key или owned permission rule вручную считается
 дрейфом: plan показывает конфликт и не перезаписывает его молча. Настройки
-меняют в каталоге, policy, реестре баз или local-слое по их владельцу.
+меняют в MCP-каталоге, shared TSV либо upstream local-файлах по описанному
+владельцу.
 
 Обновление выполняется одной транзакцией:
 
@@ -221,7 +231,7 @@ manifest/registry; машинные динамические URLs не запи�
 обязательные пользовательские проверки. В него не попадают:
 
 - параметры баз, порты и endpoints — ими владеют `config/1c-projects.tsv`,
-  `config/1c-policy.json` и local-слой;
+  `.dev.env`, `.v8-project.json`, MCP-каталог и внешний provider registry;
 - MCP-конфигурация и upstream-блок `mcp:install_forme` — ими владеют каталог и
   renderer;
 - secrets, временные договорённости и факты проекта;
@@ -425,15 +435,16 @@ Pipeline: parent triage → optional research/plan agent → один mutating a
 parent plan-compliance → reviewer только по запросу → parent closing gate.
 Structured handoff сохраняется как навигация, но не заменяет актуальный
 source: следующий writer проверяет текущий файл перед изменением. Persistent
-per-agent memory не включается. Upstream economy mode из `.dev.env` заменяется
-явным session request или пользовательскими client-level settings и не
-ослабляет gates.
+per-agent memory не включается. Upstream `ORCHESTRATION=standard|economy` и
+`SUBAGENT_MODEL_*` сохраняются в `.dev.env`: mode действует на проект, а
+неуказанные модели наследуются от AI-клиента. Эти настройки не расширяют
+permissions и не ослабляют gates.
 
 Тесты проверяют inventory 13/13 и discovery обоими клиентами, permission
-classes, write-доступ mutating ролей, отсутствие hardcoded models,
-skills/MCP routing, запрет concurrent write в одном worktree, explicit-only
-reviewer/tester, отсутствие отдельной persistent memory и parent-owned closing
-gate.
+classes, write-доступ mutating ролей, отсутствие hardcoded models в source
+canon, optional rendering `SUBAGENT_MODEL_*`, skills/MCP routing, запрет
+concurrent write в одном worktree, explicit-only reviewer/tester, отсутствие
+отдельной persistent memory и parent-owned closing gate.
 
 ### Commands
 
@@ -447,15 +458,15 @@ Codex и Claude получают поддерживаемые их клиент�
 
 | Upstream command | Канонический владелец | Эффект |
 |---|---|---|
-| `caveman` | session control `1c-caveman` | Меняет стиль ответа только для текущей сессии |
+| `caveman` | `1c-caveman` | Пишет persistent `CAVEMAN`; явный force может действовать только в сессии |
 | `checkmcp` | `doctor-1c` + `manage-1c-mcp` | Read-only диагностика; repair только через provider |
 | `deploy-and-test` | `deploy-and-test-1c` | Загружает выбранный non-prod и запускает согласованные проверки |
 | `doctor` | `doctor-1c` | Read-only readiness/health report |
-| `economymode` | session control `1c-economy-mode` | Уменьшает необязательную оркестрацию только в текущей сессии |
+| `economymode` | `1c-economy-mode` | Пишет persistent `ORCHESTRATION` и при необходимости model tiers |
 | `evolve` | `evolve-1c-rules` | Пишет только одобренные изменения в `LLM-RULES.md` |
 | `getconfigfiles` | `export-1c-source`, режим `objects` | Экспортирует выбранные объекты базы в source tree |
 | `installmcp` | `manage-1c-mcp`, режим `install` | Делегирует установку внешнему provider |
-| `litemode` | session control `1c-lite-mode` | Снижает только необязательную глубину verification |
+| `litemode` | `1c-lite-mode` | Пишет `VERIFICATION_DEPTH` и связанный `UI_TESTING` |
 | `loadfrom1cbase` | `export-1c-source`, режим `full` | Полностью синхронизирует выбранную базу в source tree |
 | `update1cbase` | `deploy-1c-source` | Загружает source tree в выбранную базу |
 | `updatemcp` | `manage-1c-mcp`, режим `update` | Делегирует обновление внешнему provider |
@@ -468,9 +479,9 @@ project/local configuration и доступного Windows toolchain. Он не
 
 `manage-1c-mcp` — не вторая реализация provider lifecycle. Он обнаруживает
 provider manifest/registry, показывает план действий и только по явному запросу
-пользователя вызывает официальный provider workflow. Недокументированные
-скачивания, прямое управление Docker и сохранение логина/пароля в `memory.md`,
-`.dev.env` либо других project-файлах не переносятся.
+пользователя вызывает provider workflow. Его password-параметры и локальные
+runtime-файлы сохраняются; реальные значения не коммитятся и не переносятся в
+версионируемый `memory.md`.
 
 `export-1c-source` перед записью фиксирует выбранную базу и направление
 `base → repository`, проверяет рабочее дерево и показывает итоговый Git diff.
@@ -484,11 +495,12 @@ provider manifest/registry, показывает план действий и т
 preflight; capability не превращает обычное разрешение записи в постоянное
 разрешение production.
 
-`1c-caveman`, `1c-economy-mode` и `1c-lite-mode` не записывают состояние в
-`.dev.env` или project config. Они действуют только в текущей сессии.
-Economy/lite могут убрать необязательных subagents, UI tests или расширенную
-диагностику, но не syntax checks, security/secret gates, session lock,
-production/write confirmations и иные обязательные проверки.
+`1c-caveman`, `1c-economy-mode` и `1c-lite-mode` сохраняют исходную механику
+upstream и изменяют `.dev.env`. `CAVEMAN` задаёт persistent auto-activation с
+отдельным session force; `ORCHESTRATION` — project-level режим оркестрации;
+`VERIFICATION_DEPTH` и `UI_TESTING` — глубину низкорисковых проверок и UI.
+Upstream safety floor остаётся: syntax checks, high-risk full cycle, impact/XML
+gates, session lock и production/write confirmations не отключаются.
 
 `refresh-1c-capability` доступен только maintainer workflow стандарта и
 реализует S.1: проверка upstream, pinned commit, полный import-map diff,
@@ -496,9 +508,38 @@ production/write confirmations и иные обязательные провер
 upstream и не запускает его installer напрямую.
 
 Проверки требуют coverage 13/13, единственного semantic owner для каждой
-команды, отсутствия credentials и `.dev.env` state, read-only поведения
+команды, корректного key-preserving изменения `.dev.env`, read-only поведения
 `doctor-1c`, provider delegation для MCP lifecycle, guards обоих направлений
-синхронизации, session-only профилей и сохранения mandatory gates.
+синхронизации, persistent upstream modes и сохранения mandatory gates.
+
+### Skill `1c-metadata-manage`
+
+Skill переносится **как есть** в
+`.agents/skills/1c-metadata-manage/`: все 91 upstream-файл (около 2,1 МБ),
+включая `SKILL.md`, 21 документ, 59 PowerShell-скриптов, references и presets.
+Vendored subtree обязан побайтно совпадать с pinned commit
+`ai_rules_1c`; внутренние инструкции, пути, параметры, проверки и модель
+безопасности не переписываются.
+
+Необходимая интеграция выполняется только снаружи:
+
+- Codex discovery metadata `agents/openai.yaml` поставляется соседним
+  managed-артефактом;
+- Claude получает тонкий bridge к каноническому skill без второй копии;
+- legacy-ссылки upstream на `content/**` разрешаются внешним path mapping;
+- сложные metadata-операции маршрутизируются принятой роли
+  `1c-metadata-manager`, как предписывает сам skill.
+
+Skill продолжает использовать upstream `.dev.env` и `.v8-project.json` из
+S.4.1. Отдельный `source_format` не вводится: штатные инструменты сами
+проверяют ожидаемое XML-дерево и `Configuration.xml`, а EDT workflow остаётся
+отдельным владельцем. При refresh subtree полностью заменяется содержимым
+нового reviewed pinned commit; локальная правка внутри него считается drift.
+
+Проверки охватывают полноту inventory и hashes, отсутствие изменений vendored
+payload, discovery в Codex и Claude, разрешимость внешних bridges/path mapping
+и parser-check PowerShell-скриптов. Интеграционные проверки оборачивают skill,
+но не меняют его исходники ради тестируемости.
 
 ### Многобазовая маршрутизация MCP
 
@@ -1143,13 +1184,12 @@ Capability должна поддерживать верхнеуровневую 
   документация вместо проб, evidence, routing-by-MCP, mandatory-reading-route.
 - `config/1c-projects.tsv` — реестр баз, одна строка на пару
   (`project_id`, `environment_id`); схема ниже; без credentials.
-- `config/1c-policy.json` — versioned-политика разработки 1С без
-  машинозависимых параметров и настроек AI-клиентов.
+- `.dev.env.example` — точный upstream managed template; создаваемый при
+  отсутствии `.dev.env` — gitignored и user-owned.
+- `.v8-project.json` — необязательный для одной базы и обязательный для
+  локального multi-base workflow gitignored registry в upstream schema.
 - `config/1c-mcp-catalog.json` — нейтральные определения MCP и их security
   classes; источник generated-проекций Codex и Claude Code.
-- `config/1c.local.example.json` — безопасная схема локальных привязок;
-  создаваемый по ней `config/1c.local.json` gitignored, consumer-owned и не
-  содержит секретов.
 - `.codex/config.toml` — shared Codex config, где capability владеет только
   маркированным MCP-блоком.
 - `.mcp.json` и `.claude/settings.json` — shared Claude Code config, где
@@ -1227,6 +1267,11 @@ project_id	environment_id	folder	configuration	platform_version	compatibility_mo
 
 Колонки с credentials (строки соединения, пароли, токены) в схеме запрещены;
 `validate-project.py` отклоняет их появление.
+
+Локальная запись `.v8-project.json` связывается со строкой TSV без расширения
+upstream schema: её `id` равен `<project_id>-<environment_id>`. Connection,
+aliases, branches, `configSrc`, `v8path`, user/password остаются локальными
+полями исходного формата `.v8-project.json`.
 
 ## Skills
 
