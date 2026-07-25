@@ -95,6 +95,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.2. Skill `mcp-1c-tools` | согласовано 2026-07-25 | Project-managed behavioral dispatcher поставляет основной `SKILL.md` и восемь серверных справочников. Восемь файлов переносятся побайтно; в `docs/1c-templates-mcp.md` минимально изменяется только fallback записи: при недоступности `remember` факт маршрутизируется каноническому владельцу, а `memory.md` получает его лишь по критериям S.5.2. Runtime topology остаётся у `config/1c-mcp-catalog.json`; skill владеет task→tool routing, availability, retries и call policies. EDT и Toolkit остаются отдельными skills. |
 | S.9.3. Skill `caveman` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно как project-managed payload. Сохраняются default `CAVEMAN=on`, режимы `on`/`auto`/`off`, session levels `lite`/`full`/`ultra`, precedence session force над `.dev.env` и все safety boundaries. Внешние Codex/Claude bridges и path mapping не меняют skill. Команда из S.8 изменяет только ключ `CAVEMAN`, без renderer или restart. |
 | S.9.4. Skill `handoff` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно. Skill создаёт user-owned session artifact `handoffs/handoff-*.md`, ссылается на канонические артефакты вместо копирования и не пишет secrets или memory автоматически. Решение о добавлении `handoffs/` в `.gitignore` остаётся пользователю: локальный handoff подходит клиентам одного workspace, а для другой машины пользователь задаёт переносимый target или отдельно передаёт файл. |
+| S.9.5. Skill `img-grid-analysis` | согласовано 2026-07-25 | `SKILL.md` переносится побайтно; в `overlay-grid.py` добавляются только guards положительных `cols`/`rows`, включая auto-result. Pillow объявляется optional runtime dependency в release manifest: без глобальной установки, project-local virtualenv только после разрешения, `doctor-1c` показывает статус. В пользовательской документации обязательна отдельная строка `Зависимость: Pillow`; отсутствие этой строки блокирует готовность поставки. |
 
 ### Единица поставки и внутреннее владение
 
@@ -625,6 +626,45 @@ OpenSpec добавляются снаружи. Проверки требуют 
 клиентами, корректную структуру и session-only diff, отсутствие secrets и
 дублирования durable artifacts, отсутствие automatic memory write и
 сохранение пользовательского выбора `.gitignore`. Внутренней адаптации нет.
+
+### Skill `img-grid-analysis`
+
+Skill дополняет MXL tooling из `1c-metadata-manage`: накладывает нумерованную
+сетку на PNG/JPEG образ печатной формы, помогает вывести пропорции колонок для
+JSON DSL, после чего используется цепочка
+`1c-mxl-compile → 1c-mxl-validate → 1c-mxl-info`.
+
+Из двух upstream-файлов `SKILL.md` переносится побайтно. В
+`scripts/overlay-grid.py` допускается только минимальный bugfix: отклонить
+`cols <= 0`, явно заданный `rows <= 0` и поднять auto-result минимум до одной
+строки. Переписывание на PowerShell/System.Drawing или отказ от Pillow не
+допускаются.
+
+Pillow — optional runtime dependency capability, а не глобальная предпосылка
+всего 1С-проекта:
+
+- tested version фиксируется во внешнем release dependency manifest;
+- bootstrap не выполняет глобальный `pip install`;
+- `doctor-1c` сообщает `available` или `missing: Pillow`;
+- установка выполняется только после разрешения пользователя в project-local
+  gitignored virtualenv;
+- отказ отключает только `img-grid-analysis`;
+- выходное изображение — user-owned artifact по указанному пути.
+
+Кроме machine-readable manifest, пользовательский 1С-гайд и `TOOLS.md`
+обязаны содержать отдельную видимую строку:
+
+```text
+Зависимость: Pillow — требуется только для skill img-grid-analysis.
+```
+
+Эта строка входит в documentation contract и проверяется тестом; упоминание
+Pillow только внутри `SKILL.md` или manifest недостаточно.
+
+Проверки покрывают hash неизменённого `SKILL.md`, exact scoped diff Python
+guard, PNG/JPEG, auto и explicit rows/cols, output path, zero/flat inputs,
+отсутствующую Pillow, project-local install gate, discovery обоими клиентами и
+обязательную отдельную dependency-строку в пользовательской документации.
 
 ### Многобазовая маршрутизация MCP
 
