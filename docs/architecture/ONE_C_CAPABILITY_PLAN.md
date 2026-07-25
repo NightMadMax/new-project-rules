@@ -104,6 +104,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется только во внешнем release dependency manifest, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
 | S.10. OpenSpec | согласовано 2026-07-25 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — optional runtime dependencies без автоматической установки; snapshot обновляется только build-time workflow. |
 | S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в import map как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
+| S.12. Upstream installer | согласовано 2026-07-25 | `install.ps1` и `AGENT-INSTALL.md` сохраняются побайтно как provider-only reference и в проекты не ставятся: второй installer/manifest конфликтовал бы с bootstrap, migrations, validator и запретом снять `1c`. Полезные контракты маршрутизируются существующим владельцам: hashes/ownership/userModified/force-path — `capability_artifacts`; seed semantics — bootstrap; external MCP discovery — renderer/provider contract; metadata detection и diagnostics — `doctor-1c`; legacy `infobasesettings.md` — standardization migration. `.ai-rules.json` не вводится, runtime network update/add/remove/eject отсутствуют. |
 
 ### Единица поставки и внутреннее владение
 
@@ -831,6 +832,32 @@ Hashes всех upstream adapters и детерминированный резу
 в release verification. Тесты проверяют idempotence, отсутствие global writes,
 сохранение сторонних client settings и parity смысловых rules/skills/agents/MCP
 между Codex и Claude.
+
+### Upstream installer
+
+`install.ps1` и `AGENT-INSTALL.md` сохраняются побайтно в provider staging как
+reference build inputs, но не попадают в создаваемый проект и не запускаются.
+Capability уже имеет владельцев тех же операций: bootstrap, migration engine,
+validator, client renderer и `doctor-1c`. Второй runtime installer создал бы
+конкурирующие manifests и update semantics.
+
+Полезные контракты upstream переносятся в существующие компоненты:
+
+- hashes, file ownership, `userModified` и scoped force-path — в
+  `capability_artifacts` plan/apply;
+- skip-if-exists для project-seed — в bootstrap;
+- external MCP manifest detection — в S.4 provider/renderer contract;
+- 1С metadata autodetection и read-only diagnostics — в `doctor-1c`;
+- миграция legacy `infobasesettings.md` в `.dev.env` — в standardization
+  migration с сохранением уже заданных значений;
+- существенные anti-patterns и operator guidance — в наши user/maintainer docs.
+
+Отдельный `.ai-rules.json` не создаётся: release/version/provenance и applied
+migrations хранят принятые manifests стандарта. Команды upstream
+`update`/`add`/`remove`/`eject` не поставляются; обновления идут только по S.1 и
+1.5, а capability `1c` снять нельзя. Tests проверяют, что каждый полезный
+installer contract получил ровно одного владельца и ни один target project не
+содержит или не вызывает upstream installer.
 
 ### Многобазовая маршрутизация MCP
 
