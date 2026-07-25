@@ -2,7 +2,7 @@
 type: documentation-index
 status: active
 owner: project
-last_verified: 2026-07-03
+last_verified: 2026-07-25
 source_of_truth: repository
 related:
   - "[[INDEX]]"
@@ -52,6 +52,7 @@ related:
 - [[docs/research/CONSUMER_STANDARD_MEASUREMENT|Измерение результата стандарта на consumer-проектах]]
 - [[docs/research/CONSUMER_STANDARD_BASELINE_2026-07-10|Baseline consumer-метрик — 2026-07-10]]
 - [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|Архитектура знаний NPR ↔ Best Practices — 2026-07-06]]
+- [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN|Отложенный план общего skill transcribe]]
 - [[docs/research/archive/README|Архив устаревших и завершённых исследований]]
 
 ## Качество и ревью
