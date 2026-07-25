@@ -74,6 +74,8 @@ create-new-project → setup-1c-environment → doctor-1c
 | Node.js | conditional | `md-to-docx` и OpenSpec CLI | automatic/manual; <https://nodejs.org/en/download> | Отключаются выбранные Node-функции |
 | npm package `docx` | conditional | Генерация DOCX | project-local из lock; <https://www.npmjs.com/package/docx> | Недоступен `md-to-docx` |
 | Pillow | conditional | `img-grid-analysis` | project-local; <https://pillow.readthedocs.io/en/stable/installation/index.html> | Недоступен анализ сетки |
+| YAxUnit | conditional | Модульные тесты BSL | расширение из release артефактов; <https://bia-technologies.github.io/yaxunit/> | Модульные тесты недоступны, остаются syntax и smoke |
+| BSL Language Server (standalone) | conditional | Проверка репозитория вне MCP-сессии | automatic/manual; <https://github.com/1c-syntax/bsl-language-server/releases> | Проверка BSL доступна только через Syntax MCP в сессии агента |
 | `v8unpack` | conditional | Offline unpack/repack CF/CFE/EPF | project-local tested version; <https://pypi.org/project/v8unpack/> | Недоступен `v8unpack-cf` |
 | OpenSpec CLI | conditional | CLI-операции OpenSpec | user-level compatible version; <https://github.com/Fission-AI/OpenSpec/blob/main/docs/installation.md> | Markdown/AI workflow остаётся, CLI отключён |
 | `uv` | optional | Удобное управление Python environments | automatic/manual; <https://docs.astral.sh/uv/getting-started/installation/> | Используются `venv`/`pip` |
