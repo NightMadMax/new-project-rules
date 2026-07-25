@@ -79,6 +79,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.5.3. `LLM-RULES.md` и `/evolve` | согласовано 2026-07-25 | Корневой `project-seed` — активный, но ограниченный слой пользовательски одобренных корректировок поведения агента. Только `/evolve` пишет файл; правило требует двух независимых friction-сигналов либо одного явного требования «всегда/никогда» и отдельного одобрения пользователя. Приоритет: protected system/repository/safety → `USER-RULES.md` → `LLM-RULES.md` → обычные 1С-правила capability; `memory.md` хранит факты и в precedence не участвует. Локальное правило не может ослабить security, production/write gates, secrets, Git или обязательные проверки; такое изменение маршрутизируется в стандарт/promotion. |
 | S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `1C/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отложенные agents/OpenSpec. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
 | S.7. Agents и orchestration | согласовано 2026-07-25 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; конкретные модели не pin-ятся, prompts загружают канонические skills. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически, economy mode — только по явному запросу/client settings. |
+| S.8. Commands | согласовано 2026-07-25 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует только официальный workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняются как session-only controls без записи `.dev.env`; lite/economy не ослабляют mandatory gates. Secrets не пишутся в Git/memory, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
 
 ### Единица поставки и внутреннее владение
 
@@ -424,6 +425,71 @@ classes, write-доступ mutating ролей, отсутствие hardcoded 
 skills/MCP routing, запрет concurrent write в одном worktree, explicit-only
 reviewer/tester, отсутствие отдельной persistent memory и parent-owned closing
 gate.
+
+### Commands
+
+Все 13 upstream-файлов `content/commands/*.md` получают semantic owner. Их
+смысл сохраняется, но сами command-файлы не становятся вторым источником
+истины рядом со skills. Каноническое поведение живёт в `.agents/skills/**`;
+Codex и Claude получают поддерживаемые их клиентом bridges/aliases, не
+дублирующие инструкции.
+
+Карта команд:
+
+| Upstream command | Канонический владелец | Эффект |
+|---|---|---|
+| `caveman` | session control `1c-caveman` | Меняет стиль ответа только для текущей сессии |
+| `checkmcp` | `doctor-1c` + `manage-1c-mcp` | Read-only диагностика; repair только через provider |
+| `deploy-and-test` | `deploy-and-test-1c` | Загружает выбранный non-prod и запускает согласованные проверки |
+| `doctor` | `doctor-1c` | Read-only readiness/health report |
+| `economymode` | session control `1c-economy-mode` | Уменьшает необязательную оркестрацию только в текущей сессии |
+| `evolve` | `evolve-1c-rules` | Пишет только одобренные изменения в `LLM-RULES.md` |
+| `getconfigfiles` | `export-1c-source`, режим `objects` | Экспортирует выбранные объекты базы в source tree |
+| `installmcp` | `manage-1c-mcp`, режим `install` | Делегирует установку внешнему provider |
+| `litemode` | session control `1c-lite-mode` | Снижает только необязательную глубину verification |
+| `loadfrom1cbase` | `export-1c-source`, режим `full` | Полностью синхронизирует выбранную базу в source tree |
+| `update1cbase` | `deploy-1c-source` | Загружает source tree в выбранную базу |
+| `updatemcp` | `manage-1c-mcp`, режим `update` | Делегирует обновление внешнему provider |
+| `updaterules` | maintainer workflow `refresh-1c-capability` | Создаёт reviewed candidate из pinned upstream commit |
+
+`doctor-1c` объединяет диагностику capability release/ledger, companion files,
+skills/agents, client projections, provider identity/health/tools,
+project/local configuration и доступного Windows toolchain. Он не устанавливает
+ПО, не запускает контейнеры и не меняет конфигурацию.
+
+`manage-1c-mcp` — не вторая реализация provider lifecycle. Он обнаруживает
+provider manifest/registry, показывает план действий и только по явному запросу
+пользователя вызывает официальный provider workflow. Недокументированные
+скачивания, прямое управление Docker и сохранение логина/пароля в `memory.md`,
+`.dev.env` либо других project-файлах не переносятся.
+
+`export-1c-source` перед записью фиксирует выбранную базу и направление
+`base → repository`, проверяет рабочее дерево и показывает итоговый Git diff.
+Режим `objects` ограничивает экспорт явным набором объектов; режим `full`
+предупреждает о полной синхронизации и не маскирует локальные изменения.
+
+`deploy-1c-source` и `deploy-and-test-1c` фиксируют направление
+`repository → base`, используют session lock из S.4.3 и не могут переключить
+базу неявно. По умолчанию работают только с non-prod. Production требует
+отдельного явного разрешения, проверенной резервной копии и усиленного
+preflight; capability не превращает обычное разрешение записи в постоянное
+разрешение production.
+
+`1c-caveman`, `1c-economy-mode` и `1c-lite-mode` не записывают состояние в
+`.dev.env` или project config. Они действуют только в текущей сессии.
+Economy/lite могут убрать необязательных subagents, UI tests или расширенную
+диагностику, но не syntax checks, security/secret gates, session lock,
+production/write confirmations и иные обязательные проверки.
+
+`refresh-1c-capability` доступен только maintainer workflow стандарта и
+реализует S.1: проверка upstream, pinned commit, полный import-map diff,
+адаптация, тесты и review. Созданный 1С-проект никогда не клонирует latest
+upstream и не запускает его installer напрямую.
+
+Проверки требуют coverage 13/13, единственного semantic owner для каждой
+команды, отсутствия credentials и `.dev.env` state, read-only поведения
+`doctor-1c`, provider delegation для MCP lifecycle, guards обоих направлений
+синхронизации, session-only профилей и сохранения mandatory gates.
 
 ### Многобазовая маршрутизация MCP
 
