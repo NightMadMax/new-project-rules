@@ -42,9 +42,9 @@
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/BEST_PRACTICES_CONTRACT|BEST_PRACTICES_CONTRACT.md]] | Pinned compatibility contract NPR ↔ Best Practices и процедура обновления |
 | [[docs/architecture/PROJECT_STANDARD_SCHEMA|PROJECT_STANDARD_SCHEMA.md]] | Schema `.project-standard.json` и provenance invariants |
-| [[docs/architecture/ONE_C_CAPABILITY_PLAN|ONE_C_CAPABILITY_PLAN.md]] | Черновой план последовательной проработки capability `1c`: MCP, EDT, Toolkit, несколько баз и безопасность |
+| [[docs/architecture/ONE_C_CAPABILITY_PLAN|ONE_C_CAPABILITY_PLAN.md]] | Принятый план capability `1c`: MCP, EDT, Toolkit, несколько баз и безопасность |
 | [[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN|ENVIRONMENT_SETUP_PLAN.md]] | Принятый подплан среды capability `1c`: компоненты, EDT 2026, setup и Windows prerequisites |
-| [[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|DELIVERY_AND_STATE_PLAN.md]] | Черновой подплан доставки capability `1c`: классы payload, `capability_artifacts`, ledger, версии и bump схемы |
+| [[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|DELIVERY_AND_STATE_PLAN.md]] | Принятый подплан доставки capability `1c`: классы payload, `capability_artifacts`, ledger, версии и bump схемы |
 | [[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]] | Решение о двухуровневой документации |
 | [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]] | Решение о TSV contract и hybrid runtime |
 | [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003]] | Двухъярусная архитектура знаний: роли, маршрутизация, managed/unmanaged, судьба скиллов |
