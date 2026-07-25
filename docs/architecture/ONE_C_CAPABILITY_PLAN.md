@@ -2,7 +2,7 @@
 type: implementation-plan
 status: draft
 owner: project
-last_verified: 2026-07-23
+last_verified: 2026-07-25
 source_of_truth: repository
 related:
   - "[[docs/architecture/ARCHITECTURE]]"
@@ -54,6 +54,10 @@ validators, skills, MCP-конфигурацию и другие артефак�
 5. явное решение пользователя.
 
 Предварительные оценки «брать» или «не брать» не являются решениями.
+
+| Пунк источника | Статус | Решение |
+|---|---|---|
+| S.1. Жизненный цикл интеграции | согласовано 2026-07-25 | Build-time: maintainer workflow загружает pinned commit `ai_rules_1c` в staging, адаптирует и проверяет пакет, после чего канонические артефакты попадают в шаблоны capability. Создание проекта не зависит от сети и upstream installer. Периодическая проверка сравнивает lock с upstream `main`; изменение создаёт reviewable refresh candidate с diff и тестами, но не обновляет пакет и проекты без review. |
 
 ## Требования к среде
 
