@@ -99,6 +99,9 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.6. Skill `md-to-docx` | согласовано 2026-07-25 | Все четыре upstream-файла (`SKILL.md`, JS, `package.json`, lock) переносятся побайтно. Node.js 18 LTS или ≥20 и локальный `docx` объявляются optional dependencies; `npm ci --prefix` выполняется только с разрешения, `node_modules/` — gitignored runtime state вне managed hashes. `doctor-1c` диагностирует runtime, а пользовательская документация отдельной строкой называет обе зависимости. |
 | S.9.7. Skill `mermaid-diagrams` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно, без renderer/npm dependency. Skill применяется только когда диаграмма материально улучшает понимание; для каждого Mermaid-блока сохраняется обязательный text sidecar, Mermaid остаётся источником истины. Codex/Claude bridges внешние; `mermaid.live` не получает приватные данные автоматически. |
 | S.9.8. Skill `powershell-windows` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно и активируется только для Windows/PowerShell/Docker/HTTP-задач. Сохраняются Windows PowerShell 5.1-compatible separation, quoting, native exit-code, HTTP, wait, JSON и process правила. Docker Compose command принадлежит внешнему provider workflow; `doctor-1c` проверяет доступный entrypoint. Runtime dependencies отсутствуют. |
+| S.9.9. Skill `prompt-enhancer` | согласовано ускоренно 2026-07-25 | `SKILL.md` и example переносятся побайтно. Skill только структурирует пользовательский prompt без добавления требований; inline/file/interactive modes и file ownership сохраняются. Dependencies отсутствуют, Codex/Claude discovery и legacy path mapping добавляются снаружи. |
+| S.9.10. Skill `transcribe` | требуется отдельное решение | Побайтный перенос пока невозможен: documented output names не совпадают со скриптом; Python/system dependencies не pinned; медиа загружается в Gemini API без отдельного disclosure/confirmation, cleanup не гарантирован при исключении, ожидание processing не ограничено, а ошибка split может привести к пустому результату. |
+| S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется только во внешнем release dependency manifest, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
 
 ### Единица поставки и внутреннее владение
 
@@ -739,6 +742,34 @@ Codex metadata и Claude bridge добавляются снаружи. Пров�
 skill, discovery обоими клиентами, platform-scoped trigger, отсутствие `&&`
 в Windows PowerShell 5.1 paths, правильные native exit checks, quoting и
 отсутствие новых dependencies. Внутренней адаптации нет.
+
+### Skills `prompt-enhancer` и `v8unpack-cf`
+
+Оба skill не требуют внутренней адаптации и принимаются ускоренно.
+
+`prompt-enhancer` поставляет побайтно `SKILL.md` и один before/after example.
+Он преобразует короткий или неструктурированный prompt в императивную
+спецификацию с goal, steps, edge cases и output format, не добавляя новых
+предметных требований. Inline output остаётся в чате; file mode создаёт
+user-owned `*-enhanced.md`. Runtime dependencies отсутствуют.
+
+`v8unpack-cf` поставляет побайтно один `SKILL.md`. Он описывает извлечение
+CF/CFE/EPF в JSON+BSL и обратную сборку без платформы 1С, когда доступен только
+binary artifact. Python package `v8unpack` — optional dependency: tested
+version фиксируется во внешнем release manifest, установка project-local и
+только с разрешения, `doctor-1c` проверяет availability/version. В
+пользовательской документации отдельная строка:
+
+```text
+Зависимость: Python package v8unpack — требуется только для skill v8unpack-cf.
+```
+
+Codex/Claude bridges и legacy path mapping внешние. Проверки требуют hashes
+payload, discovery обоими клиентами, prompt preservation/file mode,
+`python -m v8unpack --help`, extract/build round trip fixture и соблюдение
+записанной в `Configuration.json` version compatibility.
+
+`transcribe` в это ускоренное решение не входит и остаётся отдельным пунктом.
 
 ### Многобазовая маршрутизация MCP
 
