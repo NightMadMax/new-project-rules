@@ -40,6 +40,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.1. Граница типа проекта | согласовано 2026-07-22 | Проект 1С охватывает и разработку BSL-кода, конфигураций и расширений, и эксплуатационную работу с базами, контурами, MCP, диагностикой и производительностью. Сценарий «только анализ существующей базы без BSL-кода» не является этим типом проекта. |
 | 1.2. Внутреннее представление | согласовано 2026-07-23 | `1c` — понятный пользователю preset создания. Он раскрывается в `profile: operated`, capability `1c` и стек Best Practices `1c`. Отдельное поле `project_type` не вводится; metadata хранит разрешённые профиль и capability, а `.best-practices.json` — стек. |
 | 1.3. Ядро и расширения preset | согласовано 2026-07-23 | Обязательное ядро: профиль не ниже `operated`, capability `1c` и стек Best Practices `1c`. Понижение профиля или удаление элемента ядра запрещено. Можно выбрать профиль `all`, добавлять capability и стеки; итог — объединение без дубликатов, неизвестные значения отклоняются. |
+| 1.4. Механика preset и инвариант ядра | согласовано 2026-07-25 | Раскрытие preset хранится декларативно в `config/presets.tsv` и резолвится обоими bootstrap-скриптами **до** записи metadata; отдельное поле в metadata не вводится (по 1.2). Инвариант ядра проверяется от capability: наличие `1c` в `capabilities` требует профиль не ниже `operated` и стек `1c` в `.best-practices.json`. Это делает запрет понижения из 1.3 машинно проверяемым без хранения preset в проекте. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -309,12 +310,11 @@ EDT — **не ванильная установка**: capability исполь�
 
 ## Решение
 
-`1c` — подключаемая capability, а не базовый профиль и не замена стеку Best
-Practices `1c`. Она должна сочетаться с любым профилем и capability, включая
-`jira-confluence`:
+`1c` — понятный пользователю **preset создания**, который раскрывается в три
+элемента ядра (решения 1.2 и 1.3):
 
 ```yaml
-profile: operated
+profile: operated          # не ниже operated; допустим all
 capabilities: [1c, jira-confluence]
 best_practices: [1c, jira-confluence]
 ```
@@ -322,6 +322,44 @@ best_practices: [1c, jira-confluence]
 Стек Best Practices доставляет инженерные практики, а capability — структуру
 документации, проверку рабочего окружения, MCP-контракт, безопасные режимы и
 проектные skills.
+
+Capability `1c` сочетается с другими capability (например `jira-confluence`),
+но **не с любым профилем**: `minimal` и `software` запрещены, потому что
+эксплуатационная часть проекта 1С (контуры, базы, диагностика) требует
+`operated`. Расширять состав можно, понижать ядро — нет.
+
+### Механика preset и инвариант ядра
+
+Preset существует **только в момент создания**; в проекте он не хранится.
+Долговременная проверка идёт от capability, а не от preset — поэтому запрет
+понижения работает и через год после bootstrap.
+
+1. **Раскрытие — `config/presets.tsv`** (рядом с `capabilities.tsv`, тот же
+   стиль манифеста). Одна строка на preset:
+
+   ```text
+   preset	min_profile	capabilities	best_practices
+   1c	operated	1c	1c
+   ```
+
+   Оба bootstrap-скрипта читают этот файл и резолвят preset **до** записи
+   metadata: профиль поднимается до `min_profile`, если пользователь выбрал
+   ниже; `capabilities` и `best_practices` объединяются без дубликатов;
+   неизвестный preset отклоняется. Новый preset добавляется строкой, без правки
+   кода.
+
+2. **Инвариант ядра — `project_metadata.py`.** Вводится ранг профилей
+   (`minimal` < `software` < `operated` < `all`) и правило: если `capabilities`
+   содержит `1c`, профиль обязан быть не ниже `operated`. Нарушение — ошибка
+   валидации, а не предупреждение. Это машинная форма запрета из 1.3.
+
+3. **Проверка стека — `validate-project.py`.** При включённой capability `1c`
+   проверяется наличие стека `1c` в `.best-practices.json`. Без этого ядро
+   проверялось бы лишь на две трети: стек живёт в отдельном манифесте и сейчас
+   не валидируется наравне с профилем и capability.
+
+В metadata записываются уже раскрытые значения, отдельного поля `preset` или
+`project_type` нет (решение 1.2).
 
 ## Безопасность
 
@@ -616,13 +654,19 @@ Capability затрагивает те же места, что и `jira-confluen
 согласованно, иначе `1c` не будет распознан:
 
 - `config/capabilities.tsv` — строки bootstrap-артефактов capability.
-- `scripts/project_metadata.py` — добавить `1c` в `CAPABILITY_NAMES`.
+- `config/presets.tsv` — **новый файл**: раскрытие preset (см. «Механика preset
+  и инвариант ядра»).
+- `scripts/project_metadata.py` — добавить `1c` в `CAPABILITY_NAMES`; добавить
+  ранг профилей и инвариант «`1c` в capabilities ⇒ профиль ≥ `operated`».
 - `scripts/bootstrap-new-project.ps1` и `scripts/bootstrap-new-project.sh` —
   снять захардкоженный guard `= jira-confluence`; shell принимает capability
   одним позиционным `$4`, поэтому интерфейс надо переписать на **список**
-  capability, чтобы поддержать связку `[1c, jira-confluence]`.
-- `scripts/validate-project.py` — валидация артефактов `1c` и уникальности
-  строк `config/1c-projects.tsv`.
+  capability, чтобы поддержать связку `[1c, jira-confluence]`. Оба скрипта
+  резолвят preset из `presets.tsv` до записи metadata — раскрытие обязано
+  совпадать (parity-тест).
+- `scripts/validate-project.py` — валидация артефактов `1c`, уникальности строк
+  `config/1c-projects.tsv` и наличия стека `1c` в `.best-practices.json` при
+  включённой capability `1c`.
 - `.agents/skills/create-new-project/SKILL.md` — упоминание новой capability.
 
 ## Синхронизация документации (в той же задаче)
@@ -663,8 +707,11 @@ Capability затрагивает те же места, что и `jira-confluen
    `1c-projects.tsv`, production guard, backup-precondition, server-vs-client
    guard, `add-1c-base` не запускает живую базу и обратим через git, явный отказ
    preflight на не-Windows (Windows-only capability), наличие обязательных
-   компонентов из «Требований к среде» и shell/PowerShell parity скриптов
-   стандарта.
+   компонентов из «Требований к среде», shell/PowerShell parity скриптов
+   стандарта, а также механику preset: раскрытие `1c` из `presets.tsv`,
+   подъём профиля ниже `operated`, отказ при попытке понизить ядро, отказ при
+   отсутствии стека `1c`, отклонение неизвестного preset и совпадение раскрытия
+   между shell и PowerShell.
 8. Обновить в той же задаче docs/guides/skills (см. «Синхронизация
    документации») и провести общий bootstrap/validator test и review каждого
    этапа.
@@ -672,6 +719,9 @@ Capability затрагивает те же места, что и `jira-confluen
 ## Критерии готовности
 
 - Новый проект создаётся с `1c` отдельно либо совместно с `jira-confluence`.
+- Ядро preset машинно защищено: профиль ниже `operated` при capability `1c`,
+  удалённый стек `1c` и неизвестный preset отклоняются валидатором, а не
+  остаются на усмотрение ревью.
 - В общей рабочей области можно зарегистрировать несколько баз без смешения
   идентификаторов и окружений; параллельные базы разведены по портам.
 - Режим `analysis` запускает read-only сборку; write-enabled сборка
