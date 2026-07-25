@@ -69,7 +69,8 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | S.3. Единица поставки и владение | согласовано 2026-07-25 | Принят вариант А′: `1c` — одна логическая capability, одна версия поставки и один кандидат обновления для создаваемого проекта. Внутри release артефакты обязательно классифицируются как project-managed, project-seed, provider-only или pinned external component. Канонические источники могут находиться в разных репозиториях: build-time сборка фиксирует совместимые commits и выпускает их как один агрегат, поэтому одновременные commits в репозиториях не требуются. |
 | S.4.1. Источники конфигурации | согласовано 2026-07-25 | Принята слоистая модель: `config/1c-projects.tsv` хранит версионируемую идентичность и стабильные несекретные параметры баз/контуров; `config/1c-policy.json` — версионируемую политику разработки; gitignored `config/1c.local.json` — машинные пути и endpoints без секретов; секреты разрешаются только из environment или системного credential store. Upstream `.dev.env` и описанный им `.v8-project.json` учитываются в semantic map, но не поставляются как runtime-источники истины. |
 | S.4.2. Адаптеры AI-клиентов | согласовано 2026-07-25 | `config/1c-mcp-catalog.json` становится единым нейтральным каталогом MCP. Один renderer объединяет его с committed реестром баз и policy; local-слой используется только для runtime resolution и проверок. Затем renderer транзакционно обновляет managed-блок `.codex/config.toml`, owned keys `.mcp.json` и owned permission rules `.claude/settings.json`. Оба адаптера поставляются всегда; пользовательские настройки и сторонние MCP сохраняются, прямое изменение managed-проекции считается конфликтом, trust никогда не выдаётся автоматически. |
-| S.4.3. Многобазовая маршрутизация MCP | согласовано 2026-07-25 | Приняты отдельные namespaces без runtime-router и три scope: `shared`, `per-workspace`, `per-base`. Для разрешённой базы renderer создаёт стабильный `onec-...` server id; `select-1c-project` не переписывает config, а проверяет фактическую базу через точный namespace и создаёт session lock. `mcp_enabled` управляет экспозицией: dev/test по умолчанию включены, production — выключен до явного решения. Новая сессия нужна только после изменения топологии MCP или невозможности переподключить endpoint. |
+| S.4.3. Многобазовая маршрутизация MCP | согласовано 2026-07-25 | Приняты отдельные namespaces без runtime-router и три scope: `provider-shared`, `per-workspace`, `per-base`. Для разрешённой базы renderer создаёт стабильный `onec-...` server id; `select-1c-project` не переписывает config, а проверяет фактическую базу через точный namespace и создаёт session lock. `mcp_enabled` управляет экспозицией: dev/test по умолчанию включены, production — выключен до явного решения. Новая сессия нужна только после изменения топологии MCP или невозможности переподключить endpoint. |
+| S.4.4. Карта MCP provider | согласовано 2026-07-25 | Полный inventory содержит десять ролей: начальные семь — пять существующих provider-shared MCP из `ai_rules_1c` плюс EDT и встроенный Toolkit; ещё три upstream MCP (`Code Metadata`, `Graph Metadata`, `Data`) учтены как optional. Provider-shared контейнеры и порты повторно не разворачиваются. Codex и Claude сохраняют канонические upstream ids; `onec-*` используется для наших generated namespaces и только тех клиентов, которым нужна нормализация. |
 
 ### Единица поставки и внутреннее владение
 
@@ -134,11 +135,15 @@ Upstream `.dev.env.example`, логика `.dev.env` и спецификация
 ### Адаптеры Codex и Claude Code
 
 `config/1c-mcp-catalog.json` — project-managed нейтральный каталог. Он хранит
-стабильный letter-leading server id (`onec-...`), scope
-(`shared`/`per-workspace`/`per-base`), transport, endpoint template,
-обязательность, таймауты, security class и имена переменных окружения, но не
-синтаксис конкретного AI-клиента и не дублирует строки баз из
-`config/1c-projects.tsv`.
+канонический provider id, логическую роль, scope
+(`provider-shared`/`per-workspace`/`per-base`), transport, endpoint template,
+обязательность, tier, таймауты, security class и имена переменных окружения, но
+не синтаксис конкретного AI-клиента и не дублирует строки баз из
+`config/1c-projects.tsv`. Для provider-shared MCP Codex и Claude используют
+канонические `1c-*`/`1C-*` ids. Стабильные letter-leading `onec-*` ids
+создаются для наших per-workspace/per-base namespaces; client-specific
+нормализация provider id допустима только в адаптере клиента, который её
+действительно требует.
 
 Renderer объединяет каталог с committed `config/1c-projects.tsv` и
 `config/1c-policy.json`, после чего строит три проекции. Local-слой участвует
@@ -179,21 +184,29 @@ managed-блока, owned server key или owned permission rule вручную
 Capability не устанавливает доверие проекту/MCP, не включает обход разрешений
 и не задаёт общие model/provider/sandbox defaults пользователя.
 
+Provider identity сопоставляется до рендеринга. Если client config уже содержит
+тот же canonical id и endpoint, запись переиспользуется без alias. Тот же id с
+другим endpoint или тот же endpoint под второй owned id считается конфликтом.
+Capability не запускает второй комплект provider-shared контейнеров. При
+external multi-project install фактические ids и URLs читаются из provider
+manifest/registry; машинные динамические URLs не записываются в shared Git.
+
 ### Многобазовая маршрутизация MCP
 
 Runtime-router не вводится: он стал бы новым привилегированным прокси, единой
 точкой отказа и источником гонок между сессиями. Client config содержит
 отдельные namespaces:
 
-- `shared` — один server на проект (Syntax, Help, SSL, Templates,
-  CodeChecker);
+- `provider-shared` — существующие endpoints внешнего MCP provider (Syntax,
+  Help, SSL, Templates, CodeChecker; optional Code Metadata и Graph);
 - `per-workspace` — один EDT MCP на уникальный логический EDT workspace;
 - `per-base` — отдельный Toolkit и другие live-base servers на пару
   `project_id`+`environment_id`.
 
-Server id детерминирован и начинается с буквы, например
-`onec-edt-main`, `onec-toolkit-erp-dev`. Несколько баз могут ссылаться на один
-`per-workspace` endpoint, но `per-base` endpoint не разделяется.
+Generated server id детерминирован и начинается с буквы, например
+`onec-edt-main`, `onec-toolkit-erp-dev`; provider-shared id сохраняется
+каноническим. Несколько баз могут ссылаться на один `per-workspace` endpoint,
+но `per-base` endpoint не разделяется.
 
 `mcp_enabled` в `config/1c-projects.tsv` определяет, попадает ли per-base
 namespace в обе client-specific проекции. Для dev/test default = `true`; для
@@ -375,15 +388,26 @@ EDT и платформы.
 
 ## MCP-каталог и режимы
 
-| Сервер | Назначение | Режим по умолчанию | Условие подключения |
-|---|---|---|---|
-| EDT MCP Server | EDT workspace, метаданные, BSL, ошибки, отладка, профилирование | analysis/review | EDT и совместимый плагин установлены |
-| SyntaxCheckServer | Синтаксис BSL через BSL Language Server | read-only | Docker Desktop и лицензия |
-| HelpSearchServer | Справка платформы конкретной версии | read-only | Docker, путь к документации платформы, embedding-модель |
-| SSLSearchServer | Поиск по БСП | read-only | Docker, embedding-модель и известная версия БСП |
-| TemplatesSearchServer | Шаблоны и ограниченная проектная память | read-only | Docker и утверждённая политика хранения памяти |
-| 1C MCP Toolkit (встроенный) | Данные, метаданные и операции живой базы | write-capable (см. ниже) | EDT запустил runtime-клиент на выбранной базе |
-| 1CCodeChecker | Ревью, корректность, **правка кода**, ИТС и документация через 1С:Напарник | review + правка кода | обязателен; ключ ИТС (см. «Требования к среде») |
+| Роль | Provider/client id | Tier | Назначение | Режим по умолчанию | Условие подключения |
+|---|---|---|---|---|---|
+| EDT MCP Server | generated `onec-edt-*` | initial | EDT workspace, метаданные, BSL, ошибки, отладка, профилирование | analysis/review | EDT и совместимый плагин установлены |
+| SyntaxCheckServer | `1c-syntax-checker-mcp` | initial | Синтаксис BSL через BSL Language Server | read-only | Внешний MCP provider, стандартный порт `8002` |
+| HelpSearchServer | `1C-docs-mcp` | initial | Справка платформы конкретной версии | read-only | Внешний MCP provider, стандартный порт `8003` |
+| SSLSearchServer | `1c-ssl-mcp` | initial | Поиск по БСП | read-only | Внешний MCP provider, стандартный порт `8008` |
+| TemplatesSearchServer | `1c-templates-mcp` | initial | Шаблоны и ограниченная проектная память | read-only | Внешний MCP provider, стандартный порт `8004` |
+| 1CCodeChecker | `1c-code-check-mcp` | initial | Ревью, корректность, **правка кода**, ИТС и документация через 1С:Напарник | review + правка кода | Внешний MCP provider, стандартный порт `8007`, ключ ИТС |
+| 1C MCP Toolkit (встроенный) | generated `onec-toolkit-*` | initial | Данные, метаданные и операции живой базы | write-capable (см. ниже) | EDT запустил runtime-клиент на выбранной базе |
+| CodeMetadataSearchServer | `1c-code-metadata-mcp` | optional | Индексированный поиск по коду/метаданным и XML/XSD | read-only | Внешний MCP provider, стандартный порт `8000`, подготовлены source inputs |
+| GraphMetadataSearch | `1c-graph-metadata-mcp` | optional | Граф метаданных, связи и impact analysis | read-only | Внешний MCP provider, стандартный порт `8006`, подготовлены индекс и Neo4j |
+| Data MCP | `1c-data-mcp` | optional-disabled | HTTP-сервис опубликованной ИБ | write-capable | Только после отдельного security review опубликованной базы |
+
+Начальный набор содержит семь ролей: пять provider-shared серверов из
+`ai_rules_1c` плюс EDT и встроенный Toolkit. Это те же shared endpoints, а не
+второй комплект контейнеров. Code Metadata, Graph и Data не отбрасываются:
+первые два включаются после подготовки их inputs, а Data по умолчанию отключён,
+потому что частично дублирует Toolkit и требует отдельной модели публикации и
+доступа к ИБ. Остановленный Docker `1c-mcp-toolkit-proxy` в каталог не входит:
+capability использует встроенный Toolkit.
 
 Ссылки на источники и инструкции сохраняются в capability-документации:
 
@@ -466,6 +490,9 @@ Skills выбирают сервер по намерению, а не угады
 | Корректность кода, ревью, ИТС, AI-правки | `1c_code_checker` |
 | Шаблоны и проектная память | `1c_templates_search` |
 | Живая ИБ: запросы, runtime-код, права, ссылки, метаданные, журнал | `1c_mcp_toolkit` |
+| Индексированный поиск по коду/метаданным и XML/XSD | `1c_code_metadata` (optional) |
+| Граф связей и impact analysis | `1c_graph_metadata` (optional) |
+| Опубликованная ИБ через HTTP-сервис | `1c_data` (optional-disabled; без автоматического fallback) |
 
 Каталоги MCP считаются authoritative и динамическими: перед сложной операцией
 `1c_edt` запрашивается `get_tool_guide`, а состав — через `list_toolsets`/
@@ -1013,7 +1040,8 @@ Capability затрагивает те же места, что и `jira-confluen
 
 ## Предварительный черновик этапов внедрения
 
-1. Проверить состав MCP (каталог из семи серверов), реализацию режимов
+1. Проверить состав MCP (десять явно сопоставленных ролей: семь initial и три
+   optional), реализацию режимов
    `analysis`/`approved-write` по типу приложения (решение 1.6: две сборки EPF у
    `ordinary`, переключатель записи у `managed`) и политику хранения project
    memory (см. «Политика хранения project memory»).
