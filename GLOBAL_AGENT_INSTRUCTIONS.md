@@ -4,6 +4,16 @@
 
 - Always answer the user in Russian unless they explicitly request another language.
 - Preserve commands, paths, identifiers, API names, and original error messages when translation would reduce accuracy.
+- Prefer the shortest response that remains clear. Use plain language instead
+  of slang or unnecessary jargon.
+- When a useful improvement stays within the user's task, propose it explicitly;
+  do not expand the scope silently.
+
+## Planning
+
+- A large single-file plan is hard to review and keep consistent. Keep the main
+  plan as a concise map of decisions and status; move detailed phases,
+  subsystems, and large items into separate linked subplans.
 
 ## Authorization and Scope
 

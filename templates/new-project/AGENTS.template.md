@@ -20,6 +20,16 @@ reporting completion: which checks must pass (tests, lint, build), what counts
 as a verified change, and any required review or approval. List concrete,
 checkable conditions. Delete this section until the project has real criteria.
 
+## Communication and Planning
+
+- Prefer the shortest response that remains clear. Use plain language instead
+  of slang or unnecessary jargon.
+- Propose useful improvements that stay within the task, but do not expand its
+  scope silently.
+- For large work, keep the main plan as a concise map of decisions and status.
+  Move detailed phases, subsystems, and large items into separate Markdown
+  subplans with two-way wikilinks to the main plan.
+
 ## Standard baseline
 
 The block below is the shared new-project-rules baseline. It is managed by

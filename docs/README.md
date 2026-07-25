@@ -38,6 +38,7 @@ related:
 - [[docs/architecture/decisions/ADR-0003-two-tier-knowledge-architecture|ADR-0003: двухъярусная архитектура знаний NPR и Best Practices]]
 - [[docs/architecture/PROJECT_STANDARD_SCHEMA|Schema project standard metadata]]
 - [[docs/architecture/ONE_C_CAPABILITY_PLAN|План capability 1С]]
+- [[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN|Подплан среды capability 1С]]
 
 ## Исследования
 
