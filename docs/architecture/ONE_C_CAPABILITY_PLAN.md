@@ -105,6 +105,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.10. OpenSpec | согласовано 2026-07-25 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — optional runtime dependencies без автоматической установки; snapshot обновляется только build-time workflow. |
 | S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в import map как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
 | S.12. Upstream installer | согласовано 2026-07-25 | `install.ps1` и `AGENT-INSTALL.md` сохраняются побайтно как provider-only reference и в проекты не ставятся: второй installer/manifest конфликтовал бы с bootstrap, migrations, validator и запретом снять `1c`. Полезные контракты маршрутизируются существующим владельцам: hashes/ownership/userModified/force-path — `capability_artifacts`; seed semantics — bootstrap; external MCP discovery — renderer/provider contract; metadata detection и diagnostics — `doctor-1c`; legacy `infobasesettings.md` — standardization migration. `.ai-rules.json` не вводится, runtime network update/add/remove/eject отсутствуют. |
+| S.13. Корневые вспомогательные файлы | согласовано 2026-07-25 | `README.md`, `References.md` и `.gitignore` полностью учтены. Upstream README остаётся provider-only и служит источником адаптированного user guide, не заменяя README проекта. `References.md` переносится побайтно как project-managed on-demand справочник с внешней provenance/index-обёрткой. Строки `.dev.env` и `node_modules/` из upstream `.gitignore` сливаются в генерируемый project ignore вместе с уже обязательными `.v8-project.json` и локальными runtime dependencies; пользовательские ignore-правила обновление не перезаписывает. |
 
 ### Единица поставки и внутреннее владение
 
@@ -858,6 +859,26 @@ migrations хранят принятые manifests стандарта. Кома�
 1.5, а capability `1c` снять нельзя. Tests проверяют, что каждый полезный
 installer contract получил ровно одного владельца и ни один target project не
 содержит или не вызывает upstream installer.
+
+### Корневые вспомогательные файлы
+
+Три оставшихся root-файла получают явные import-map routes:
+
+- upstream `README.md` остаётся provider-only reference; его актуальные
+  сведения про состав capability, зависимости, MCP и использование
+  адаптируются в отдельный пользовательский гайд, не заменяя проектный
+  `README.md`;
+- `References.md` переносится побайтно как project-managed on-demand
+  справочник. Provenance и Obsidian/index link добавляются внешней обёрткой;
+- содержимое upstream `.gitignore` семантически сливается в генерируемый
+  project `.gitignore`: `.dev.env` и `node_modules/`.
+
+Capability также добавляет уже принятые ignore entries для
+`.v8-project.json` и объявленных локальных runtime dependency directories.
+Обновление изменяет только managed ignore block и сохраняет пользовательские
+строки. Tests проверяют отсутствие installer-инструкций в project README,
+побайтный hash `References.md`, обязательные ignore entries, idempotence и
+сохранность пользовательских patterns.
 
 ### Многобазовая маршрутизация MCP
 
