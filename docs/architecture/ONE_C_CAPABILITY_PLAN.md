@@ -7,6 +7,7 @@ source_of_truth: repository
 related:
   - "[[docs/architecture/ARCHITECTURE]]"
   - "[[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN]]"
+  - "[[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN]]"
   - "[[docs/guides/CREATE_NEW_PROJECT]]"
   - "[[config/capabilities.tsv]]"
   - "[[config/migrations.tsv]]"
@@ -64,6 +65,8 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.19. Границы репозиторного lifecycle | согласовано 2026-07-26 | В v1 входит минимум: BSL Language Server как проверка репозитория **вне** MCP-сессии (доступна без агента) и короткая модель ветвления и ревью 1С-кода. Явно **вне scope v1** и записаны как отказ с причиной: CI/CD-пайплайн на Windows-раннере, миграция из хранилища конфигурации в Git, SonarQube и АПК. Отказ означает «не поставляем и не проверяем», а не «запрещено пользователю». Закрывает дефект №120. |
 | 1.20. Работа с типовой конфигурацией | согласовано 2026-07-26 | В `config/1c-projects.tsv` добавляется обязательная колонка `support_mode` (`on-support`/`partially`/`off-support`), в `PROJECT_1C.md` — версия БСП. Scoped `configurations/AGENTS.md` получает правило «доработка расширением по умолчанию»: снятие с поддержки требует явного решения пользователя и записи в карточке базы. Обновление типовой через `cfu` в v1 не автоматизируется и записано отдельной строкой границ scope (1.19). Закрывает дефект №121. |
 | 1.21. Формат исходников в Git | **открыт**, отложен 2026-07-26 | Выбор между выгрузкой конфигуратора (`designer-xml`, с которой работают upstream skills и команды) и EDT-форматом не сделан. До решения `export-1c-source`/`deploy-1c-source` не считаются полными, а признак `source_format` в реестре баз не вводится. Дефект №117 остаётся открытым; решение принимается отдельным разбором. |
+
+| 1.22. Доставка и состояние | вынесено в подплан 2026-07-26 | Механизмы поставки, которых в стандарте нет, вынесены в [[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|подплан доставки и состояния]]: классы payload и манифест, обработчик `capability_artifacts`, ledger `.project-standard-artifacts.json`, развязка SemVer capability и schema-цепочки, bump metadata до 5, порядок preset/Best Practices и проверки skills. Покрывает дефекты №122–№129. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -1341,6 +1344,9 @@ Skills выбирают сервер по намерению, а не угады
 Папки `configurations/` — данные пользователя, capability их не удаляет.
 
 ### Обновление — через существующий механизм миграций
+
+Полный контракт обработчика, ledger, классов payload и версий —
+[[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|подплан доставки и состояния]].
 
 Стандарт уже умеет доставлять изменения в созданные проекты: `config/migrations.tsv`
 и `scripts/plan_migration.py` с режимами `--plan`/`--apply`, защитой fingerprint
