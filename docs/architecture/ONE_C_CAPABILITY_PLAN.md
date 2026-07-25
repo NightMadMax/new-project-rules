@@ -94,6 +94,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.1. Skill `1c-metadata-manage` | согласовано 2026-07-25 | Весь upstream skill переносится побайтно как project-managed payload: 91 файл, включая `SKILL.md`, документацию, presets/references и PowerShell tooling. Его внутренние файлы, формат `.dev.env` и схема `.v8-project.json` не адаптируются. Codex discovery metadata, Claude bridge и mapping устаревших upstream-путей добавляются снаружи и не входят в vendored subtree. Refresh заменяет subtree из нового pinned commit и запрещает скрытые локальные правки. |
 | S.9.2. Skill `mcp-1c-tools` | согласовано 2026-07-25 | Project-managed behavioral dispatcher поставляет основной `SKILL.md` и восемь серверных справочников. Восемь файлов переносятся побайтно; в `docs/1c-templates-mcp.md` минимально изменяется только fallback записи: при недоступности `remember` факт маршрутизируется каноническому владельцу, а `memory.md` получает его лишь по критериям S.5.2. Runtime topology остаётся у `config/1c-mcp-catalog.json`; skill владеет task→tool routing, availability, retries и call policies. EDT и Toolkit остаются отдельными skills. |
 | S.9.3. Skill `caveman` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно как project-managed payload. Сохраняются default `CAVEMAN=on`, режимы `on`/`auto`/`off`, session levels `lite`/`full`/`ultra`, precedence session force над `.dev.env` и все safety boundaries. Внешние Codex/Claude bridges и path mapping не меняют skill. Команда из S.8 изменяет только ключ `CAVEMAN`, без renderer или restart. |
+| S.9.4. Skill `handoff` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно. Skill создаёт user-owned session artifact `handoffs/handoff-*.md`, ссылается на канонические артефакты вместо копирования и не пишет secrets или memory автоматически. Решение о добавлении `handoffs/` в `.gitignore` остаётся пользователю: локальный handoff подходит клиентам одного workspace, а для другой машины пользователь задаёт переносимый target или отдельно передаёт файл. |
 
 ### Единица поставки и внутреннее владение
 
@@ -598,6 +599,32 @@ Codex metadata, Claude bridge и старые ссылки на command/rule д�
 снаружи. Проверки требуют hash исходного skill, discovery обоими клиентами,
 precedence session → `.dev.env`, key-preserving toggle и сохранение всех
 safety boundaries. Внутренней адаптации нет.
+
+### Skill `handoff`
+
+Единственный `content/skills/handoff/SKILL.md` переносится побайтно в
+`.agents/skills/handoff/SKILL.md`. Сам skill — project-managed; создаваемые им
+Markdown-файлы — user-owned session artifacts, а не configuration, memory или
+канонические project docs.
+
+По умолчанию handoff создаётся как
+`handoffs/handoff-<YYYYMMDD-HHMMSS>.md` и содержит только current state,
+открытые вопросы, session diff, verification state, следующие шаги и ссылки на
+канонические артефакты. Полный код, `.dev.env`, credentials, connection
+strings, длинные MCP outputs и копии существующих спецификаций запрещены.
+Memory-кандидаты лишь перечисляются пользователю и не сохраняются
+автоматически; handoff не заменяет `memory.md`, Git или OpenSpec.
+
+Skill не меняет `.gitignore` сам. Пользователь сохраняет исходный выбор:
+игнорируемый `handoffs/` работает между клиентами одного workspace; для другой
+машины задаётся переносимый target или файл передаётся отдельно. Handoff всегда
+пишется нормальной грамматикой независимо от `caveman`.
+
+Codex metadata, Claude bridge и ссылки на verification, agents, commands и
+OpenSpec добавляются снаружи. Проверки требуют hash skill, discovery обоими
+клиентами, корректную структуру и session-only diff, отсутствие secrets и
+дублирования durable artifacts, отсутствие automatic memory write и
+сохранение пользовательского выбора `.gitignore`. Внутренней адаптации нет.
 
 ### Многобазовая маршрутизация MCP
 
