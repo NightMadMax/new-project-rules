@@ -92,6 +92,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.7. Agents и orchestration | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; source-канон не pin-ит модели, но пользовательские `SUBAGENT_MODEL_*` из `.dev.env` могут задать их при рендеринге, пустое значение наследует client default. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически; upstream `ORCHESTRATION` сохраняется как persistent project setting в `.dev.env`. |
 | S.8. Commands | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняют upstream-поведение и пишут соответственно `CAVEMAN`, `ORCHESTRATION`, `VERIFICATION_DEPTH`/`UI_TESTING` в `.dev.env`; их upstream safety floor сохраняет mandatory gates. Реальные credentials не коммитятся, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
 | S.9.1. Skill `1c-metadata-manage` | согласовано 2026-07-25 | Весь upstream skill переносится побайтно как project-managed payload: 91 файл, включая `SKILL.md`, документацию, presets/references и PowerShell tooling. Его внутренние файлы, формат `.dev.env` и схема `.v8-project.json` не адаптируются. Codex discovery metadata, Claude bridge и mapping устаревших upstream-путей добавляются снаружи и не входят в vendored subtree. Refresh заменяет subtree из нового pinned commit и запрещает скрытые локальные правки. |
+| S.9.2. Skill `mcp-1c-tools` | согласовано 2026-07-25 | Project-managed behavioral dispatcher поставляет основной `SKILL.md` и восемь серверных справочников. Восемь файлов переносятся побайтно; в `docs/1c-templates-mcp.md` минимально изменяется только fallback записи: при недоступности `remember` факт маршрутизируется каноническому владельцу, а `memory.md` получает его лишь по критериям S.5.2. Runtime topology остаётся у `config/1c-mcp-catalog.json`; skill владеет task→tool routing, availability, retries и call policies. EDT и Toolkit остаются отдельными skills. |
 
 ### Единица поставки и внутреннее владение
 
@@ -540,6 +541,39 @@ S.4.1. Отдельный `source_format` не вводится: штатные 
 payload, discovery в Codex и Claude, разрешимость внешних bridges/path mapping
 и parser-check PowerShell-скриптов. Интеграционные проверки оборачивают skill,
 но не меняют его исходники ради тестируемости.
+
+### Skill `mcp-1c-tools`
+
+Skill поставляется в `.agents/skills/mcp-1c-tools/` как behavioral dispatcher:
+один `SKILL.md` и восемь справочников для Graph Metadata, Code Metadata,
+Templates/Memory, SSL, platform docs, 1С:Напарника, Syntax Checker и Data MCP.
+Он не устанавливает серверы, не управляет контейнерами и портами и не доказывает
+доступность по одному лишь config: сервер доступен, только когда его tools
+фактически присутствуют в текущей сессии.
+
+Владение разделено без дублирования:
+
+- `config/1c-mcp-catalog.json` — connection topology и client rendering;
+- `mcp-1c-tools` — task→tool mapping, parameter guidance, fallback order,
+  call budgets и правила работы с результатами;
+- отдельные skills EDT и Toolkit — их профильные операции.
+
+Основной файл и семь server docs переносятся побайтно. Единственная внутренняя
+адаптация находится в `docs/1c-templates-mcp.md`: если `remember` недоступен,
+информация маршрутизируется её каноническому владельцу; в `memory.md` она
+попадает только при выполнении критериев S.5.2. Это сохраняет принятый контракт
+memory и не меняет обычную работу локального `remember`/`recall`. Старые ссылки
+на `content/rules/**`, команды и client discovery разрешаются внешними bridges.
+
+Ограничение Data MCP сохраняется буквально: произвольные BSL/query-мутации
+production-базы через live MCP запрещены и требуют копию базы. Это отдельная,
+более узкая граница, которая не отменяет согласованный production deploy
+исходников через профильный skill и его preconditions.
+
+Проверки требуют inventory 9/9, hashes восьми неизменённых файлов, ровно одного
+reviewable patch в memory fallback, разрешимости bridges, корректного
+разделения behavioral/runtime catalog, availability по tool schema и
+сохранения upstream call budgets, fallback и live-data gates.
 
 ### Многобазовая маршрутизация MCP
 
