@@ -2,7 +2,7 @@
 type: implementation-plan
 status: draft
 owner: project
-last_verified: 2026-07-25
+last_verified: 2026-07-26
 source_of_truth: repository
 related:
   - "[[docs/architecture/ARCHITECTURE]]"
@@ -65,7 +65,7 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.19. Границы репозиторного lifecycle | согласовано 2026-07-26 | В v1 входит минимум: BSL Language Server как проверка репозитория **вне** MCP-сессии (доступна без агента) и короткая модель ветвления и ревью 1С-кода. Явно **вне scope v1** и записаны как отказ с причиной: CI/CD-пайплайн на Windows-раннере, миграция из хранилища конфигурации в Git, SonarQube и АПК. Отказ означает «не поставляем и не проверяем», а не «запрещено пользователю». Закрывает дефект №120. |
 | 1.20. Работа с типовой конфигурацией | согласовано 2026-07-26 | В `config/1c-projects.tsv` добавляется обязательная колонка `support_mode` (`on-support`/`partially`/`off-support`), в `PROJECT_1C.md` — версия БСП. Scoped `configurations/AGENTS.md` получает правило «доработка расширением по умолчанию»: снятие с поддержки требует явного решения пользователя и записи в карточке базы. Обновление типовой через `cfu` в v1 не автоматизируется и записано отдельной строкой границ scope (1.19). Закрывает дефект №121. |
 | 1.21. Формат исходников в Git | согласовано 2026-07-26 | Канон репозитория — **EDT-формат** (`source_format = edt`), он совпадает с тем, в чём ведётся разработка. XML-зависимые инструменты (`1c-metadata-manage` и семейство синхронизации) не адаптируются: перед их вызовом дерево детерминированно конвертируется во временный gitignored каталог, а результат возвращается в канон отдельным явным шагом с показом diff. Признак `source_format` вводится в `config/1c-projects.tsv` со значениями `edt` и `designer-xml`; второе значение допускается для уже существующих XML-репозиториев и отключает шаг конвертации. Закрывает дефект №117. |
-
+| 1.22. Доставка и состояние | вынесено в подплан 2026-07-26 | Механизмы поставки, которых в стандарте нет, вынесены в [[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|подплан доставки и состояния]]: классы payload и манифест, обработчик `capability_artifacts`, ledger `.project-standard-artifacts.json`, развязка SemVer capability и schema-цепочки, bump metadata до 5, порядок preset/Best Practices и проверки skills. Покрывает дефекты №122–№129. |
 | 1.23. Бюджет цепочки инструкций | согласовано 2026-07-26 | Измеряется не только native AGENTS chain, но и фактически загружаемая цепочка: корневой `AGENTS.md`, scoped `configurations/AGENTS.md` и рекурсивно импортируемые companion-файлы (`USER-RULES.md`, `memory.md`, `LLM-RULES.md`). Порог прежний — 32 КиБ `project_doc_max_bytes`; проверка входит в этап 7 и в критерии готовности. Закрывает дефект №140. |
 | 1.24. Проверка внешних ссылок | согласовано 2026-07-26 | Внешние URL каталога компонентов проверяются report-only скриптом стандартной библиотеки Python (без новой зависимости): недоступный адрес даёт предупреждение, а не блокирует сборку. Проверка запускается в CI по расписанию и вручную перед release capability. Закрывает дефект №141. |
 | 1.25. Маршрут выпуска release | согласовано 2026-07-26 | Release capability фиксируется прямым commit и push в `main`, но это признаётся **admin-bypass** активного ruleset `Protect main`, а не обычным путём. Каждый такой выпуск сопровождается записью в `ACTIONS.md` по образцу уже имеющихся записей: что выпущено, почему обошли PR, какие проверки прогнаны локально. Draft PR по-прежнему не используется. Закрывает дефект №136. |
@@ -73,7 +73,6 @@ validators, skills, MCP-конфигурацию и другие артефак�
 | 1.27. Hooks как гейт записи | отклонено 2026-07-26 | `PreToolUse`-hook не вводится. Причины: барьер существует только в Claude Code, тогда как Codex имеет собственную модель approvals — защита была бы асимметричной; исполняемая конфигурация в репозитории сама по себе класс риска; hook дублировал бы уже принятые барьеры (SHA-256 сборки, классы разрешений 1.17, гейты skills) и не увидел бы переключение записи пользователем в UI Toolkit. Остаточный риск «рантайм-гейта у записи нет» на `managed` остаётся принятым осознанно. Закрывает дефект №142. |
 | 1.28. Приоритет EDT над XML-маршрутом | согласовано 2026-07-26 | EDT-маршрут используется по умолчанию; XML-зависимые skills и команды вызываются только при невозможности решить задачу через EDT. Перед таким вызовом агент называет причину, предупреждает о стоимости и рисках конвертации и получает подтверждение. Правило доставляется в scoped `configurations/AGENTS.md`. |
 | 1.29. Наполнение стека Best Practices `1c` | согласовано 2026-07-26 | Создание проекта не блокируется содержанием стека: проверяется только подключение секции `1c`. Но **первый release capability не выпускается**, пока в `practices/1c` нет хотя бы одной принятой практики с evidence: иначе обязательный элемент ядра остаётся формальностью. Условие входит в критерии готовности. Относится к дефекту №127. |
-| 1.22. Доставка и состояние | вынесено в подплан 2026-07-26 | Механизмы поставки, которых в стандарте нет, вынесены в [[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|подплан доставки и состояния]]: классы payload и манифест, обработчик `capability_artifacts`, ledger `.project-standard-artifacts.json`, развязка SemVer capability и schema-цепочки, bump metadata до 5, порядок preset/Best Practices и проверки skills. Покрывает дефекты №122–№129. |
 
 ### Разбор источника `comol/ai_rules_1c`
 
@@ -122,7 +121,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.5.1. `USER-RULES.md` | согласовано 2026-07-25 | Корневой `project-seed`: создаётся только при отсутствии, затем принадлежит пользователю/команде и не перезаписывается capability. Содержит постоянные правила конкретного проекта и имеет приоритет над обычными 1С-правилами capability, но не над системными ограничениями, безопасностью и общими правилами репозитория. `AGENTS.md` — единая точка входа и явно загружает файл; Claude получает его по цепочке `CLAUDE.md → AGENTS.md → USER-RULES.md`. Параметры, MCP-конфигурация, секреты, временные факты и автоматически выведенные правила сюда не попадают. |
 | S.5.2. `memory.md` | согласовано 2026-07-25 | Корневой версионируемый `project-seed` хранит только проверенные критические факты всего проекта, одновременно global, critical, stable и non-derivable, если у них нет более точного канонического владельца. Это не журнал и не слой команд: config/профильные docs имеют приоритет, а конфликт означает устаревшую запись. MCP `remember`/`recall` остаётся локальным обезличенным поисковым индексом, не источником истины и не Git-артефактом; при его недоступности критерии `memory.md` не ослабляются, а знания маршрутизируются в обычные канонические артефакты. |
 | S.5.3. `LLM-RULES.md` и `/evolve` | согласовано 2026-07-25 | Корневой `project-seed` — активный, но ограниченный слой пользовательски одобренных корректировок поведения агента. Только `/evolve` пишет файл; правило требует двух независимых friction-сигналов либо одного явного требования «всегда/никогда» и отдельного одобрения пользователя. Приоритет: protected system/repository/safety → `USER-RULES.md` → `LLM-RULES.md` → обычные 1С-правила capability; `memory.md` хранит факты и в precedence не участвует. Локальное правило не может ослабить security, production/write gates, secrets, Git или обязательные проверки; такое изменение маршрутизируется в стандарт/promotion. |
-| S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `configurations/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отдельно маршрутизированные agents/OpenSpec из S.7/S.10. Managed-артефакты обновляются через release/migrations с drift check; combined native AGENTS chain обязан укладываться в 32 КиБ. |
+| S.6. Основной `AGENTS.md` и `content/rules/**` | согласовано 2026-07-25 | Upstream `AGENTS.md` (53 КБ) не копируется монолитом: тонкий scoped `configurations/AGENTS.md` содержит только always-on routing и критические gates. Добавляется канонический skill `develop-1c` с отдельными адаптированными references для BSL, архитектуры, форм, запросов, регистров, расширений, интеграций и verification; Claude использует тонкий мост к тому же skill. Все разделы `AGENTS.md` и 34 rule-файла получают явный semantic route, включая поглощённые S.4/S.5 и отдельно маршрутизированные agents/OpenSpec из S.7/S.10. Managed-артефакты обновляются через release/migrations с drift check; фактически загружаемая цепочка (корневой и scoped `AGENTS.md` плюс импортируемые companion-файлы) обязана укладываться в 32 КиБ. |
 | S.7. Agents и orchestration | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Все 13 upstream-ролей сохраняются в нейтральном provider-каноне и рендерятся в project-managed `.codex/agents/*.toml` и `.claude/agents/*.md`; source-канон не pin-ит модели, но пользовательские `SUBAGENT_MODEL_*` из `.dev.env` могут задать их при рендеринге, пустое значение наследует client default. Explorer/architecture reviewer/code reviewer остаются read-only; analytic/planner/architect/doc-writer пишут назначенные docs/specs; developer/metadata/refactoring/performance/error-fixer получают полноценную workspace-запись в согласованном file scope; tester пишет test artifacts и работает только с выбранным non-prod. В одном working copy mutating agents выполняются последовательно, параллельная запись — только в отдельных worktrees. Родитель владеет scope, approvals, integration, closing verification и Git; reviewer/tester не запускаются автоматически; upstream `ORCHESTRATION` сохраняется как persistent project setting в `.dev.env`. |
 | S.8. Commands | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняют upstream-поведение и пишут соответственно `CAVEMAN`, `ORCHESTRATION`, `VERIFICATION_DEPTH`/`UI_TESTING` в `.dev.env`; их upstream safety floor сохраняет mandatory gates. Реальные credentials не коммитятся, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
 | S.9.1. Skill `1c-metadata-manage` | согласовано 2026-07-25 | Весь upstream skill переносится побайтно как project-managed payload: 91 файл, включая `SKILL.md`, документацию, presets/references и PowerShell tooling. Его внутренние файлы, формат `.dev.env` и схема `.v8-project.json` не адаптируются. Codex discovery metadata, Claude bridge и mapping устаревших upstream-путей добавляются снаружи и не входят в vendored subtree. Refresh заменяет subtree из нового pinned commit и запрещает скрытые локальные правки. |
@@ -137,7 +136,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.9.10. Skill `transcribe` | исключён из capability 2026-07-25 | `transcribe` не относится к 1С и не входит в release, зависимости, шаблоны или критерии готовности capability. Оба upstream-файла явно маршрутизируются в отдельный отложенный план общего skill [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN]]; предложенная локальная Whisper-архитектура сохранена там и будет разобрана позже независимо от 1С. |
 | S.9.11. Skill `v8unpack-cf` | согласовано ускоренно 2026-07-25; dependency class уточнён в 1.14 | Единственный `SKILL.md` переносится побайтно. Skill описывает offline unpack/repack CF/CFE/EPF через внешний Python package `v8unpack`; tested package version фиксируется в `config/1c-release.json`, dependency conditional для этого skill, install project-local и с разрешения. Version compatibility из `Configuration.json` сохраняется, output user-owned. |
 | S.10. OpenSpec | согласовано 2026-07-25; dependency class уточнён в 1.14 | OpenSpec включается в capability `1c` по умолчанию для новых функций и существенных изменений; quick fixes и простые правки документации не обязаны создавать change. Поставляются workspace scaffold, четыре workflow и Codex/Claude bundle; `sdd-integrations` входит в `develop-1c`. Перед `apply` обязателен отдельный явный approval всего change-плана. `PROJECT.md`, OpenSpec, ADR и текущая документация сохраняют разные роли. CLI/Node.js — conditional dependencies для CLI-операций, не для прямой работы с Markdown artifacts; snapshot обновляется только build-time workflow. |
-| S.11. Адаптеры AI-клиентов | согласовано 2026-07-25 | Все 11 upstream YAML входят в `config/1c-artifacts.tsv` как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
+| S.11. Upstream adapters как build inputs | согласовано 2026-07-25 | Все 11 upstream YAML входят в `config/1c-artifacts.tsv` как неизменяемые build inputs. Для целевых Codex и Claude Code build-time компиляция создаёт project-managed runtime descriptors без YAML-зависимости; остальные девять не устанавливаются, но остаются provider-only для будущих проекций. Runtime использует канон `.agents/skills/**`, точный `CLAUDE.md → @AGENTS.md`, принятые role/model policies и динамический MCP renderer; глобальная запись `~/.codex/prompts`, статический `mcp-servers.json`, автоматический trust и перезапись пользовательских client settings запрещены. |
 | S.12. Upstream installer | согласовано 2026-07-25 | `install.ps1` и `AGENT-INSTALL.md` сохраняются побайтно как provider-only reference и в проекты не ставятся: второй installer/manifest конфликтовал бы с bootstrap, migrations, validator и запретом снять `1c`. Полезные контракты маршрутизируются существующим владельцам: hashes/ownership/userModified/force-path — `capability_artifacts`; seed semantics — bootstrap; external MCP discovery — renderer/provider contract; metadata detection и diagnostics — `doctor-1c`; legacy `infobasesettings.md` — standardization migration. `.ai-rules.json` не вводится, runtime network update/add/remove/eject отсутствуют. |
 | S.13. Корневые вспомогательные файлы | согласовано 2026-07-25 | `README.md`, `References.md` и `.gitignore` полностью учтены. Upstream README остаётся provider-only и служит источником адаптированного user guide, не заменяя README проекта. `References.md` переносится побайтно как project-managed on-demand справочник с внешней provenance/index-обёрткой. Строки `.dev.env` и `node_modules/` из upstream `.gitignore` сливаются в генерируемый project ignore вместе с уже обязательными `.v8-project.json` и локальными runtime dependencies; пользовательские ignore-правила обновление не перезаписывает. |
 
@@ -153,8 +152,8 @@ Capability `1c` — единый агрегатный release. Пользова�
    `capability_artifacts` с проверкой предыдущего состояния.
 2. **Project-seed** — создаётся только при отсутствии, после чего принадлежит
    пользователю и автоматически не перезаписывается. Сюда относятся
-   `USER-RULES.md`, `memory.md` и `LLM-RULES.md`; их точное размещение и
-   precedence рассматриваются отдельным пунктом.
+   `USER-RULES.md`, `memory.md` и `LLM-RULES.md`; их размещение и precedence
+   заданы решениями S.5.1–S.5.3 и разделами «Companion-файлы».
 3. **Provider-only** — release manifest/ledger, staging, адаптеры,
    преобразования и тесты refresh. В создаваемый проект не попадает.
 4. **Pinned external component** — канонический компонент из другого
@@ -239,7 +238,9 @@ Weekly automation сравнивает pinned source commits с upstream. При
    явной removal/route migration;
 4. запускает deterministic build и release/project fixtures без сети;
 5. показывает semantic changes, permissions, MCP/EPF/dependency changes;
-6. после явного принятия фиксирует release прямым commit и push в `main`.
+6. после явного принятия фиксирует release прямым commit и push в `main`; это
+   признаётся admin-bypass ruleset `Protect main` и сопровождается записью в
+   `ACTIONS.md` (решение 1.25).
 
 Capability имеет собственный SemVer: patch — совместимое исправление/содержание,
 minor — новый skill/agent/route/optional MCP/managed artifact, major —
@@ -560,12 +561,12 @@ Router-файлы `coding-standards` и `verification-checklist` поглоща�
 Разделы upstream `AGENTS.md` распределяются аналогично: persona уходит в
 `develop-1c`, core/routing/gates — в scoped `AGENTS.md`, project info и MCP — в
 S.4, memory/self-improvement — в S.5, editing discipline переиспользует общий
-стандарт, OpenSpec и subagents рассматриваются отдельно.
+стандарт, OpenSpec и subagents — в разделы «OpenSpec» и «Agents и orchestration» (S.10 и S.7).
 
 Scoped `AGENTS.md` и references — project-managed и обновляются одной
 capability-миграцией с conflict detection. Pipeline проверяет полное покрытие
 всех разделов `AGENTS.md` и 34 rules, отсутствие двух канонических копий,
-combined native AGENTS chain ≤ 32 КиБ, разрешимость ссылок, отсутствие
+фактически загружаемая цепочка инструкций (корневой и scoped `AGENTS.md` плюс импортируемые companion-файлы) ≤ 32 КиБ, разрешимость ссылок, отсутствие
 upstream-путей `content/rules/...`, единый skill для Codex/Claude и
 on-demand-routing ключевых доменов.
 
@@ -715,9 +716,10 @@ Vendored subtree обязан побайтно совпадать с pinned comm
   `1c-metadata-manager`, как предписывает сам skill.
 
 Skill продолжает использовать upstream `.dev.env` и `.v8-project.json` из
-S.4.1. Отдельный `source_format` не вводится: штатные инструменты сами
-проверяют ожидаемое XML-дерево и `Configuration.xml`, а EDT workflow остаётся
-отдельным владельцем. При refresh subtree полностью заменяется содержимым
+S.4.1 и остаётся XML-зависимым: его штатные инструменты проверяют ожидаемое
+XML-дерево и `Configuration.xml`. Канон репозитория — EDT-формат, поэтому
+маршрут к skill определяется колонкой `source_format` и шагом детерминированной
+конвертации (решения 1.21 и 1.28), а сам skill не адаптируется. При refresh subtree полностью заменяется содержимым
 нового reviewed pinned commit; локальная правка внутри него считается drift.
 
 Проверки охватывают полноту inventory и hashes, отсутствие изменений vendored
@@ -1268,7 +1270,9 @@ skills.
 - Поэтому машинный признак типа приложения обязателен в реестре баз
   (`application_kind`): без него агент не знает, какая модель гейта применима.
 
-**Сборщик EPF не поставляется.** Обработки уже собраны: для управляемого
+**Сборщик EPF не поставляется** — до пересборки обработки для `managed`
+(решение 1.16), после которой эта часть решения 1.6 пересматривается. Сегодня
+обработки уже собраны: для управляемого
 приложения — штатная из upstream MCP, для обычного — две собранные сборки.
 Capability поставляет готовые файлы, а не воспроизводимую сборку. EPF — кодовый
 артефакт, а не данные базы, поэтому в Git допустим; `TOOLCHAIN.md` хранит их
@@ -1280,7 +1284,7 @@ Skills выбирают сервер по намерению, а не угады
 
 | Намерение | Сервер |
 |---|---|
-| Проекты, метаданные, BSL, валидация, отладка, YAXUnit, профилирование, формы, жизненный цикл ИБ | `1c_edt` |
+| Проекты, метаданные, BSL, валидация, отладка, YAxUnit, профилирование, формы, жизненный цикл ИБ | `1c_edt` |
 | Справка платформы | `1c_help_search` |
 | API БСП/SSL | `1c_ssl_search` |
 | Синтаксис BSL | `1c_syntax_check` |
@@ -1791,7 +1795,8 @@ Capability должна поддерживать несколько баз в о
 - `docs/operations/EDT_SETUP.md` — порядок настройки EDT: базовый EDT-MCP,
   conditional-патч `Run without update`, плагин обычного приложения и профили запуска
   (машинозависимое — шаблонами; см. «Настройка EDT»).
-- `tools/mcp-toolkit/` — **готовые** обработки Toolkit: две EPF обычного
+- `tools/mcp-toolkit/` — **готовые** обработки Toolkit и `README.md`
+  инструкции-реализации, на который ссылается обязательный reading-route: две EPF обычного
   приложения (read-only и write-enabled) и штатная обработка управляемого
   приложения из upstream MCP. Сборщик не поставляется; SHA-256 всех файлов — в
   `TOOLCHAIN.md`.
@@ -1855,7 +1860,7 @@ project_id	environment_id	folder	configuration	platform_version	compatibility_mo
 | `support_mode` | Режим поддержки типовой | `on-support`, `partially` или `off-support`; определяет, допустима ли правка типовой вместо расширения |
 | `source_format` | Формат исходников в Git | `edt` (канон) или `designer-xml`; определяет необходимость шага конвертации |
 | `edt_workspace` | Логическое имя/ссылка на env | **Не** абсолютный путь |
-| `edt_profile` | Профиль запуска Toolkit для режима `analysis` | Имя, не ID |
+| `edt_profile` | Профиль запуска Toolkit для режима `analysis` | Имя, не ID; для `managed` пусто до поставки профиля (решение 1.16) |
 | `server_port` | Shared-порт встроенного Toolkit | Для `mcp_enabled=true`: обязателен, `6003`–`6012`, уникален среди включённых строк; для `false`: пуст |
 | `is_production` | Машинный признак production | `true`/`false`; `select` запрещает неявный `true` |
 | `mcp_enabled` | Экспозиция per-base MCP в client configs | `true`/`false`; для production default = `false`; не снимает гейты |
@@ -1874,8 +1879,11 @@ aliases, branches, `configSrc`, `v8path`, user/password остаются лок�
 1. `doctor-1c` — проверяет Windows runtime precondition, EDT 2026.x, платформу,
    bundled Java/Напарник, Docker/WSL, EDT-MCP, conditional plugin/patch state,
    профили, свободные порты, все поставляемые
-   обработки Toolkit по SHA-256 и внешний MCP provider без установки или
-   изменения состояния.
+   обработки Toolkit по SHA-256, CLI EDT для конвертации формата, YAxUnit,
+   standalone BSL Language Server и внешний MCP provider без установки или
+   изменения состояния. Читает конфигурацию по allowlist и маскирует значения
+   (см. «Чтение конфигурации при диагностике»); сообщает о рассогласовании
+   default-записи `.v8-project.json` и `.dev.env`, но не исправляет его.
    Проверки, зависящие от `application_kind`: плагин обычного приложения и
    server-vs-client guard — только для `ordinary`.
    На не-Windows блокирует runtime-операции 1С, но выполняет доступные
@@ -1983,7 +1991,9 @@ Capability затрагивает те же места, что и `jira-confluen
   capability, чтобы поддержать связку `[1c, jira-confluence]`. Оба скрипта
   резолвят preset из `presets.tsv` до записи metadata — раскрытие обязано
   совпадать (parity-тест).
-- `scripts/validate-project.py` — валидация артефактов `1c`, уникальности строк
+- `scripts/validate-project.py` — валидация артефактов `1c`, заголовка и
+  допустимых значений колонок `application_kind`, `support_mode`,
+  `source_format`, `is_production`, `mcp_enabled`, уникальности строк
   `config/1c-projects.tsv` и наличия стека `1c` в `.best-practices.json` при
   включённой capability `1c`.
 - `config/migrations.tsv` и `scripts/plan_migration.py` — новый обработчик
@@ -2017,7 +2027,9 @@ Capability затрагивает те же места, что и `jira-confluen
    проверить полноту каждого tracked-файла, побайтно перенести принятые payload,
    применить только согласованные адаптации и скомпилировать Codex/Claude
    descriptors. Runtime bootstrap и созданный проект не обращаются в upstream.
-4. Собрать полный проектный каркас capability: артефакты из `1C/`, реестры и
+4. Собрать полный проектный каркас capability в корне проекта (решение 1.15):
+   артефакты донорского проекта `1C` (см. «Перенос при реализации»),
+   `configurations/AGENTS.md`, managed `.gitattributes`, реестры и
    профили с плейсхолдерами, `.dev.env.example`, MCP catalog, companion
    project-seed, `References.md`, OpenSpec и документацию. Развести bootstrap
    рабочей области и runtime-инстанцирование базы через `add-1c-base`.
@@ -2065,6 +2077,29 @@ Capability затрагивает те же места, что и `jira-confluen
    `mcp_enabled=true`, пустой порт у отключённых строк, явная остановка при
    исчерпании `6003`–`6012`, уникальность среди включённых строк и блокировка
    локального конфликта без автоматического изменения Git.
+7a. Отдельно проверить решения 1.15–1.29: все `destination` строк `1c` в
+   `capabilities.tsv` корневые и папка `1C/` в проекте не создаётся; заголовок и
+   допустимые значения колонок `support_mode` и `source_format`; ветка
+   `designer-xml` пропускает конвертацию, ветка `edt` её выполняет;
+   детерминизм конвертации (одно дерево → побайтно одинаковый XML), временный
+   каталог gitignored и удаляется после операции, возврат в канон невозможен без
+   явного шага с diff; XML-маршрут не выбирается, пока задача решается через EDT,
+   и сопровождается названной причиной и подтверждением; owned
+   `permissions.allow`/`ask`/`deny` рендерятся ровно по таблице классов и не
+   затирают чужие правила; `doctor-1c` не выходит за allowlist, не обходит
+   профиль пользователя и маскирует значения в выводе; `TEST_MODEL.md` и
+   `deploy-and-test-1c` запускают YAxUnit на выбранном non-prod и возвращают
+   отчёт; standalone BSL Language Server проверяет репозиторий без MCP-сессии;
+   для `managed` профиль запуска не поставляется и `ATTR_CLIENT_TYPE` не
+   проверяется; bump `STANDARD_VERSION` 4 → 5 и переход проекта schema 4 → 5 без
+   потери `applied_migrations`; weekly check создаёт уведомление и не меняет код;
+   `test-skills` обходит манифест, а vendored payload проверяется по hash без
+   требования внутреннего `agents/openai.yaml`; `config/1c-artifacts.tsv`
+   содержит ровно 241 source-запись pinned commit; суммарная загружаемая цепочка
+   инструкций ≤ 32 КиБ; report-only проверка внешних URL каталога компонентов не
+   ломает сборку; аннулирование session-подтверждения при ошибке соединения,
+   повторном `select` и перезапуске runtime-клиента; no-blind-retry после
+   таймаута и обработка текста из базы как данных, а не команд.
 8. Обновить в той же задаче docs/guides/skills (см. «Синхронизация
    документации») и провести общий bootstrap/validator test и review каждого
    этапа.
@@ -2073,8 +2108,9 @@ Capability затрагивает те же места, что и `jira-confluen
 
 - Новый проект создаётся с `1c` отдельно либо совместно с `jira-confluence`.
 - Ядро preset машинно защищено: профиль ниже `operated` при capability `1c`,
-  удалённый стек `1c` и неизвестный preset отклоняются валидатором, а не
-  остаются на усмотрение ревью.
+  секция `1c` со значением `optout` в `.best-practices.json` и неизвестный preset
+  отклоняются валидатором, а не остаются на усмотрение ревью.
+- Снятие ядра capability невозможно ни правкой metadata, ни миграцией.
 - В общей рабочей области число зарегистрированных баз не ограничено портами;
   до десяти строк с `mcp_enabled=true` разведены по `6003`–`6012`, а локальный
   конфликт не меняет shared topology автоматически.
@@ -2085,41 +2121,48 @@ Capability затрагивает те же места, что и `jira-confluen
 - Один release и одна `capability_artifacts`-миграция согласованно доставляют
   managed artifacts, сохраняют project-seed/user-owned state, обновляют
   `.project-standard-artifacts.json` и выявляют drift.
-- Режим `analysis` запускает read-only сборку; write-enabled сборка
-  запускается только под подтверждённую задачу на не-prod базе.
-- Перед любым вызовом Toolkit подтверждена фактическая база за портом.
-- Агент не выполняет write-операцию без явного выбора базы/контура и
-  подтверждения.
+- Режим `analysis` на `ordinary` запускает read-only сборку, на `managed` —
+  требует подтверждённого вызовом выключенного переключателя записи; запись
+  выполняется только под подтверждённую задачу на не-prod базе.
+- Live-base skill отказывается работать без действующего session lock, а lock
+  создаётся только после подтверждения фактической базы реальным вызовом.
+- Fixture write-операции без выбранной базы/контура и без подтверждения
+  завершается отказом, а не записью.
 - Required, conditional и optional компоненты явно разделены в
   [[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN|подплане среды]];
   `doctor-1c` сверяет фактические версии с диапазоном. Node.js/`docx`,
-  Pillow, OpenSpec CLI и `v8unpack` названы conditional отдельными строками в
-  пользовательской документации.
+  Pillow, OpenSpec CLI, `v8unpack`, YAxUnit и standalone BSL Language Server
+  названы conditional отдельными строками в пользовательской документации.
 - После успешного создания проекта `setup-1c-environment` предлагает настройку
   required/выбранных conditional компонентов, переиспользует внешний Docker
   provider и применяет machine changes только после approval; его ошибка не
   повреждает готовый репозиторий.
-- Для каждого компонента setup до выбора объясняет назначение, включаемые
-  функции и последствия отказа, показывает официальный download/docs source,
-  версию и admin/restart impact, предлагает автоматическую/ручную
-  установку/пропуск и затем фактически перепроверяет результат.
-- `doctor-1c` объясняет недостающий software/MCP без попытки установки.
+- Для каждой строки каталога компонентов prompt setup содержит обязательный
+  набор полей (назначение, включаемые функции, последствия отказа, источник,
+  версия, admin/restart impact, три варианта действия), а после установки
+  состояние компонента перепроверяется фактически.
+- Отчёт `doctor-1c` содержит для каждого недостающего компонента назначение,
+  последствия отказа и источник, а состояние машины после запуска не меняется.
+- `doctor-1c` читает только пути allowlist, не обходит профиль пользователя
+  рекурсивно и не выводит значения credentials и токенов.
 - Docker provider обязателен и обнаруживается как внешний deployment;
   capability не создаёт дублирующие контейнеры и проверяет
   identity/health/tools до регистрации endpoint.
 - Templates, scripts и docs не содержат токенов, ключей, строк соединения,
   абсолютных машинных путей или названий рабочих баз; это проверяется тестом-
   сканером, а не только на ревью.
-- Capability не предполагает обычное приложение по умолчанию: conditional
-  ordinary-plugin нужен только базам `application_kind=ordinary`.
+- Плагин обычного приложения и server-vs-client guard требуются только строкам
+  с `application_kind=ordinary`; для `managed` их отсутствие не влияет на статус.
 - На не-Windows runtime-операции 1С блокируются, но bootstrap, Git,
   документация, review, release/config checks и валидаторы продолжают работать.
-- Настройка EDT (EDT 2026.x, EDT-MCP, conditional-патчи и профили) описана как
-  процедура и проверяется `doctor-1c`, а не только упоминается.
+- `doctor-1c` возвращает версии EDT и EDT-MCP, состояние conditional-патчей и
+  наличие профилей запуска для `ordinary`; для `managed` профиль и
+  `ATTR_CLIENT_TYPE` не требуются (решение 1.16).
 - `approved-write` невозможен без подтверждённого backup и явно выбранного
   непроизводственного контура.
-- Рабочая область объявлена проектом разработки кода: правила «документация
-  вместо проб» и evidence доставлены в scoped `AGENTS.md`, а не только в план.
+- Scoped `configurations/AGENTS.md` содержит правила «документация вместо проб»,
+  evidence, приоритет EDT-маршрута с обязательным предупреждением перед
+  XML-вызовом (1.28) и «доработка расширением по умолчанию» (1.20).
 - Все 13 ролей и поведение всех 13 upstream-команд доступны в согласованных
   Codex/Claude projections без второго канона; mutating roles соблюдают
   последовательную запись/worktree isolation и родительские approval gates.
@@ -2135,5 +2178,11 @@ Capability затрагивает те же места, что и `jira-confluen
   укладывается в 32 КиБ.
 - Внешние ссылки каталога компонентов проверяются report-only и не ломают
   сборку при недоступности источника.
-- Стек Best Practices `1c` содержит хотя бы одну принятую практику с evidence:
-  без этого первый release capability не выпускается.
+- Release блокируется, пока в `practices/1c` нет практики со статусом
+  `accepted` и заполненным полем evidence.
+- Реестр баз содержит обязательные `support_mode` и `source_format` с
+  допустимыми значениями; `PROJECT_1C.md` содержит версию БСП.
+- Прогон `deploy-and-test-1c` на не-prod базе возвращает отчёт YAxUnit;
+  отсутствие YAxUnit даёт статус conditional-компонента, а не ошибку.
+- Отказы «вне scope v1» (CI/CD, миграция из хранилища, SonarQube, АПК, `cfu`)
+  названы в пользовательской документации, а не только в плане.
