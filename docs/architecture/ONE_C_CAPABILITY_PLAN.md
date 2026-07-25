@@ -93,6 +93,7 @@ runtime-файлы upstream сохраняются. Реальные credentials
 | S.8. Commands | согласовано 2026-07-25; config behavior обновлён вслед за S.4.1 | Смысл всех 13 upstream-команд сохраняется, но отдельный канонический slash-command слой не создаётся: поведение принадлежит skills и генерируемым client bridges. `doctor` и read-only часть `checkmcp` становятся `doctor-1c`; `getconfigfiles`/`loadfrom1cbase` — режимами `export-1c-source`; `update1cbase` — `deploy-1c-source`; `deploy-and-test` — `deploy-and-test-1c`; `evolve` — `evolve-1c-rules`. Repair-часть `checkmcp`, `installmcp` и `updatemcp` передаются тонкому `manage-1c-mcp`, который использует workflow внешнего provider. `updaterules` становится maintainer-only pinned refresh из S.1. `caveman`, `economymode` и `litemode` сохраняют upstream-поведение и пишут соответственно `CAVEMAN`, `ORCHESTRATION`, `VERIFICATION_DEPTH`/`UI_TESTING` в `.dev.env`; их upstream safety floor сохраняет mandatory gates. Реальные credentials не коммитятся, source/base mutations используют выбранный session lock, а production требует отдельного явного разрешения и усиленных preconditions. |
 | S.9.1. Skill `1c-metadata-manage` | согласовано 2026-07-25 | Весь upstream skill переносится побайтно как project-managed payload: 91 файл, включая `SKILL.md`, документацию, presets/references и PowerShell tooling. Его внутренние файлы, формат `.dev.env` и схема `.v8-project.json` не адаптируются. Codex discovery metadata, Claude bridge и mapping устаревших upstream-путей добавляются снаружи и не входят в vendored subtree. Refresh заменяет subtree из нового pinned commit и запрещает скрытые локальные правки. |
 | S.9.2. Skill `mcp-1c-tools` | согласовано 2026-07-25 | Project-managed behavioral dispatcher поставляет основной `SKILL.md` и восемь серверных справочников. Восемь файлов переносятся побайтно; в `docs/1c-templates-mcp.md` минимально изменяется только fallback записи: при недоступности `remember` факт маршрутизируется каноническому владельцу, а `memory.md` получает его лишь по критериям S.5.2. Runtime topology остаётся у `config/1c-mcp-catalog.json`; skill владеет task→tool routing, availability, retries и call policies. EDT и Toolkit остаются отдельными skills. |
+| S.9.3. Skill `caveman` | согласовано 2026-07-25 | Единственный upstream `SKILL.md` переносится побайтно как project-managed payload. Сохраняются default `CAVEMAN=on`, режимы `on`/`auto`/`off`, session levels `lite`/`full`/`ultra`, precedence session force над `.dev.env` и все safety boundaries. Внешние Codex/Claude bridges и path mapping не меняют skill. Команда из S.8 изменяет только ключ `CAVEMAN`, без renderer или restart. |
 
 ### Единица поставки и внутреннее владение
 
@@ -574,6 +575,29 @@ production-базы через live MCP запрещены и требуют к�
 reviewable patch в memory fallback, разрешимости bridges, корректного
 разделения behavioral/runtime catalog, availability по tool schema и
 сохранения upstream call budgets, fallback и live-data gates.
+
+### Skill `caveman`
+
+Единственный `content/skills/caveman/SKILL.md` переносится побайтно в
+`.agents/skills/caveman/SKILL.md`. Skill управляет только стилем естественного
+текста и не меняет model selection, tools, verification depth, обязательные
+отчёты или порядок разработки.
+
+Сохраняются исходные значения и precedence:
+
+- пустой/невалидный `CAVEMAN` и `CAVEMAN=on` включают стиль для всех задач;
+- `auto` включает его для разработки и выключает для анализа/docs/review;
+- `off` запрещает только автоматическое включение;
+- session force и уровни `lite`/`full`/`ultra` имеют приоритет над `.dev.env`;
+- код, XML, error text, commits, destructive/security/ordered blocks остаются
+  в нормальной грамматике.
+
+Команда S.8 меняет только строку `CAVEMAN` в существующем `.dev.env`, не
+создаёт частичный env-файл и не требует renderer или перезапуска клиента.
+Codex metadata, Claude bridge и старые ссылки на command/rule добавляются
+снаружи. Проверки требуют hash исходного skill, discovery обоими клиентами,
+precedence session → `.dev.env`, key-preserving toggle и сохранение всех
+safety boundaries. Внутренней адаптации нет.
 
 ### Многобазовая маршрутизация MCP
 
