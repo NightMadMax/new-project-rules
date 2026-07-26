@@ -8,8 +8,9 @@ param(
     [ValidateSet("minimal", "software", "operated", "all")]
     [string]$Profile = "minimal",
 
-    [ValidateSet("jira-confluence")]
-    [string[]]$Capability = @()
+    [string[]]$Capability = @(),
+
+    [string]$Preset
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,7 @@ $RulesRoot = Split-Path -Parent $PSScriptRoot
 $Templates = Join-Path $RulesRoot "templates/new-project"
 $Manifest = Join-Path $RulesRoot "config/profiles.tsv"
 $CapabilitiesManifest = Join-Path $RulesRoot "config/capabilities.tsv"
+$PresetsManifest = Join-Path $RulesRoot "config/presets.tsv"
 $StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
 $StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
 $MigrationsManifest = Join-Path $RulesRoot "config/migrations.tsv"
@@ -82,6 +84,28 @@ foreach ($artifact in $Artifacts) {
         throw "docs_section and docs_label must both be '-' or both be set for '$($artifact.destination)'"
     }
 }
+$BestPracticesStacks = @()
+if ($Preset) {
+    $ExpectedPresetsHeader = "preset`tmin_profile`tcapabilities`tbest_practices"
+    $PresetLines = @(Get-Content -Encoding utf8 $PresetsManifest)
+    if ($PresetLines.Count -lt 2 -or $PresetLines[0] -cne $ExpectedPresetsHeader) {
+        throw "Invalid preset manifest header: $PresetsManifest"
+    }
+    $PresetRow = @($PresetLines | ConvertFrom-Csv -Delimiter "`t") | Where-Object { $_.preset -ceq $Preset } | Select-Object -First 1
+    if ($null -eq $PresetRow) { throw "Unknown preset '$Preset'" }
+    # The floor is raised, not rejected: asking for a preset with a lighter
+    # profile means the preset, not a downgrade of its core.
+    if ($ProfileRanks[$Profile] -lt $ProfileRanks[$PresetRow.min_profile]) {
+        $Profile = $PresetRow.min_profile
+    }
+    foreach ($presetCapability in ($PresetRow.capabilities -split ",")) {
+        if ($presetCapability -and $presetCapability -ne "-" -and $presetCapability -notin $Capability) {
+            $Capability += $presetCapability
+        }
+    }
+    $BestPracticesStacks = @($PresetRow.best_practices -split "," | Where-Object { $_ -and $_ -ne "-" })
+}
+
 $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
@@ -92,7 +116,16 @@ if ($CapabilityLines.Count -lt 2 -or $CapabilityLines[0] -cne $ExpectedCapabilit
     throw "Invalid capability manifest header: $CapabilitiesManifest"
 }
 $CapabilityArtifacts = @($CapabilityLines | ConvertFrom-Csv -Delimiter "`t")
-$KnownCapabilities = @($CapabilityArtifacts | ForEach-Object capability | Sort-Object -Unique)
+$KnownCapabilities = @($CapabilityArtifacts | ForEach-Object capability)
+# A capability may be declared by a preset before it ships any artifact, so both
+# manifests together define what "known" means.
+$KnownCapabilities += @(
+    @(Get-Content -Encoding utf8 $PresetsManifest | Select-Object -Skip 1) |
+        Where-Object { $_.Trim() -ne "" } |
+        ForEach-Object { ($_ -split "`t")[2] -split "," } |
+        Where-Object { $_ -and $_ -ne "-" }
+)
+$KnownCapabilities = @($KnownCapabilities | Sort-Object -Unique)
 foreach ($selectedCapability in $Capability) {
     if ($selectedCapability -notin $KnownCapabilities) { throw "Unknown capability '$selectedCapability'" }
 }
@@ -305,6 +338,19 @@ if ($null -ne $git) {
             throw "$Step failed:`n$details"
         }
     }
+if ($BestPracticesStacks.Count -gt 0) {
+    # Record the preset's stacks so the core is complete the moment the project
+    # exists, instead of failing validation until a later manual step.
+    $sections = [ordered]@{}
+    foreach ($stack in $BestPracticesStacks) { $sections[$stack] = "ask" }
+    $manifest = [ordered]@{
+        schema_version = 2
+        preferences = [ordered]@{ global = "ask"; sections = $sections }
+        practices = [ordered]@{}
+    }
+    Write-Utf8NoBom (Join-Path $Destination ".best-practices.json") (($manifest | ConvertTo-Json -Depth 5) + "`n")
+}
+
 
     Invoke-GitRequired "git init" @("init", "-q")
     Invoke-GitRequired "git symbolic-ref" @("symbolic-ref", "HEAD", "refs/heads/main")

@@ -41,6 +41,8 @@ PAYLOAD_CLASSES = artifacts_ledger.MANIFEST_PAYLOAD_CLASSES
 # Who owns the artifact after delivery: the standard keeps updating a managed
 # file, while a seed is created once and belongs to the user afterwards.
 ARTIFACT_POLICIES = {"managed", "seed"}
+# A capability whose core includes engineering practices from the shared base.
+CAPABILITY_REQUIRED_STACK = {"1c": "1c"}
 TEMPLATE_MARKS = (b"<PROJECT_NAME>", b"<YYYY-MM-DD>", b"<SCHEMA_VERSION>")
 IGNORED_PARTS = {
     ".git",
@@ -293,6 +295,43 @@ def load_metadata(
         for issue in project_metadata.validate_metadata(data, standard_version, source, project_migrations)
     ]
     return data if isinstance(data, dict) else None, findings
+
+
+def check_capability_core(root: Path, capabilities: Sequence[str]) -> list[Finding]:
+    """A capability may require a practice stack to be connected.
+
+    The manifest stores preferences, not membership, so "the section exists" is
+    not enough: a section set to optout means the stack was declined, and the
+    core of the preset would be missing while looking present.
+    """
+    required = {name: name for name in capabilities if name in CAPABILITY_REQUIRED_STACK}
+    if not required:
+        return []
+    path = root / ".best-practices.json"
+    if not path.exists():
+        return [Finding(
+            "ERROR", "capability.stack_missing",
+            f"Capability {', '.join(sorted(required))} requires a Best Practices stack, but .best-practices.json is missing.",
+            ".best-practices.json",
+            "Record the stack through the Best Practices manifest tooling.",
+        )]
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        sections = data["preferences"]["sections"]
+        if not isinstance(sections, dict):
+            raise ValueError("sections must be an object")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
+        return [Finding("ERROR", "capability.stack_unreadable", f"Cannot read Best Practices preferences: {exc}", ".best-practices.json")]
+
+    findings: list[Finding] = []
+    for capability, stack in sorted(required.items()):
+        if sections.get(stack) == "optout":
+            findings.append(Finding(
+                "ERROR", "capability.stack_declined",
+                f"Capability '{capability}' requires the '{stack}' practice stack, which is set to optout.",
+                ".best-practices.json",
+            ))
+    return findings
 
 
 def check_artifacts_ledger(root: Path) -> list[Finding]:
@@ -685,6 +724,7 @@ def validate(
             findings.extend(check_project_structure(root, rows, profile))
         if metadata:
             findings.extend(check_capabilities(root, capability_rows, metadata.get("capabilities", [])))
+            findings.extend(check_capability_core(root, metadata.get("capabilities", [])))
         findings.extend(check_project_baseline(root, contract_root, version))
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))
