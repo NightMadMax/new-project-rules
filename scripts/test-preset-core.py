@@ -289,8 +289,13 @@ with tempfile.TemporaryDirectory() as raw:
         manifest = destination / ".best-practices.json"
         note(manifest.is_file(), f"{label}: the preset stack was not recorded")
         if manifest.is_file():
-            sections = json.loads(manifest.read_text(encoding="utf-8"))["preferences"]["sections"]
+            body = manifest.read_text(encoding="utf-8")
+            sections = json.loads(body)["preferences"]["sections"]
             note(sections.get("1c") == "ask", f"{label}: stack must be connected, got {sections}")
+            # The file belongs to best_practices_manifest.py; bootstrap must
+            # write exactly what that tool would, or the first update rewrites it.
+            canonical = json.dumps(json.loads(body), ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+            note(body == canonical, f"{label}: manifest is not in canonical form")
 
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],

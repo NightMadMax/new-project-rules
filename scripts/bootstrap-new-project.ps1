@@ -362,16 +362,23 @@ if ($null -ne $git) {
         }
     }
 if ($BestPracticesStacks.Count -gt 0) {
-    # Record the preset's stacks so the core is complete the moment the project
-    # exists, instead of failing validation until a later manual step.
-    $sections = [ordered]@{}
-    foreach ($stack in $BestPracticesStacks) { $sections[$stack] = "ask" }
-    $manifest = [ordered]@{
-        schema_version = 2
-        preferences = [ordered]@{ global = "ask"; sections = $sections }
-        practices = [ordered]@{}
-    }
-    Write-Utf8NoBom (Join-Path $Destination ".best-practices.json") (($manifest | ConvertTo-Json -Depth 5) + "`n")
+    # Built by hand rather than through ConvertTo-Json: the rendering differs
+    # between PowerShell editions, and this file must match the shell output
+    # and the canonical writer byte for byte.
+    $sectionLines = @($BestPracticesStacks | ForEach-Object { "      `"$_`": `"ask`"" })
+    $lines = @(
+        "{",
+        "  `"practices`": {},",
+        "  `"preferences`": {",
+        "    `"global`": `"ask`",",
+        "    `"sections`": {",
+        ($sectionLines -join ",`n"),
+        "    }",
+        "  },",
+        "  `"schema_version`": 2",
+        "}"
+    )
+    Write-Utf8NoBom (Join-Path $Destination ".best-practices.json") (($lines -join "`n") + "`n")
 }
 
 

@@ -501,7 +501,7 @@ fi
 
 if [ -n "$best_practices_stacks" ]; then
   {
-    printf '{\n  "schema_version": 2,\n  "preferences": {\n    "global": "ask",\n    "sections": {\n'
+    printf '{\n  "practices": {},\n  "preferences": {\n    "global": "ask",\n    "sections": {\n'
     first_stack=1
     old_ifs=$IFS
     IFS=,
@@ -511,7 +511,7 @@ if [ -n "$best_practices_stacks" ]; then
       printf '      "%s": "ask"' "$stack"
     done
     IFS=$old_ifs
-    printf '\n    }\n  },\n  "practices": {}\n}\n'
+    printf '\n    }\n  },\n  "schema_version": 2\n}\n'
   } > "$destination/.best-practices.json"
 fi
 
