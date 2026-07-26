@@ -14,6 +14,7 @@
 | `config/capabilities.tsv` | Канонический состав подключаемых возможностей проекта |
 | `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
 | `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
+| `config/skills.tsv` | Реестр skills: класс проверки, корень, необходимость Claude-моста |
 | `config/standard-source.txt` | Канонический owner/repository без credentials и локальных путей |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[CHANGELOG_ARCHIVE|CHANGELOG_ARCHIVE.md]] | Архив старых релизов, перенесённых при компрессии |
@@ -95,6 +96,7 @@
 | `scripts/test-contract.sh` | Parity contract и bootstrap outputs (macOS/Linux) |
 | `scripts/test-contract.ps1` | Parity contract и bootstrap outputs (Windows) |
 | `scripts/validate-project.py` | Общая read-only validation logic на Python 3.9+ |
+| `scripts/check_skills.py` | Проверка skills по `config/skills.tsv`: canonical-триада и vendored payload по hash |
 | `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
 | `scripts/validate-project.sh` | Validator wrapper для macOS/Linux |
 | `scripts/validate-project.ps1` | Validator wrapper для Windows |
@@ -123,8 +125,9 @@
 | `scripts/test-standardize-existing-project.py` | Regression tests decision report и отсутствия mutation |
 | `scripts/test-agent-setup.sh` | Smoke-тест global/scoped agent setup (macOS/Linux) |
 | `scripts/test-agent-setup.ps1` | Smoke-тест global/scoped agent setup (Windows) |
-| `scripts/test-skills.sh` | Проверка универсальных skills и Claude-мостов (macOS/Linux) |
-| `scripts/test-skills.ps1` | Проверка универсальных skills и Claude-мостов (Windows) |
+| `scripts/test-skills.sh` | Контракт skills и правил: делегирует `check_skills.py` (macOS/Linux) |
+| `scripts/test-skills.ps1` | Контракт skills и правил: делегирует `check_skills.py` (Windows) |
+| `scripts/test-check-skills.py` | Юнит-тесты `check_skills.py` на временных фикстурах |
 | `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
 | `scripts/test-powershell-environment.ps1` | Regression test изоляции HOME/Git environment между PowerShell suites |
 | `scripts/check-action-pins.py` | Запрет mutable external Action references |

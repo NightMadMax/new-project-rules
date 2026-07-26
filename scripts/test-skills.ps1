@@ -18,64 +18,29 @@ function Test-RequiredLiterals {
     }
 }
 
-function Test-Skill {
-    param([string]$Name)
-
-    $canonical = Join-Path $Root ".agents/skills/$Name/SKILL.md"
-    $bridge = Join-Path $Root ".claude/skills/$Name/SKILL.md"
-    $metadata = Join-Path $Root ".agents/skills/$Name/agents/openai.yaml"
-
-    foreach ($file in @($canonical, $bridge, $metadata)) {
-        if (-not (Test-Path -LiteralPath $file -PathType Leaf)) {
-            Write-Host "FAIL: missing $file"
-            $script:Failures++
+function Find-Python39 {
+    foreach ($Name in @("python", "python3")) {
+        $Command = Get-Command $Name -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $Command) {
+            & $Command.Source -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" *> $null
+            if ($LASTEXITCODE -eq 0) { return $Command }
         }
     }
-    if ($script:Failures -ne 0) { return }
-
-    $canonicalText = Get-Content -Raw -Encoding UTF8 $canonical
-    $bridgeText = Get-Content -Raw -Encoding UTF8 $bridge
-    $metadataText = Get-Content -Raw -Encoding UTF8 $metadata
-    $canonicalName = [regex]::Match($canonicalText, '(?m)^name: (.+)$').Groups[1].Value.Trim()
-    $bridgeName = [regex]::Match($bridgeText, '(?m)^name: (.+)$').Groups[1].Value.Trim()
-    $canonicalDescription = [regex]::Match($canonicalText, '(?m)^description: (.+)$').Groups[1].Value.Trim()
-    $bridgeDescription = [regex]::Match($bridgeText, '(?m)^description: (.+)$').Groups[1].Value.Trim()
-
-    if ($canonicalName -ne $Name -or $bridgeName -ne $Name) {
-        Write-Host "FAIL: name mismatch for $Name"
-        $script:Failures++
-    }
-    if ([string]::IsNullOrWhiteSpace($canonicalDescription) -or
-            $canonicalDescription -cne $bridgeDescription) {
-        Write-Host "FAIL: description mismatch for $Name"
-        $script:Failures++
-    }
-    if ($canonicalText -match 'TODO|\[TODO' -or $bridgeText -match 'TODO|\[TODO') {
-        Write-Host "FAIL: TODO remains in $Name"
-        $script:Failures++
-    }
-    if ($bridgeText -notmatch [regex]::Escape("../../../.agents/skills/$Name/SKILL.md")) {
-        Write-Host "FAIL: Claude bridge target mismatch for $Name"
-        $script:Failures++
-    }
-    if ($metadataText -match '[^\x00-\x7F]') {
-        Write-Host "FAIL: non-ASCII UI metadata for $Name"
-        $script:Failures++
-    }
+    $null
 }
 
-Test-Skill "setup-new-computer"
-Test-Skill "create-new-project"
-Test-Skill "assess-existing-project"
-Test-Skill "standardize-existing-project"
-Test-Skill "apply-promotion-candidate"
-Test-Skill "promote-project-knowledge"
-Test-Skill "reflect-and-record"
-Test-Skill "compress-project"
-Test-Skill "document-process-workflow"
+$Python = Find-Python39
+if ($null -eq $Python) {
+    Write-Host "FAIL: Python 3.9+ is required for skill checks."
+    exit 1
+}
+
+# Skill contracts live in config/skills.tsv and are checked by one shared
+# implementation, so adding a skill does not mean editing this test.
+& $Python.Source (Join-Path $PSScriptRoot "check_skills.py") --root $Root
+if ($LASTEXITCODE -ne 0) { $Failures++ }
 
 $reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
-$reflectText = Get-Content -Raw -Encoding UTF8 $reflectSkill
 Test-RequiredLiterals -File $reflectSkill -Literals @(
     'instruction changes apply to new processes/sessions'
 )
