@@ -2,7 +2,7 @@
 set -eu
 
 usage() {
-  echo "Usage: $0 <destination> <project-name> [minimal|software|operated|all] [jira-confluence]" >&2
+  echo "Usage: $0 <destination> <project-name> [minimal|software|operated|all] [capability[,capability...]] [--preset <name>]" >&2
   exit 2
 }
 
@@ -39,6 +39,31 @@ directory_is_empty() {
   return 0
 }
 
+preset=
+preset_seen=0
+remaining=$#
+while [ "$remaining" -gt 0 ]; do
+  case "$1" in
+    --preset)
+      [ "$#" -ge 2 ] || usage
+      [ "$preset_seen" -eq 0 ] || { echo "--preset given twice" >&2; exit 2; }
+      preset=$2
+      preset_seen=1
+      shift 2
+      remaining=$((remaining - 2))
+      ;;
+    --)
+      shift
+      remaining=$((remaining - 1))
+      ;;
+    *)
+      set -- "$@" "$1"
+      shift
+      remaining=$((remaining - 1))
+      ;;
+  esac
+done
+
 [ "$#" -ge 2 ] && [ "$#" -le 4 ] || usage
 
 destination=$1
@@ -46,12 +71,11 @@ project_name=$2
 profile=${3:-minimal}
 capability=${4:-}
 
+[ -n "$destination" ] || { echo "Destination must not be empty" >&2; exit 2; }
+[ -n "$project_name" ] || { echo "Project name must not be empty" >&2; exit 2; }
+
 case "$profile" in
   minimal|software|operated|all) ;;
-  *) usage ;;
-esac
-case "$capability" in
-  ''|jira-confluence) ;;
   *) usage ;;
 esac
 
@@ -60,6 +84,9 @@ project_rules_root=$(dirname "$script_dir")
 templates="$project_rules_root/templates/new-project"
 manifest="$project_rules_root/config/profiles.tsv"
 capabilities_manifest="$project_rules_root/config/capabilities.tsv"
+presets_manifest="$project_rules_root/config/presets.tsv"
+capability_core_manifest="$project_rules_root/config/capability-core.tsv"
+best_practices_stacks=
 migrations_manifest="$project_rules_root/config/migrations.tsv"
 standard_source_file="$project_rules_root/config/standard-source.txt"
 standard_version_file="$project_rules_root/STANDARD_VERSION"
@@ -121,6 +148,42 @@ includes_profile() {
   [ "$minimum_rank" -le "$selected_rank" ]
 }
 
+capability_selected() {
+  case ",$capability," in
+    *",$1,"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+if [ -n "$preset" ]; then
+  [ -f "$presets_manifest" ] || { echo "Preset manifest not found: $presets_manifest" >&2; exit 1; }
+  presets_header="preset${tab}min_profile${tab}capabilities${tab}best_practices"
+  [ "$(sed -n '1p' "$presets_manifest" | tr -d '\r')" = "$presets_header" ] || {
+    echo "Invalid preset manifest header: $presets_manifest" >&2
+    exit 1
+  }
+  preset_row=$(awk -F"$tab" -v want="$preset" 'NR>1 && $1==want {print; exit}' "$presets_manifest")
+  [ -n "$preset_row" ] || { echo "Unknown preset '$preset'" >&2; exit 1; }
+  preset_min_profile=$(printf '%s' "$preset_row" | cut -f2)
+  preset_capabilities=$(printf '%s' "$preset_row" | cut -f3)
+  preset_stacks=$(printf '%s' "$preset_row" | cut -f4)
+  # The floor is raised, not rejected: asking for a preset with a lighter
+  # profile means the preset, not a downgrade of its core.
+  if [ "$(profile_rank "$profile")" -lt "$(profile_rank "$preset_min_profile")" ]; then
+    profile=$preset_min_profile
+  fi
+  old_ifs=$IFS
+  IFS=,
+  for preset_capability in $preset_capabilities; do
+    [ -n "$preset_capability" ] && [ "$preset_capability" != - ] || continue
+    capability_selected "$preset_capability" || {
+      if [ -z "$capability" ]; then capability=$preset_capability; else capability="$capability,$preset_capability"; fi
+    }
+  done
+  IFS=$old_ifs
+  best_practices_stacks=$preset_stacks
+fi
+
 expected_header="minimum_profile${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label"
 header=$(sed -n '1p' "$manifest")
 [ "$header" = "$expected_header" ] || {
@@ -133,15 +196,66 @@ capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${
   echo "Invalid capability manifest header: $capabilities_manifest" >&2
   exit 1
 }
+known_capabilities=""
 while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
   [ "$row_capability" = capability ] && continue
-  [ "$row_capability" = jira-confluence ] || { echo "Unknown capability '$row_capability'" >&2; exit 1; }
+  known_capabilities="$known_capabilities$row_capability
+"
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
   case "$(printf '%s' "$payload_class" | tr -d '\r')" in
     ""|-|template|verbatim|binary) ;;
     *) echo "Unknown payload class '$payload_class' for $artifact_destination" >&2; exit 1 ;;
   esac
 done < "$capabilities_manifest"
+
+# Whatever selected the capability - a preset or a positional argument - its
+# core follows: a project cannot exist with the capability but without the
+# profile and practice stack that capability requires.
+apply_capability_core() {
+  [ -n "$capability" ] || return 0
+  [ -f "$capability_core_manifest" ] || {
+    echo "Capability core manifest not found: $capability_core_manifest" >&2
+    exit 1
+  }
+  core_first=1
+  while IFS="$tab" read -r core_capability core_min_profile core_stack; do
+    [ "$core_first" -eq 1 ] && { core_first=0; continue; }
+    capability_selected "$core_capability" || continue
+    if [ "$(profile_rank "$profile")" -lt "$(profile_rank "$core_min_profile")" ]; then
+      profile=$core_min_profile
+    fi
+    [ -n "$core_stack" ] && [ "$core_stack" != - ] || continue
+    case ",$best_practices_stacks," in
+      *",$core_stack,"*) ;;
+      *)
+        if [ -z "$best_practices_stacks" ]; then
+          best_practices_stacks=$core_stack
+        else
+          best_practices_stacks="$best_practices_stacks,$core_stack"
+        fi
+        ;;
+    esac
+  done < "$capability_core_manifest"
+}
+
+# A capability may be declared by a preset before it ships any artifact, so
+# both manifests together define what "known" means.
+if [ -f "$presets_manifest" ]; then
+  known_capabilities="$known_capabilities$(awk -F"$tab" 'NR>1 {n=split($3, parts, ","); for (i=1; i<=n; i++) if (parts[i] != "" && parts[i] != "-") print parts[i]}' "$presets_manifest")
+"
+fi
+old_ifs=$IFS
+IFS=,
+for selected_capability in $capability; do
+  [ -n "$selected_capability" ] || continue
+  printf '%s\n' "$known_capabilities" | grep -Fqx "$selected_capability" || {
+    echo "Unknown capability '$selected_capability'" >&2
+    exit 1
+  }
+done
+IFS=$old_ifs
+
+apply_capability_core
 
 seen_destinations='|'
 first=1
@@ -249,7 +363,7 @@ install_generated() {
         attr_first=1
         while IFS="$tab" read -r attr_capability attr_source attr_destination attr_purpose attr_section attr_label attr_class attr_policy; do
           [ "$attr_first" -eq 1 ] && { attr_first=0; continue; }
-          [ "$attr_capability" = "$capability" ] || continue
+          capability_selected "$attr_capability" || continue
           case "$(printf '%s' "$attr_class" | tr -d '\r')" in
             verbatim|binary) printf '%s -text\n' "$attr_destination" >> "$destination/$target" ;;
           esac
@@ -287,7 +401,15 @@ EDITORCONFIG
     .project-standard.json)
       {
         printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "capabilities": [' "$standard_version" "$profile"
-        [ -z "$capability" ] || printf '"%s"' "$capability"
+        first_capability=1
+        old_ifs=$IFS
+        IFS=,
+        for metadata_capability in $capability; do
+          [ -n "$metadata_capability" ] || continue
+          if [ "$first_capability" -eq 1 ]; then first_capability=0; else printf ', '; fi
+          printf '"%s"' "$metadata_capability"
+        done
+        IFS=$old_ifs
         printf '],\n  "capability_releases": {},\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n' \
           "$standard_source" "$source_commit" "$today" "$today"
         first_migration=1
@@ -314,11 +436,11 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
   fi
 done < "$manifest"
 
-if [ "$capability" = jira-confluence ]; then
+if [ -n "$capability" ]; then
   first=1
   while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
     [ "$first" -eq 1 ] && { first=0; continue; }
-    [ "$row_capability" = "$capability" ] || continue
+    capability_selected "$row_capability" || continue
     install_artifact "$source" "$artifact_destination" "$payload_class"
   done < "$capabilities_manifest"
 fi
@@ -367,14 +489,30 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
   ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
 done < "$manifest"
 
-if [ "$capability" = jira-confluence ]; then
+if [ -n "$capability" ]; then
   first=1
   while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
     [ "$first" -eq 1 ] && { first=0; continue; }
-    [ "$row_capability" = "$capability" ] || continue
+    capability_selected "$row_capability" || continue
     ensure_index_entry "$artifact_destination" "$root_purpose"
     ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
   done < "$capabilities_manifest"
+fi
+
+if [ -n "$best_practices_stacks" ]; then
+  {
+    printf '{\n  "practices": {},\n  "preferences": {\n    "global": "ask",\n    "sections": {\n'
+    first_stack=1
+    old_ifs=$IFS
+    IFS=,
+    for stack in $best_practices_stacks; do
+      [ -n "$stack" ] && [ "$stack" != - ] || continue
+      if [ "$first_stack" -eq 1 ]; then first_stack=0; else printf ',\n'; fi
+      printf '      "%s": "ask"' "$stack"
+    done
+    IFS=$old_ifs
+    printf '\n    }\n  },\n  "schema_version": 2\n}\n'
+  } > "$destination/.best-practices.json"
 fi
 
 if ! git_output=$(git -C "$destination" init 2>&1); then

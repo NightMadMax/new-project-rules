@@ -24,7 +24,7 @@ import project_metadata
 
 
 MIN_PYTHON = (3, 9)
-PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
+PROFILE_RANKS = project_metadata.PROFILE_RANKS
 MIGRATION_FIELDS = ("migration_id", "target", "from_schema", "to_schema", "handler", "description")
 PROFILE_FIELDS = ("minimum_profile", "source", "destination", "root_purpose", "docs_section", "docs_label")
 # `capability_artifacts` is driven by the capability release id, not by the

@@ -8,8 +8,9 @@ param(
     [ValidateSet("minimal", "software", "operated", "all")]
     [string]$Profile = "minimal",
 
-    [ValidateSet("jira-confluence")]
-    [string[]]$Capability = @()
+    [string[]]$Capability = @(),
+
+    [string]$Preset
 )
 
 $ErrorActionPreference = "Stop"
@@ -17,6 +18,8 @@ $RulesRoot = Split-Path -Parent $PSScriptRoot
 $Templates = Join-Path $RulesRoot "templates/new-project"
 $Manifest = Join-Path $RulesRoot "config/profiles.tsv"
 $CapabilitiesManifest = Join-Path $RulesRoot "config/capabilities.tsv"
+$PresetsManifest = Join-Path $RulesRoot "config/presets.tsv"
+$CapabilityCoreManifest = Join-Path $RulesRoot "config/capability-core.tsv"
 $StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
 $StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
 $MigrationsManifest = Join-Path $RulesRoot "config/migrations.tsv"
@@ -82,6 +85,50 @@ foreach ($artifact in $Artifacts) {
         throw "docs_section and docs_label must both be '-' or both be set for '$($artifact.destination)'"
     }
 }
+$BestPracticesStacks = @()
+if ($Preset) {
+    if (-not (Test-Path -LiteralPath $PresetsManifest -PathType Leaf)) {
+        throw "Preset manifest not found: $PresetsManifest"
+    }
+    $ExpectedPresetsHeader = "preset`tmin_profile`tcapabilities`tbest_practices"
+    $PresetLines = @(Get-Content -Encoding utf8 $PresetsManifest)
+    if ($PresetLines.Count -lt 2 -or $PresetLines[0] -cne $ExpectedPresetsHeader) {
+        throw "Invalid preset manifest header: $PresetsManifest"
+    }
+    $PresetRow = @($PresetLines | ConvertFrom-Csv -Delimiter "`t") | Where-Object { $_.preset -ceq $Preset } | Select-Object -First 1
+    if ($null -eq $PresetRow) { throw "Unknown preset '$Preset'" }
+    # The floor is raised, not rejected: asking for a preset with a lighter
+    # profile means the preset, not a downgrade of its core.
+    if ($ProfileRanks[$Profile] -lt $ProfileRanks[$PresetRow.min_profile]) {
+        $Profile = $PresetRow.min_profile
+    }
+    foreach ($presetCapability in ($PresetRow.capabilities -split ",")) {
+        if ($presetCapability -and $presetCapability -ne "-" -and $presetCapability -notin $Capability) {
+            $Capability += $presetCapability
+        }
+    }
+    $BestPracticesStacks = @($PresetRow.best_practices -split "," | Where-Object { $_ -and $_ -ne "-" })
+}
+
+# Whatever selected the capability - a preset or the -Capability parameter -
+# its core follows: a project cannot exist with the capability but without the
+# profile and practice stack that capability requires.
+if ($Capability.Count -gt 0 -and -not (Test-Path -LiteralPath $CapabilityCoreManifest -PathType Leaf)) {
+    throw "Capability core manifest not found: $CapabilityCoreManifest"
+}
+if (Test-Path -LiteralPath $CapabilityCoreManifest -PathType Leaf) {
+    $CoreRows = @(Get-Content -Encoding utf8 $CapabilityCoreManifest | ConvertFrom-Csv -Delimiter "`t")
+    foreach ($core in $CoreRows) {
+        if ($Capability -cnotcontains $core.capability) { continue }
+        if ($ProfileRanks[$Profile] -lt $ProfileRanks[$core.min_profile]) {
+            $Profile = $core.min_profile
+        }
+        if ($core.stack -and $core.stack -ne "-" -and $BestPracticesStacks -cnotcontains $core.stack) {
+            $BestPracticesStacks += $core.stack
+        }
+    }
+}
+
 $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
@@ -92,9 +139,18 @@ if ($CapabilityLines.Count -lt 2 -or $CapabilityLines[0] -cne $ExpectedCapabilit
     throw "Invalid capability manifest header: $CapabilitiesManifest"
 }
 $CapabilityArtifacts = @($CapabilityLines | ConvertFrom-Csv -Delimiter "`t")
-$KnownCapabilities = @($CapabilityArtifacts | ForEach-Object capability | Sort-Object -Unique)
+$KnownCapabilities = @($CapabilityArtifacts | ForEach-Object capability)
+# A capability may be declared by a preset before it ships any artifact, so both
+# manifests together define what "known" means.
+$KnownCapabilities += @(
+    @(if (Test-Path -LiteralPath $PresetsManifest -PathType Leaf) { Get-Content -Encoding utf8 $PresetsManifest | Select-Object -Skip 1 }) |
+        Where-Object { $_.Trim() -ne "" } |
+        ForEach-Object { ($_ -split "`t")[2] -split "," } |
+        Where-Object { $_ -and $_ -ne "-" }
+)
+$KnownCapabilities = @($KnownCapabilities | Sort-Object -Unique)
 foreach ($selectedCapability in $Capability) {
-    if ($selectedCapability -notin $KnownCapabilities) { throw "Unknown capability '$selectedCapability'" }
+    if ($KnownCapabilities -cnotcontains $selectedCapability) { throw "Unknown capability '$selectedCapability'" }
 }
 foreach ($artifact in $CapabilityArtifacts) {
     if ([System.IO.Path]::IsPathRooted($artifact.destination) -or
@@ -305,6 +361,26 @@ if ($null -ne $git) {
             throw "$Step failed:`n$details"
         }
     }
+if ($BestPracticesStacks.Count -gt 0) {
+    # Built by hand rather than through ConvertTo-Json: the rendering differs
+    # between PowerShell editions, and this file must match the shell output
+    # and the canonical writer byte for byte.
+    $sectionLines = @($BestPracticesStacks | ForEach-Object { "      `"$_`": `"ask`"" })
+    $lines = @(
+        "{",
+        "  `"practices`": {},",
+        "  `"preferences`": {",
+        "    `"global`": `"ask`",",
+        "    `"sections`": {",
+        ($sectionLines -join ",`n"),
+        "    }",
+        "  },",
+        "  `"schema_version`": 2",
+        "}"
+    )
+    Write-Utf8NoBom (Join-Path $Destination ".best-practices.json") (($lines -join "`n") + "`n")
+}
+
 
     Invoke-GitRequired "git init" @("init", "-q")
     Invoke-GitRequired "git symbolic-ref" @("symbolic-ref", "HEAD", "refs/heads/main")

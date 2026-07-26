@@ -15,6 +15,8 @@
 | `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
 | `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
 | `config/skills.tsv` | Реестр skills: класс проверки, корень, необходимость Claude-моста |
+| `config/presets.tsv` | Раскрытие preset создания: минимальный профиль, capability и стеки практик |
+| `config/capability-core.tsv` | Ядро capability: минимальный профиль и обязательный стек практик |
 | `config/standard-source.txt` | Канонический owner/repository без credentials и локальных путей |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[CHANGELOG_ARCHIVE|CHANGELOG_ARCHIVE.md]] | Архив старых релизов, перенесённых при компрессии |
@@ -99,6 +101,7 @@
 | `scripts/check_skills.py` | Проверка skills по `config/skills.tsv`: canonical-триада и vendored payload по hash |
 | `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
 | `scripts/capability_artifacts.py` | Транзакционные план и применение артефактов capability |
+| `scripts/presets.py` | Раскрытие preset в профиль, capability и стеки |
 | `scripts/validate_project_support.py` | Чтение манифеста capability для скриптов вне валидатора |
 | `scripts/apply-capability-artifacts.py` | CLI плана и применения артефактов capability |
 | `scripts/apply-capability-artifacts.sh` | Обёртка плана артефактов для macOS/Linux |
@@ -126,6 +129,7 @@
 | `scripts/test-artifacts-ledger.py` | Тесты контракта ledger managed-артефактов |
 | `scripts/test-payload-classes.py` | Тесты доставки артефактов: подстановка против побайтного копирования |
 | `scripts/test-capability-artifacts.py` | Тесты транзакционной установки и обновления артефактов capability |
+| `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
 | `scripts/standardize_existing_project.py` | Read-only decision report для стандартизации существующего проекта |
 | `scripts/standardize-existing-project.sh` | Existing-project standardization planner для macOS/Linux |
 | `scripts/standardize-existing-project.ps1` | Existing-project standardization planner для Windows |

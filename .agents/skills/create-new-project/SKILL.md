@@ -38,8 +38,12 @@ description: Создаёт новый проект внутри общего Ob
 2. Проверить обязательные инструменты и `gh auth status`. Перед установкой
    отсутствующего инструмента объяснить необходимость и получить разрешение.
 3. Запустить из корня правил:
-   - macOS/Linux: `./scripts/bootstrap-new-project.sh <destination> <name> <profile>`;
-   - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-new-project.ps1 -Destination <destination> -ProjectName <name> -Profile <profile>`; для capability добавить `-Capability jira-confluence`.
+   - macOS/Linux: `./scripts/bootstrap-new-project.sh <destination> <name> <profile> [capability[,capability...]]`;
+   - Windows: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-new-project.ps1 -Destination <destination> -ProjectName <name> -Profile <profile> [-Capability cap1,cap2]`.
+   Для 1С-проекта вместо профиля и capability указать preset: `--preset 1c`
+   (`-Preset 1c` в PowerShell). Preset поднимает профиль до `operated`,
+   подключает capability `1c` и записывает стек практик `1c` — то есть ядро
+   проекта готово сразу, а не после отдельного шага.
 4. Заполнить `PROJECT.md`, `README.md` и `INDEX.md` фактическими данными задачи.
    Удалить неприменимые секции и не создавать условные документы без текущей
    необходимости. Секцию «Источник» в `README.md` оставить: она называет
@@ -84,7 +88,9 @@ description: Создаёт новый проект внутри общего Ob
    (чтобы отказ сохранился между машинами) и пропустить остальное — при отказе
    больше не предлагать. Не создавать schema 1 и не писать legacy-поля
    `optout`/`applied` вручную.
-4. Если база доступна и пользователь согласен:
+4. Если база доступна и пользователь согласен (для проекта, созданного через
+   preset, стек ядра уже записан bootstrap — его не нужно спрашивать заново,
+   можно только дополнить другими стеками):
    - **Спросить стек(и) проекта.** Спросить, какие стеки планируется
      использовать (можно несколько), из списка Best Practices: `1c`, `web`,
      `backend`, `mobile`, `desktop`, `data-ml`, `data-analysis`,

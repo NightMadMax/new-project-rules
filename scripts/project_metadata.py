@@ -7,7 +7,15 @@ from datetime import date
 from typing import Optional, Sequence
 
 
-PROFILE_NAMES = {"minimal", "software", "operated", "all"}
+PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
+PROFILE_NAMES = set(PROFILE_RANKS)
+# The core a capability cannot be created without. Mirrored in
+# config/capability-core.tsv for the shell and PowerShell bootstrap; a test
+# keeps the two in step. The operational half of a 1C project (environments,
+# databases, diagnostics) has no place in a lighter profile.
+CAPABILITY_CORE = {"1c": {"min_profile": "operated", "stack": "1c"}}
+CAPABILITY_MIN_PROFILE = {name: core["min_profile"] for name, core in CAPABILITY_CORE.items()}
+CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()}
 CAPABILITY_NAMES = {"jira-confluence", "1c"}
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -40,7 +48,8 @@ def validate_metadata(
         return [f"schema_version {schema} is newer than supported schema {current_schema}"]
     if schema < current_schema:
         return [f"schema_version {schema} requires an explicit migration to {current_schema}"]
-    if data.get("profile") not in PROFILE_NAMES:
+    profile = data.get("profile")
+    if profile not in PROFILE_NAMES:
         issues.append("profile must be minimal, software, operated, or all")
     capabilities = data.get("capabilities", [])
     if current_schema >= 3 and "capabilities" not in data:
@@ -53,6 +62,12 @@ def validate_metadata(
         unknown_capabilities = sorted(set(capabilities) - CAPABILITY_NAMES)
         if unknown_capabilities:
             issues.append(f"capabilities contains unknown IDs: {', '.join(unknown_capabilities)}")
+        for name in sorted(set(capabilities) & set(CAPABILITY_MIN_PROFILE)):
+            minimum = CAPABILITY_MIN_PROFILE[name]
+            if profile in PROFILE_RANKS and PROFILE_RANKS[profile] < PROFILE_RANKS[minimum]:
+                issues.append(
+                    f"capability '{name}' requires profile '{minimum}' or higher, not '{profile}'"
+                )
     releases = data.get("capability_releases", {})
     if current_schema >= 5 and "capability_releases" not in data:
         issues.append("capability_releases must be present in schema 5+ metadata")

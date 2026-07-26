@@ -130,6 +130,8 @@ cp "$root/STANDARD_VERSION" "$fixture/STANDARD_VERSION"
 cp "$root/config/standard-source.txt" "$fixture/config/standard-source.txt"
 cp "$root/config/migrations.tsv" "$fixture/config/migrations.tsv"
 cp "$root/config/capabilities.tsv" "$fixture/config/capabilities.tsv"
+cp "$root/config/presets.tsv" "$fixture/config/presets.tsv"
+cp "$root/config/capability-core.tsv" "$fixture/config/capability-core.tsv"
 cp -R "$templates" "$fixture/templates/"
 grep -v "${tab}CHANGELOG.template.md${tab}" "$manifest" \
   | sed "s/Current system architecture/Manifest-owned architecture/; s/${tab}Environments\$/${tab}Manifest Environments/" \
