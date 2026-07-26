@@ -1,0 +1,68 @@
+#!/usr/bin/env python3
+"""Plan or apply the artifacts of one capability for a project.
+
+Read-only by default, like every other planner in this repository: it prints
+what would change and exits. Writing requires both `--apply` and `--yes`, so a
+copy-pasted command cannot modify a project by accident.
+"""
+
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS))
+
+import capability_artifacts  # noqa: E402
+import validate_project_support as support  # noqa: E402
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description="Plan or apply capability artifacts for a project.")
+    parser.add_argument("--project", required=True, help="project root")
+    parser.add_argument("--capability", required=True, help="capability id, for example 1c")
+    parser.add_argument("--contract-root", default=str(SCRIPTS.parent), help="rules repository root")
+    parser.add_argument("--apply", action="store_true", help="write the planned changes")
+    parser.add_argument("--yes", action="store_true", help="confirm writing")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = build_parser().parse_args(argv)
+    project = Path(args.project).resolve()
+    contract = Path(args.contract_root).resolve()
+
+    if not project.is_dir():
+        print(f"Project not found: {project}", file=sys.stderr)
+        return 2
+
+    try:
+        artifacts = support.release_artifacts(contract, args.capability)
+        plan = capability_artifacts.build_plan(project, args.capability, artifacts)
+    except (capability_artifacts.CapabilityArtifactsError, support.ManifestError) as error:
+        print(f"Cannot plan: {error}", file=sys.stderr)
+        return 1
+
+    print(capability_artifacts.format_plan(plan))
+
+    if plan.status == "conflict":
+        return 1
+    if not args.apply:
+        return 0
+    if not args.yes:
+        print("Refusing to write without --yes.", file=sys.stderr)
+        return 2
+
+    try:
+        capability_artifacts.apply_plan(project, plan)
+    except capability_artifacts.CapabilityArtifactsError as error:
+        print(f"Apply failed: {error}", file=sys.stderr)
+        return 1
+    print("Applied.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

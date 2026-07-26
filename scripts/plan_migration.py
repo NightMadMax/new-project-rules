@@ -27,7 +27,14 @@ MIN_PYTHON = (3, 9)
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
 MIGRATION_FIELDS = ("migration_id", "target", "from_schema", "to_schema", "handler", "description")
 PROFILE_FIELDS = ("minimum_profile", "source", "destination", "root_purpose", "docs_section", "docs_label")
-KNOWN_HANDLERS = {"project_metadata", "global_managed_block", "project_agents_managed_block"}
+# `capability_artifacts` is driven by the capability release id, not by the
+# integer schema chain, so it is planned and applied by
+# scripts/capability_artifacts.py rather than by this planner.
+KNOWN_HANDLERS = {
+    "project_metadata", "global_managed_block", "project_agents_managed_block",
+    "capability_artifacts",
+}
+EXTERNAL_HANDLERS = {"capability_artifacts"}
 
 
 class MigrationConfigError(Exception):

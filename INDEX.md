@@ -98,6 +98,11 @@
 | `scripts/validate-project.py` | Общая read-only validation logic на Python 3.9+ |
 | `scripts/check_skills.py` | Проверка skills по `config/skills.tsv`: canonical-триада и vendored payload по hash |
 | `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
+| `scripts/capability_artifacts.py` | Транзакционные план и применение артефактов capability |
+| `scripts/validate_project_support.py` | Чтение манифеста capability для скриптов вне валидатора |
+| `scripts/apply-capability-artifacts.py` | CLI плана и применения артефактов capability |
+| `scripts/apply-capability-artifacts.sh` | Обёртка плана артефактов для macOS/Linux |
+| `scripts/apply-capability-artifacts.ps1` | Обёртка плана артефактов для Windows |
 | `scripts/validate-project.sh` | Validator wrapper для macOS/Linux |
 | `scripts/validate-project.ps1` | Validator wrapper для Windows |
 | `scripts/project-doctor.sh` | Environment + project doctor для macOS/Linux |
@@ -120,6 +125,7 @@
 | `scripts/test-migration-planner.py` | Regression tests manifests, blockers, previews и no-mutation |
 | `scripts/test-artifacts-ledger.py` | Тесты контракта ledger managed-артефактов |
 | `scripts/test-payload-classes.py` | Тесты доставки артефактов: подстановка против побайтного копирования |
+| `scripts/test-capability-artifacts.py` | Тесты транзакционной установки и обновления артефактов capability |
 | `scripts/standardize_existing_project.py` | Read-only decision report для стандартизации существующего проекта |
 | `scripts/standardize-existing-project.sh` | Existing-project standardization planner для macOS/Linux |
 | `scripts/standardize-existing-project.ps1` | Existing-project standardization planner для Windows |

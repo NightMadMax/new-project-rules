@@ -63,4 +63,5 @@ jobs:
           python3 scripts/test-check-skills.py
           python3 scripts/test-artifacts-ledger.py
           python3 scripts/test-payload-classes.py
+          python3 scripts/test-capability-artifacts.py
           python3 scripts/validate-project.py --root . --kind rules --report-only

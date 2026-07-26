@@ -48,6 +48,7 @@ jobs:
           python3 scripts/test-check-skills.py
           python3 scripts/test-artifacts-ledger.py
           python3 scripts/test-payload-classes.py
+          python3 scripts/test-capability-artifacts.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -93,6 +94,7 @@ jobs:
           python .\scripts\test-check-skills.py
           python .\scripts\test-artifacts-ledger.py
           python .\scripts\test-payload-classes.py
+          python .\scripts\test-capability-artifacts.py
       - name: Validator report on Windows
         shell: powershell
         run: |
