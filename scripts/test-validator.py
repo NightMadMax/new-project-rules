@@ -230,23 +230,37 @@ class ValidatorTests(unittest.TestCase):
             manifest.write_text(original.rstrip("\n") + "\n" + last_row + "\n", encoding="utf-8")
 
         template = "capabilities/jira-confluence/JIRA.template.md"
-        rows_with(f"jira-confluence\t{template}\tX.md\t-\t-\t-\tmystery")
+        rows_with(f"jira-confluence\t{template}\tX.md\t-\t-\t-\tmystery\tmanaged")
         with self.assertRaises(validator.ContractError):
             validator.load_capability_artifacts(contract)
 
         # A row that does not match the header must be named, not crash.
-        rows_with(f"jira-confluence\t{template}\tX.md\t-\t-\t-\ttemplate\textra")
+        rows_with(f"jira-confluence\t{template}\tX.md\t-\t-\t-\ttemplate\tmanaged\textra")
         with self.assertRaises(validator.ContractError):
             validator.load_capability_artifacts(contract)
 
         # A non-text source cannot be delivered by substitution.
         payload = contract / "templates" / "new-project" / "capabilities" / "jira-confluence" / "payload.bin"
         payload.write_bytes(b"\xff\xfe\x00\x80")
-        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\ttemplate")
+        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\ttemplate\tmanaged")
         with self.assertRaises(validator.ContractError):
             validator.load_capability_artifacts(contract)
 
-        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\tbinary")
+        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\tbinary\tmystery")
+        with self.assertRaises(validator.ContractError):
+            validator.load_capability_artifacts(contract)
+
+        # A managed template could never be updated if it still had placeholders.
+        placeholder = contract / "templates" / "new-project" / "capabilities" / "jira-confluence" / "seedy.md"
+        placeholder.write_text("# <PROJECT_NAME>\n", encoding="utf-8")
+        rows_with("jira-confluence\tcapabilities/jira-confluence/seedy.md\tX.md\t-\t-\t-\ttemplate\tmanaged")
+        with self.assertRaises(validator.ContractError):
+            validator.load_capability_artifacts(contract)
+
+        rows_with("jira-confluence\tcapabilities/jira-confluence/seedy.md\tX.md\t-\t-\t-\ttemplate\tseed")
+        validator.load_capability_artifacts(contract)
+
+        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\tbinary\tmanaged")
         validator.load_capability_artifacts(contract)
 
     def test_global_rule_drift_is_reported_without_exposing_content(self):

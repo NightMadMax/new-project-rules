@@ -41,6 +41,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-migration-planner.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-artifacts-ledger.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-payload-classes.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-capability-artifacts.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
@@ -70,6 +71,7 @@ python .\scripts\test-agent-sync.py
 python .\scripts\test-migration-planner.py
 python .\scripts\test-artifacts-ledger.py
 python .\scripts\test-payload-classes.py
+python .\scripts\test-capability-artifacts.py
 python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-compress-project.py
 python .\scripts\test-supply-chain.py

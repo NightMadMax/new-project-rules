@@ -188,6 +188,26 @@ Read-only проверка и secret-safe diff переносимых глоба
 - Когда вручную: проверить drift глобальных правил; diff не показывает
   содержимое приватных инструкций.
 
+### Артефакты capability
+
+Открыть агента в папке проекта-правил и попросить: «покажи план артефактов
+capability `1c` для проекта <путь>». Или вручную:
+
+```sh
+sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c
+sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c --apply --yes
+```
+
+```powershell
+.\scripts\apply-capability-artifacts.ps1 -Project ..\my-project -Capability 1c
+.\scripts\apply-capability-artifacts.ps1 -Project ..\my-project -Capability 1c -Apply -Yes
+```
+
+Без `--apply` команда только показывает план и ничего не пишет. Расхождение
+управляемого артефакта с записанным состоянием — конфликт: план останавливается
+и не затирает правку. Файлы, поставленные bootstrap, при первом запуске
+усыновляются (`adopt`), потому что bootstrap ledger не ведёт.
+
 ### Миграции project / global metadata
 
 Fingerprint-защищённый планировщик и исполнитель миграций

@@ -33,11 +33,15 @@ EXPECTED_PROFILE_FIELDS = (
 )
 EXPECTED_CAPABILITY_FIELDS = (
     "capability", "source", "destination", "root_purpose", "docs_section", "docs_label",
-    "payload_class",
+    "payload_class", "policy",
 )
 # How an artifact is delivered; the vocabulary lives with the ledger contract so
 # the manifest and the ledger cannot drift apart.
 PAYLOAD_CLASSES = artifacts_ledger.MANIFEST_PAYLOAD_CLASSES
+# Who owns the artifact after delivery: the standard keeps updating a managed
+# file, while a seed is created once and belongs to the user afterwards.
+ARTIFACT_POLICIES = {"managed", "seed"}
+TEMPLATE_MARKS = (b"<PROJECT_NAME>", b"<YYYY-MM-DD>", b"<SCHEMA_VERSION>")
 IGNORED_PARTS = {
     ".git",
     "__pycache__",
@@ -93,6 +97,7 @@ class CapabilityArtifact:
     docs_section: str
     docs_label: str
     payload_class: str
+    policy: str
 
 
 @dataclass(frozen=True)
@@ -226,15 +231,22 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
             raise ContractError(f"Incomplete capability docs relationship: {row.destination}")
         if row.payload_class not in PAYLOAD_CLASSES:
             raise ContractError(f"Unknown payload class '{row.payload_class}': {row.destination}")
+        if row.policy not in ARTIFACT_POLICIES:
+            raise ContractError(f"Unknown artifact policy '{row.policy}': {row.destination}")
         # A template is rewritten during delivery, so a source that is not text
         # would be corrupted. Catch it in the manifest, not in the project.
         if artifacts_ledger.manifest_class_to_ledger(row.payload_class) == "template":
             try:
-                (templates / row.source).read_text(encoding="utf-8")
+                body = (templates / row.source).read_bytes()
+                body.decode("utf-8")
             except (UnicodeDecodeError, ValueError):
                 raise ContractError(
                     f"Source is not text but is declared as a template: {row.source}"
                 ) from None
+            if row.policy == "managed" and any(mark in body for mark in TEMPLATE_MARKS):
+                raise ContractError(
+                    f"A managed template cannot carry placeholders, it could never be updated: {row.source}"
+                )
     return rows
 
 

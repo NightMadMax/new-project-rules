@@ -47,7 +47,9 @@ def unsafe_target(value: object) -> bool:
     # file as "a/b" and would otherwise slip past the duplicate and sort rules.
     if posixpath.normpath(value) != value:
         return True
-    return value.split("/")[0] == ".."
+    first = value.split("/")[0]
+    # Delivering into .git would rewrite repository internals, including hooks.
+    return first in ("..", ".git")
 
 
 def validate_entry(entry: object, position: int) -> list[str]:

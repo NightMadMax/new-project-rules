@@ -27,7 +27,15 @@ MIN_PYTHON = (3, 9)
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
 MIGRATION_FIELDS = ("migration_id", "target", "from_schema", "to_schema", "handler", "description")
 PROFILE_FIELDS = ("minimum_profile", "source", "destination", "root_purpose", "docs_section", "docs_label")
+# `capability_artifacts` is driven by the capability release id, not by the
+# integer schema chain, so it is planned and applied by
+# scripts/capability_artifacts.py rather than by this planner.
 KNOWN_HANDLERS = {"project_metadata", "global_managed_block", "project_agents_managed_block"}
+# Handled by scripts/apply-capability-artifacts.py, which compares the project
+# with the release instead of walking the integer schema chain. Naming it here
+# turns a wrong manifest row into a clear message instead of a row this planner
+# would accept and then never execute.
+EXTERNAL_HANDLERS = {"capability_artifacts"}
 
 
 class MigrationConfigError(Exception):
@@ -125,6 +133,11 @@ def read_migrations(contract_root: Path, standard_version: int) -> list[Migratio
         seen.add(migration_id)
         if raw["target"] not in {"project", "global", "project-agents"}:
             raise MigrationConfigError(f"Invalid migration target: {raw['target']!r}")
+        if raw["handler"] in EXTERNAL_HANDLERS:
+            raise MigrationConfigError(
+                f"Handler '{raw['handler']}' is planned by scripts/apply-capability-artifacts.py "
+                f"and must not appear in migrations.tsv"
+            )
         if raw["handler"] not in KNOWN_HANDLERS:
             raise MigrationConfigError(f"Unknown migration handler: {raw['handler']!r}")
         try:
