@@ -238,6 +238,40 @@ class MigrationPlannerTests(unittest.TestCase):
         plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "up_to_date")
 
+    def test_schema4_metadata_without_release_record_upgrades_to_valid_v5(self):
+        project = self.make_project("minimal")
+        commit = planner.inspect_git(self.contract).commit
+        assert commit is not None
+        metadata = planner.project_metadata.build_legacy_metadata(
+            4, "minimal", "NightMadMax/new-project-rules", commit,
+            ["0001-adopt-project-standard", "0004-upgrade-project-standard-v2",
+             "0007-upgrade-project-standard-v3", "0010-upgrade-project-standard-v4"],
+        )
+        # A project written before schema 5 has no release record at all.
+        metadata.pop("capability_releases", None)
+        path = project / ".project-standard.json"
+        path.write_text(json.dumps(metadata) + "\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(project), "add", ".project-standard.json"], check=True)
+        subprocess.run(["git", "-C", str(project), "commit", "-m", "schema4"], check=True, capture_output=True)
+
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(plan.status, "ready")
+        planner.apply_plan(plan)
+        upgraded = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(upgraded["schema_version"], 5)
+        self.assertEqual(upgraded["capability_releases"], {})
+        self.assertEqual(list(upgraded).index("capability_releases"), list(upgraded).index("capabilities") + 1)
+        known = [row.migration_id for row in self.migrations if row.target == "project"]
+        self.assertEqual(
+            planner.project_metadata.validate_metadata(
+                upgraded, self.version, "NightMadMax/new-project-rules", known),
+            [],
+        )
+        subprocess.run(["git", "-C", str(project), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(project), "commit", "-m", "upgraded"], check=True, capture_output=True)
+        repeat = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(repeat.status, "up_to_date")
+
     def test_schema1_project_metadata_upgrades_atomically_to_v2(self):
         project = self.make_project("minimal")
         commit = planner.inspect_git(self.contract).commit

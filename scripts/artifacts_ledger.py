@@ -13,7 +13,7 @@ the user" apart. It is deliberately narrow:
 
 from __future__ import annotations
 
-import os
+import posixpath
 import re
 from typing import Iterable, Sequence
 
@@ -31,7 +31,13 @@ def unsafe_target(value: object) -> bool:
         return True
     if value.startswith("/") or "\\" in value or ":" in value:
         return True
-    return os.path.normpath(value).split(os.sep)[0] == ".."
+    if any(character < " " or character == "\x7f" for character in value):
+        return True
+    # Only the canonical spelling is accepted: "./a" and "a//b" name the same
+    # file as "a/b" and would otherwise slip past the duplicate and sort rules.
+    if posixpath.normpath(value) != value:
+        return True
+    return value.split("/")[0] == ".."
 
 
 def validate_entry(entry: object, position: int) -> list[str]:

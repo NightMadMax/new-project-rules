@@ -13,4 +13,4 @@ migration_id	target	from_schema	to_schema	handler	description
 0012-upgrade-project-agents-managed-block-v4	project-agents	3	4	project_agents_managed_block	Remove redundant project rules and refresh the portable baseline
 0013-upgrade-project-standard-v5	project	4	5	project_metadata	Record installed capability releases in project metadata
 0014-upgrade-global-managed-block-v5	global	4	5	global_managed_block	Advance the global managed marker for the capability release record
-0015-upgrade-project-agents-managed-block-v5	project-agents	4	5	project_agents_managed_block	Refresh the portable AGENTS baseline for schema 5
+0015-upgrade-project-agents-managed-block-v5	project-agents	4	5	project_agents_managed_block	Advance the project AGENTS marker to schema 5 without baseline changes

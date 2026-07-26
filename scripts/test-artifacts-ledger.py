@@ -67,6 +67,12 @@ case("unknown owner format", document([entry(owner="me")]), "must be 'standard' 
 case("owner not in the known set", document([entry(owner="capability:ghost")]), "owner is unknown", ("capability:1c",))
 case("known owner passes", document([entry()]), None, ("capability:1c", "standard"))
 
+case("owner id is case-sensitive", document([entry(owner="capability:1C")]), "must be 'standard' or 'capability:<id>'")
+case("hash hex is lower case only", document([entry(hash="sha256:" + "A" * 64)]), "sha256:<64 hex>")
+case("target must be canonical", document([entry(target="./config/a.json")]), "safe repository-relative path")
+case("target without duplicate slashes", document([entry(target="config//a.json")]), "safe repository-relative path")
+case("target without a trailing slash", document([entry(target="config/")]), "safe repository-relative path")
+case("target without control characters", document([entry(target="config/a\nb.json")]), "safe repository-relative path")
 case("unknown policy", document([entry(policy="mystery")]), "policy must be one of")
 case("unknown payload class", document([entry(payload_class="mystery")]), "payload_class must be one of")
 case("seed with a hash", document([entry(policy="seed")]), "hash must be null for a seed")

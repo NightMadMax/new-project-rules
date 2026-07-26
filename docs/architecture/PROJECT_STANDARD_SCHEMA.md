@@ -41,8 +41,8 @@ related:
 
 - `schema_version` — положительное целое, не release version.
 - `profile` — `minimal`, `software`, `operated` или `all`.
-- `capabilities` — независимые от профиля подключаемые возможности. Сейчас
-  поддерживается `jira-confluence`; пустой массив означает, что capability не
+- `capabilities` — независимые от профиля подключаемые возможности. Сейчас поддерживаются
+  `jira-confluence` и `1c`; пустой массив означает, что capability не
   выбрана. Возможности дополняют профиль и не меняют его состав.
 - `capability_releases` — установленные release capability: ключ равен ID
   capability из `capabilities`, значение содержит только `version` (SemVer) и
@@ -50,7 +50,8 @@ related:
   означает, что ни одна capability не поставила свой release. Версия capability
   и schema стандарта — независимые оси: release не участвует в цепочке
   миграций, он сравнивается по `release_id`.
-- Schema 5 добавляет `capability_releases`; schema 4 фиксирует трёхуровневый контракт инструкций агента; формат metadata
+- Schema 5 добавляет `capability_releases`.
+- Schema 4 фиксирует трёхуровневый контракт инструкций агента; формат metadata
   относительно schema 3 не меняется, но sequential history подтверждает
   применение обновлённого global/project policy contract.
 - `source` берётся из `config/standard-source.txt`, а `source_commit` — из

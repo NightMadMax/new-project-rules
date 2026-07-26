@@ -162,6 +162,59 @@ class ValidatorTests(unittest.TestCase):
         self.assertEqual(profile, "minimal")
         self.assertIn("metadata.schema", finding_codes(findings))
 
+    def test_capability_release_record_is_validated(self):
+        project = self.make_project("minimal")
+        path = project / ".project-standard.json"
+        version = validator.load_standard_version(ROOT)
+        migrations = [row.migration_id for row in validator.migration_planner.read_migrations(ROOT, version) if row.target == "project"]
+        metadata = validator.project_metadata.build_legacy_metadata(
+            version, "minimal", "NightMadMax/new-project-rules", "0" * 40, migrations,
+        )
+        metadata["capabilities"] = ["jira-confluence"]
+        metadata["capability_releases"] = {"jira-confluence": {"version": "1.0", "release_id": "0" * 64}}
+        path.write_text(json.dumps(metadata), encoding="utf-8")
+        _, _, findings = self.validate_project(project)
+        self.assertIn("metadata.schema", finding_codes(findings))
+
+        metadata["capability_releases"] = {"1c": {"version": "1.0.0", "release_id": "0" * 64}}
+        path.write_text(json.dumps(metadata), encoding="utf-8")
+        _, _, findings = self.validate_project(project)
+        # A release recorded for a capability the project does not have is drift.
+        self.assertIn("metadata.schema", finding_codes(findings))
+
+        metadata["capability_releases"] = {"jira-confluence": {"version": "1.0.0", "release_id": "a" * 64}}
+        path.write_text(json.dumps(metadata), encoding="utf-8")
+        _, _, findings = self.validate_project(project)
+        self.assertNotIn("metadata.schema", finding_codes(findings))
+
+    def test_artifacts_ledger_is_optional_but_validated(self):
+        project = self.make_project("minimal")
+        ledger = project / ".project-standard-artifacts.json"
+        _, _, findings = self.validate_project(project)
+        self.assertNotIn("ledger.schema", finding_codes(findings))
+        self.assertNotIn("ledger.invalid", finding_codes(findings))
+
+        ledger.write_text("{not json", encoding="utf-8")
+        _, _, findings = self.validate_project(project)
+        self.assertIn("ledger.invalid", finding_codes(findings))
+
+        ledger.write_text(json.dumps({
+            "schema_version": 1,
+            "artifacts": [{
+                "target": "docs/README.md",
+                "owner": "capability:ghost",
+                "policy": "managed",
+                "payload_class": "template",
+                "hash": "sha256:" + "0" * 64,
+            }],
+        }), encoding="utf-8")
+        _, _, findings = self.validate_project(project)
+        self.assertIn("ledger.schema", finding_codes(findings))
+
+        ledger.write_text(json.dumps({"schema_version": 1, "artifacts": []}), encoding="utf-8")
+        _, _, findings = self.validate_project(project)
+        self.assertNotIn("ledger.schema", finding_codes(findings))
+
     def test_global_rule_drift_is_reported_without_exposing_content(self):
         home = self.temp_path / "home"
         active = home / ".codex" / "AGENTS.md"

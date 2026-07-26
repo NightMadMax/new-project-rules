@@ -81,6 +81,18 @@ class ApplyResult:
     backup: Optional[Path] = None
 
 
+def insert_after(data: dict, anchor: str, key: str, value: object) -> dict:
+    """Return a copy with `key` placed right after `anchor`, keeping field order."""
+    result: dict = {}
+    for name, existing in data.items():
+        result[name] = existing
+        if name == anchor:
+            result[key] = value
+    if key not in result:
+        result[key] = value
+    return result
+
+
 def read_standard_version(contract_root: Path) -> int:
     try:
         raw = (contract_root / "STANDARD_VERSION").read_text(encoding="utf-8").strip()
@@ -307,6 +319,10 @@ def project_plan(project_root: Path, contract_root: Path, profile_arg: str, migr
         desired_metadata["schema_version"] = version
         if version >= 3:
             desired_metadata.setdefault("capabilities", [])
+        if version >= 5 and "capability_releases" not in desired_metadata:
+            # An upgraded project must satisfy the schema it is upgraded to:
+            # without this the migration produces metadata the validator rejects.
+            desired_metadata = insert_after(desired_metadata, "capabilities", "capability_releases", {})
         desired_metadata["source_commit"] = contract_git.commit
         desired_metadata["applied_migrations"] = list(metadata.get("applied_migrations", [])) + [item.migration_id for item in path]
         preview = json.dumps(desired_metadata, ensure_ascii=False, indent=2) + "\n"
