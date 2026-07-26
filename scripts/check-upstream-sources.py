@@ -71,6 +71,9 @@ def main(argv: list[str] | None = None) -> int:
     if moved:
         print("")
         print("A pinned source moved. Run the maintainer refresh deliberately; this job changes nothing.")
+        # The scheduled job passes --report-only so drift stays a notification;
+        # a person running it directly gets a non-zero code to act on.
+        return 0 if args.report_only else 1
     return 0
 
 

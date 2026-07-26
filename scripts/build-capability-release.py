@@ -26,7 +26,7 @@ import release_manifest as release  # noqa: E402
 
 def git_output(staging: Path, *arguments: str) -> str:
     result = subprocess.run(
-        ["git", "-C", str(staging), *arguments],
+        ["git", "-C", str(staging), "-c", "core.quotePath=false", *arguments],
         capture_output=True, text=True,
     )
     if result.returncode != 0:
@@ -35,13 +35,21 @@ def git_output(staging: Path, *arguments: str) -> str:
 
 
 def tracked_files(staging: Path) -> list[str]:
-    """Files git tracks in staging: the same set a reviewer would see."""
-    return sorted(line for line in git_output(staging, "ls-files").splitlines() if line)
+    """Files git tracks in staging: the same set a reviewer would see.
+
+    NUL-separated: a path with a non-ASCII name would otherwise arrive
+    C-quoted, and every such file would look both missing and unexpected.
+    """
+    return sorted(name for name in git_output(staging, "ls-files", "-z").split("\0") if name)
 
 
 def check_staging_state(staging: Path, source: dict) -> list[str]:
     """A pinned source is only pinned if staging actually sits on that commit."""
     findings: list[str] = []
+    toplevel = Path(git_output(staging, "rev-parse", "--show-toplevel").strip()).resolve()
+    if toplevel != staging.resolve():
+        findings.append(f"staging is inside another repository ({toplevel}), not its root")
+        return findings
     head = git_output(staging, "rev-parse", "HEAD").strip()
     if head != source["commit"]:
         findings.append(f"staging is on {head[:12]}, but the release pins {source['commit'][:12]}")

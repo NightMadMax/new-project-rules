@@ -154,6 +154,78 @@ note(
     "release_id must not depend on row order",
 )
 
+# The identifier must depend on the ledger, not only on the passport.
+note(
+    release.compute_release_id(passport(), [row()])
+    != release.compute_release_id(passport(), [row(target_path="b.md", body=b"one\n")]),
+    "release_id must change when the ledger changes",
+)
+
+# Canonical serialisation is what release_id is defined over: pin its shape.
+canonical = release.canonical_json({"b": 1, "a": "\u0446"})
+note(canonical == '{\n  "a": "\u0446",\n  "b": 1\n}\n', f"canonical json changed shape: {canonical!r}")
+
+
+
+def raw_ledger_case(name: str, body: str, expect: str) -> None:
+    with tempfile.TemporaryDirectory() as raw:
+        root = Path(raw)
+        (root / "config").mkdir()
+        (root / release.ARTIFACTS_NAME).write_bytes(body.encode("utf-8"))
+        try:
+            release.read_artifacts(root)
+            issue = None
+        except release.ReleaseError as error:
+            issue = str(error)
+        note(issue is not None and expect in issue, f"{name}: expected '{expect}', got {issue}")
+
+
+# A quoted field parses fine but would not survive being written back.
+header = "\t".join(release.ARTIFACT_FIELDS)
+quoted = "\t".join([
+    "ai_rules_1c", '"content/a\tb.md"', "-", digest(b"one\n"), "copy", "-",
+    "project-managed", "a.md", digest(b"one\n"),
+])
+raw_ledger_case("quoted field with a separator", f"{header}\n{quoted}\n", "separator or quote")
+raw_ledger_case("wrong header", "source\tsource_path\n" + "x\ty\n", "Unexpected header")
+raw_ledger_case("header only", header + "\n", "declares no artifacts")
+ledger_case("target hash is not hex", [row(action="adapt", action_id="fix", target_sha256="zz")], "target_sha256 must be")
+
+# A BOM must not read as a broken header.
+bom_row = "\t".join([
+    "ai_rules_1c", "content/a.md", "-", digest(b"one\n"), "copy", "-",
+    "project-managed", "a.md", digest(b"one\n"),
+])
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw)
+    (root / "config").mkdir()
+    (root / release.ARTIFACTS_NAME).write_bytes(("\ufeff" + f"{header}\n{bom_row}\n").encode("utf-8"))
+    try:
+        note(len(release.read_artifacts(root)) == 1, "a ledger with a BOM must be readable")
+    except release.ReleaseError as error:
+        failures.append(f"a ledger with a BOM must be readable, got {error}")
+ledger_case("empty source path", [row(source_path="")], "unsafe source_path")
+ledger_case("escaping source path", [row(source_path="../etc/passwd")], "unsafe source_path")
+ledger_case("absolute target path", [row(target_path="/etc/hosts")], "unsafe target_path")
+ledger_case(
+    "two rows into one target",
+    [row(source_path="content/a.md"), row(source_path="content/b.md")],
+    "deliver into",
+)
+
+note(
+    any("name must be" in issue for issue in release.validate_release(
+        passport(sources=[{"name": {"a": 1}, "repository": "a/b", "commit": "1" * 40}]))),
+    "a malformed source name must be a finding, not a crash",
+)
+note(any("schema_version" in issue for issue in release.validate_release(passport(schema_version=2))), "schema_version is pinned")
+note(any("capability" in issue for issue in release.validate_release(passport(capability=""))), "capability must be non-empty")
+note(any("inventory_count" in issue for issue in release.validate_release(passport(inventory_count=-1))), "inventory_count must be non-negative")
+note(any("SemVer" in issue for issue in release.validate_release(passport(version="01.0.0"))), "SemVer must reject leading zeroes")
+note(any("sources" in issue for issue in release.validate_release(passport(sources=[]))), "sources must not be empty")
+note(any("dependencies" in issue for issue in release.validate_release(passport(dependencies=[{"name": "x", "class": "maybe", "reason": "y"}]))), "dependency class is checked")
+note(any("sha256" in issue for issue in release.validate_release(passport(binaries=[{"name": "x", "sha256": "z", "application_kind": "ordinary"}]))), "binary hash is checked")
+
 # --- the builder against a staging checkout --------------------------------
 
 with tempfile.TemporaryDirectory() as raw:

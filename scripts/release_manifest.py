@@ -37,6 +37,15 @@ SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 
 
+def unsafe_path(value: str) -> bool:
+    """Repo-relative, no escape, no absolute path."""
+    if not value or value.strip() != value:
+        return True
+    if value.startswith("/") or "\\" in value or ":" in value:
+        return True
+    return ".." in value.split("/")
+
+
 class ReleaseError(Exception):
     """The release passport or the artifact ledger is invalid."""
 
@@ -123,6 +132,9 @@ def validate_release(data: object) -> list[str]:
         if not isinstance(source, dict) or set(source) != {"name", "repository", "commit"}:
             issues.append(f"{where} must hold name, repository and commit")
             continue
+        if not isinstance(source["name"], str) or not source["name"]:
+            issues.append(f"{where}.name must be a non-empty string")
+            continue
         names.append(source["name"])
         if not isinstance(source["commit"], str) or not COMMIT_RE.fullmatch(source["commit"]):
             issues.append(f"{where}.commit must be a 40-hex commit id")
@@ -136,7 +148,7 @@ def validate_release(data: object) -> list[str]:
 def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> list[dict[str, str]]:
     path = contract_root / ARTIFACTS_NAME
     try:
-        text = path.read_bytes().decode("utf-8")
+        text = path.read_bytes().decode("utf-8-sig")
     except (OSError, UnicodeDecodeError) as exc:
         raise ReleaseError(f"Cannot read {ARTIFACTS_NAME}: {exc}") from exc
 
@@ -147,9 +159,19 @@ def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> li
     rows: list[dict[str, str]] = []
     seen: set[tuple[str, str, str]] = set()
     sources = set(known_sources)
+    targets: set[str] = set()
     for number, row in enumerate(reader, start=2):
         if None in row or any(value is None for value in row.values()):
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} does not match the header")
+        for field, value in row.items():
+            # The ledger is written back verbatim, so a value that carries a
+            # separator or a quote would not survive the round trip.
+            if any(mark in value for mark in ("\t", "\r", "\n", '"')):
+                raise ReleaseError(f"{ARTIFACTS_NAME}:{number} field '{field}' contains a separator or quote")
+        if unsafe_path(row["source_path"]):
+            raise ReleaseError(f"{ARTIFACTS_NAME}:{number} unsafe source_path '{row['source_path']}'")
+        if row["target_path"] != "-" and unsafe_path(row["target_path"]):
+            raise ReleaseError(f"{ARTIFACTS_NAME}:{number} unsafe target_path '{row['target_path']}'")
         if sources and row["source"] not in sources:
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} unknown source '{row['source']}'")
         action = row["action"]
@@ -178,6 +200,10 @@ def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> li
         if key in seen:
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} duplicate source {row['source_path']}")
         seen.add(key)
+        if row["target_path"] != "-":
+            if row["target_path"] in targets:
+                raise ReleaseError(f"{ARTIFACTS_NAME}:{number} two rows deliver into {row['target_path']}")
+            targets.add(row["target_path"])
         rows.append(row)
     if not rows:
         raise ReleaseError(f"{ARTIFACTS_NAME} declares no artifacts")
