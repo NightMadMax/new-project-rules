@@ -251,7 +251,7 @@ EDITORCONFIG
       {
         printf '{\n  "schema_version": %s,\n  "profile": "%s",\n  "capabilities": [' "$standard_version" "$profile"
         [ -z "$capability" ] || printf '"%s"' "$capability"
-        printf '],\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n' \
+        printf '],\n  "capability_releases": {},\n  "source": "%s",\n  "source_commit": "%s",\n  "created_at": "%s",\n  "adopted_at": "%s",\n  "applied_migrations": [\n' \
           "$standard_source" "$source_commit" "$today" "$today"
         first_migration=1
         printf '%s\n' "$project_migration_ids" | while IFS= read -r migration_id; do

@@ -10,6 +10,13 @@
   `scripts/check_skills.py` (canonical-триада и vendored payload по hash), оба entry
   point делегируют ей, добавлены юнит-тесты на временных фикстурах. Проверка сразу
   нашла два дефекта в шаблонах capability `jira-confluence` (№143 и №144).
+- Этап Э2 плана реализации capability `1c`: schema стандарта повышена до 5,
+  metadata получает запись `capability_releases`, добавлены миграции 0013–0015 для
+  всех трёх targets, введён ledger `.project-standard-artifacts.json` со своей схемой,
+  валидатором `scripts/artifacts_ledger.py` и проверкой в `validate-project.py`.
+  Миграция схемы 4 → 5 дополняет metadata записью release, поэтому обновлённый проект
+  остаётся валидным; ожидаемая история миграций в PowerShell-тесте bootstrap теперь
+  вычисляется из манифеста.
 - Добавлен [[docs/architecture/one-c/IMPLEMENTATION_PLAN|план реализации capability `1c`]]:
   этапы Э1–Э10 в порядке выполнения, обязательное архитектурное ревью независимым
   ревьюером после каждого этапа, ветка и pull request на этап, отдельная веха Windows.

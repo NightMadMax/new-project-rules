@@ -190,6 +190,7 @@ function Install-Generated {
                 schema_version = [int]$StandardVersion
                 profile = $Profile
                 capabilities = @($Capability)
+                capability_releases = [ordered]@{}
                 source = $StandardSource
                 source_commit = $SourceCommit
                 created_at = $Today

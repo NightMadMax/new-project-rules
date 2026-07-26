@@ -84,6 +84,8 @@ class MigrationPlannerTests(unittest.TestCase):
             "0009-upgrade-project-agents-managed-block-v3",
             "0010-upgrade-project-standard-v4", "0011-upgrade-global-managed-block-v4",
             "0012-upgrade-project-agents-managed-block-v4",
+            "0013-upgrade-project-standard-v5", "0014-upgrade-global-managed-block-v5",
+            "0015-upgrade-project-agents-managed-block-v5",
         })
         path = self.contract / "config" / "migrations.tsv"
         path.write_text(path.read_text(encoding="utf-8") + path.read_text(encoding="utf-8").splitlines()[1] + "\n", encoding="utf-8")
@@ -117,7 +119,7 @@ class MigrationPlannerTests(unittest.TestCase):
         before = digest_tree(project)
         plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
         self.assertEqual(plan.status, "ready")
-        self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block+0006-upgrade-project-agents-managed-block-v2+0009-upgrade-project-agents-managed-block-v3+0012-upgrade-project-agents-managed-block-v4")
+        self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block+0006-upgrade-project-agents-managed-block-v2+0009-upgrade-project-agents-managed-block-v3+0012-upgrade-project-agents-managed-block-v4+0015-upgrade-project-agents-managed-block-v5")
         self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
         self.assertTrue(plan.desired_text.replace("\r\n", "\n").startswith(local))
         self.assertIn("new-project-rules:begin schema=", plan.desired_text)
@@ -150,7 +152,7 @@ class MigrationPlannerTests(unittest.TestCase):
         )
         self.assertEqual(plan.status, "ready")
         self.assertEqual(plan.blockers, ())
-        self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block+0006-upgrade-project-agents-managed-block-v2+0009-upgrade-project-agents-managed-block-v3+0012-upgrade-project-agents-managed-block-v4")
+        self.assertEqual(plan.migration_id, "0003-adopt-project-agents-managed-block+0006-upgrade-project-agents-managed-block-v2+0009-upgrade-project-agents-managed-block-v3+0012-upgrade-project-agents-managed-block-v4+0015-upgrade-project-agents-managed-block-v5")
         self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
         self.assertTrue(plan.desired_text.replace("\r\n", "\n").startswith(local))
         self.assertIn(f"new-project-rules:begin schema={self.version}", plan.desired_text)
@@ -178,7 +180,7 @@ class MigrationPlannerTests(unittest.TestCase):
         before = digest_tree(project)
         plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "ready")
-        self.assertEqual(plan.migration_id, "0001-adopt-project-standard+0004-upgrade-project-standard-v2+0007-upgrade-project-standard-v3+0010-upgrade-project-standard-v4")
+        self.assertEqual(plan.migration_id, "0001-adopt-project-standard+0004-upgrade-project-standard-v2+0007-upgrade-project-standard-v3+0010-upgrade-project-standard-v4+0013-upgrade-project-standard-v5")
         self.assertRegex(plan.fingerprint, r"^[0-9a-f]{64}$")
         metadata = json.loads(plan.preview)
         self.assertEqual(metadata["profile"], "software")
@@ -229,11 +231,46 @@ class MigrationPlannerTests(unittest.TestCase):
         metadata = planner.project_metadata.build_legacy_metadata(
             self.version, "minimal", "NightMadMax/new-project-rules", commit,
             ["0001-adopt-project-standard", "0004-upgrade-project-standard-v2",
-             "0007-upgrade-project-standard-v3", "0010-upgrade-project-standard-v4"],
+             "0007-upgrade-project-standard-v3", "0010-upgrade-project-standard-v4",
+             "0013-upgrade-project-standard-v5"],
         )
         (project / ".project-standard.json").write_text(json.dumps(metadata), encoding="utf-8")
         plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "up_to_date")
+
+    def test_schema4_metadata_without_release_record_upgrades_to_valid_v5(self):
+        project = self.make_project("minimal")
+        commit = planner.inspect_git(self.contract).commit
+        assert commit is not None
+        metadata = planner.project_metadata.build_legacy_metadata(
+            4, "minimal", "NightMadMax/new-project-rules", commit,
+            ["0001-adopt-project-standard", "0004-upgrade-project-standard-v2",
+             "0007-upgrade-project-standard-v3", "0010-upgrade-project-standard-v4"],
+        )
+        # A project written before schema 5 has no release record at all.
+        metadata.pop("capability_releases", None)
+        path = project / ".project-standard.json"
+        path.write_text(json.dumps(metadata) + "\n", encoding="utf-8")
+        subprocess.run(["git", "-C", str(project), "add", ".project-standard.json"], check=True)
+        subprocess.run(["git", "-C", str(project), "commit", "-m", "schema4"], check=True, capture_output=True)
+
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(plan.status, "ready")
+        planner.apply_plan(plan)
+        upgraded = json.loads(path.read_text(encoding="utf-8"))
+        self.assertEqual(upgraded["schema_version"], 5)
+        self.assertEqual(upgraded["capability_releases"], {})
+        self.assertEqual(list(upgraded).index("capability_releases"), list(upgraded).index("capabilities") + 1)
+        known = [row.migration_id for row in self.migrations if row.target == "project"]
+        self.assertEqual(
+            planner.project_metadata.validate_metadata(
+                upgraded, self.version, "NightMadMax/new-project-rules", known),
+            [],
+        )
+        subprocess.run(["git", "-C", str(project), "add", "-A"], check=True)
+        subprocess.run(["git", "-C", str(project), "commit", "-m", "upgraded"], check=True, capture_output=True)
+        repeat = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(repeat.status, "up_to_date")
 
     def test_schema1_project_metadata_upgrades_atomically_to_v2(self):
         project = self.make_project("minimal")
@@ -249,15 +286,16 @@ class MigrationPlannerTests(unittest.TestCase):
         subprocess.run(["git", "-C", str(project), "commit", "-m", "schema1"], check=True, capture_output=True)
         plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "ready")
-        self.assertEqual(plan.migration_id, "0004-upgrade-project-standard-v2+0007-upgrade-project-standard-v3+0010-upgrade-project-standard-v4")
+        self.assertEqual(plan.migration_id, "0004-upgrade-project-standard-v2+0007-upgrade-project-standard-v3+0010-upgrade-project-standard-v4+0013-upgrade-project-standard-v5")
         before = path.read_bytes()
         result = planner.apply_plan(plan)
         self.assertTrue(result.changed)
         upgraded = json.loads(path.read_text(encoding="utf-8"))
-        self.assertEqual(upgraded["schema_version"], 4)
+        self.assertEqual(upgraded["schema_version"], 5)
         self.assertEqual(upgraded["applied_migrations"], [
             "0001-adopt-project-standard", "0004-upgrade-project-standard-v2",
-            "0007-upgrade-project-standard-v3", "0010-upgrade-project-standard-v4"
+            "0007-upgrade-project-standard-v3", "0010-upgrade-project-standard-v4",
+            "0013-upgrade-project-standard-v5"
         ])
         self.assertNotEqual(before, path.read_bytes())
 
@@ -269,21 +307,21 @@ class MigrationPlannerTests(unittest.TestCase):
             (self.contract / "GLOBAL_AGENT_INSTRUCTIONS.md").read_text(encoding="utf-8"), 1
         ), encoding="utf-8")
         global_plan = planner.global_plan(home, self.contract, self.migrations, self.version)
-        self.assertEqual(global_plan.migration_id, "0005-upgrade-global-managed-block-v2+0008-upgrade-global-managed-block-v3+0011-upgrade-global-managed-block-v4")
+        self.assertEqual(global_plan.migration_id, "0005-upgrade-global-managed-block-v2+0008-upgrade-global-managed-block-v3+0011-upgrade-global-managed-block-v4+0014-upgrade-global-managed-block-v5")
         self.assertEqual(global_plan.status, "ready")
         global_result = planner.apply_plan(global_plan)
         self.assertIsNotNone(global_result.backup)
-        self.assertIn("schema=4", active.read_text(encoding="utf-8"))
+        self.assertIn("schema=5", active.read_text(encoding="utf-8"))
 
         local = "## Project Identity\n\n- Project: `Demo`\n\n"
         project = self.make_agents_project(local + planner.agent_sync.managed_block(self.baseline_text(), 1))
         agents_plan = planner.project_agents_plan(project, self.contract, self.migrations, self.version)
-        self.assertEqual(agents_plan.migration_id, "0006-upgrade-project-agents-managed-block-v2+0009-upgrade-project-agents-managed-block-v3+0012-upgrade-project-agents-managed-block-v4")
+        self.assertEqual(agents_plan.migration_id, "0006-upgrade-project-agents-managed-block-v2+0009-upgrade-project-agents-managed-block-v3+0012-upgrade-project-agents-managed-block-v4+0015-upgrade-project-agents-managed-block-v5")
         self.assertEqual(agents_plan.status, "ready")
         agents_result = planner.apply_plan(agents_plan)
         self.assertIsNotNone(agents_result.backup)
         self.assertTrue((project / "AGENTS.md").read_text(encoding="utf-8").startswith(local))
-        self.assertIn("schema=4", (project / "AGENTS.md").read_text(encoding="utf-8"))
+        self.assertIn("schema=5", (project / "AGENTS.md").read_text(encoding="utf-8"))
 
     def test_migration_graph_rejects_missing_and_ambiguous_steps(self):
         rows = list(self.migrations)

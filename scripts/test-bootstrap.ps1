@@ -29,6 +29,16 @@ function Assert-NoBom {
     }
     else { Pass }
 }
+# Expected history comes from the manifest, so a schema bump does not require
+# editing this test.
+$ExpectedProjectMigrations = @(
+    foreach ($line in (Get-Content -Encoding UTF8 (Join-Path (Split-Path $ScriptDir -Parent) "config/migrations.tsv") | Select-Object -Skip 1)) {
+        if ($line.Trim() -eq "") { continue }
+        $fields = $line -split "`t"
+        if ($fields[1] -eq "project") { $fields[0] }
+    }
+)
+
 function Assert-Metadata {
     param($File, $Profile, $Tag)
     try {
@@ -40,7 +50,7 @@ function Assert-Metadata {
                 $metadata.source_commit -match '^[0-9a-f]{40}$' -and
                 $metadata.created_at -match '^\d{4}-\d{2}-\d{2}$' -and
                 $metadata.adopted_at -match '^\d{4}-\d{2}-\d{2}$' -and
-                (($metadata.applied_migrations -join ',') -eq '0001-adopt-project-standard,0004-upgrade-project-standard-v2,0007-upgrade-project-standard-v3,0010-upgrade-project-standard-v4')) {
+                (($metadata.applied_migrations -join ',') -eq ($ExpectedProjectMigrations -join ','))) {
             Pass
         }
         else { Fail "${Tag}: metadata fields are invalid" }

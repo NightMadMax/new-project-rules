@@ -8,9 +8,11 @@ from typing import Optional, Sequence
 
 
 PROFILE_NAMES = {"minimal", "software", "operated", "all"}
-CAPABILITY_NAMES = {"jira-confluence"}
+CAPABILITY_NAMES = {"jira-confluence", "1c"}
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
+SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
+RELEASE_ID_RE = re.compile(r"^[0-9a-f]{64}$")
 
 
 def valid_date(value: object) -> bool:
@@ -51,6 +53,25 @@ def validate_metadata(
         unknown_capabilities = sorted(set(capabilities) - CAPABILITY_NAMES)
         if unknown_capabilities:
             issues.append(f"capabilities contains unknown IDs: {', '.join(unknown_capabilities)}")
+    releases = data.get("capability_releases", {})
+    if current_schema >= 5 and "capability_releases" not in data:
+        issues.append("capability_releases must be present in schema 5+ metadata")
+    if not isinstance(releases, dict):
+        issues.append("capability_releases must be a JSON object")
+    else:
+        for name, record in sorted(releases.items()):
+            if name not in CAPABILITY_NAMES:
+                issues.append(f"capability_releases contains unknown capability: {name}")
+                continue
+            if isinstance(capabilities, list) and name not in capabilities:
+                issues.append(f"capability_releases records {name}, which is not an enabled capability")
+            if not isinstance(record, dict) or set(record) != {"version", "release_id"}:
+                issues.append(f"capability_releases[{name}] must hold version and release_id only")
+                continue
+            if not isinstance(record["version"], str) or not SEMVER_RE.fullmatch(record["version"]):
+                issues.append(f"capability_releases[{name}].version must be SemVer")
+            if not isinstance(record["release_id"], str) or not RELEASE_ID_RE.fullmatch(record["release_id"]):
+                issues.append(f"capability_releases[{name}].release_id must be a 64-hex digest")
     source = data.get("source")
     if not isinstance(source, str) or not SOURCE_RE.fullmatch(source):
         issues.append("source must use owner/repository format")
@@ -89,6 +110,7 @@ def build_legacy_metadata(
         "schema_version": schema,
         "profile": profile,
         "capabilities": list(capabilities),
+        "capability_releases": {},
         "source": source,
         "source_commit": source_commit,
         "created_at": None,
