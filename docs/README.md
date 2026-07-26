@@ -40,6 +40,7 @@ related:
 - [[docs/architecture/ONE_C_CAPABILITY_PLAN|План capability 1С]]
 - [[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN|Подплан среды capability 1С]]
 - [[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN|Подплан доставки и состояния capability 1С]]
+- [[docs/architecture/one-c/IMPLEMENTATION_PLAN|План реализации capability 1С]]
 
 ## Исследования
 

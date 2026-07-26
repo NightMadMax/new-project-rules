@@ -7,6 +7,7 @@ source_of_truth: repository
 related:
   - "[[docs/architecture/ONE_C_CAPABILITY_PLAN]]"
   - "[[docs/architecture/PROJECT_STANDARD_SCHEMA]]"
+  - "[[docs/architecture/one-c/IMPLEMENTATION_PLAN]]"
   - "[[docs/architecture/decisions/ADR-0002-versioned-project-contract]]"
 ---
 
@@ -177,11 +178,9 @@ Ledger, обработчик миграции, версии и bump схемы �
 
 ## 8. Порядок работ
 
-1. Ledger и bump схемы (разделы 3 и 5) — от них зависит всё остальное.
-2. Классы payload и манифест (раздел 1).
-3. Обработчик `capability_artifacts` (раздел 2) и версии (раздел 4).
-4. Порядок preset/Best Practices (раздел 6).
-5. Проверки skills (раздел 7) — независимы, можно раньше.
+Разложен по этапам E1–E5 в
+[[docs/architecture/one-c/IMPLEMENTATION_PLAN|плане реализации]]: состояние и
+схема, классы payload, обработчик, ядро preset, проверки skills.
 
 ## 9. Закрытые развилки
 

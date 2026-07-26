@@ -8,6 +8,7 @@ related:
   - "[[docs/architecture/ARCHITECTURE]]"
   - "[[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN]]"
   - "[[docs/architecture/one-c/DELIVERY_AND_STATE_PLAN]]"
+  - "[[docs/architecture/one-c/IMPLEMENTATION_PLAN]]"
   - "[[docs/guides/CREATE_NEW_PROJECT]]"
   - "[[config/capabilities.tsv]]"
   - "[[config/migrations.tsv]]"
@@ -2050,7 +2051,13 @@ Capability затрагивает те же места, что и `jira-confluen
 - `docs/quality/DEFECTS.md`/`PLAYBOOK.md` — по мере обнаружения дефектов и
   проверенных паттернов capability.
 
-## Предварительный черновик этапов внедрения
+## Этапы внедрения
+
+Рабочая последовательность, зависимости, приёмка каждого этапа и веха Windows —
+в [[docs/architecture/one-c/IMPLEMENTATION_PLAN|плане реализации]]. Ниже —
+исходный состав работ, от которого он построен.
+
+### Состав работ
 
 1. Зафиксировать агрегатный release в `config/1c-release.json` и
    `config/1c-artifacts.tsv`: pinned sources, полный inventory, четыре actions,
