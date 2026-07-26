@@ -41,7 +41,6 @@ if ($null -eq $Python) {
 if ($LASTEXITCODE -ne 0) { $Failures++ }
 
 $reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
-$reflectText = Get-Content -Raw -Encoding UTF8 $reflectSkill
 Test-RequiredLiterals -File $reflectSkill -Literals @(
     'instruction changes apply to new processes/sessions'
 )

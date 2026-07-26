@@ -88,6 +88,7 @@ jobs:
           python .\scripts\test-github-governance.py
           python .\scripts\test-best-practices-manifest.py
           python .\scripts\test-standard-metrics.py
+          python .\scripts\test-check-skills.py
       - name: Validator report on Windows
         shell: powershell
         run: |

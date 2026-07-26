@@ -34,6 +34,9 @@ related:
 
 ## Предпосылки
 
+`scripts/test-skills.sh` и `.ps1` теперь делегируют проверку skills
+`scripts/check_skills.py`, поэтому им тоже нужен Python 3.9+.
+
 - У каждого инструмента есть парные `.sh` (macOS/Linux) и `.ps1` (Windows).
 - Python `3.9+` нужен для `validate-project`, `sync-global-agents`,
   `plan-migration`, `standardize-existing-project`, promotion candidates и
