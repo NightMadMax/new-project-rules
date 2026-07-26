@@ -79,7 +79,12 @@ def validate_metadata(
                 issues.append(f"capability_releases contains unknown capability: {name}")
                 continue
             if isinstance(capabilities, list) and name not in capabilities:
-                issues.append(f"capability_releases records {name}, which is not an enabled capability")
+                # A recorded release is the project's own evidence that it was
+                # created with the capability. Dropping the capability while the
+                # record stays is exactly the removal decision 1.5 forbids.
+                issues.append(
+                    f"capability '{name}' has an installed release and cannot be removed from capabilities"
+                )
             if not isinstance(record, dict) or set(record) != {"version", "release_id"}:
                 issues.append(f"capability_releases[{name}] must hold version and release_id only")
                 continue

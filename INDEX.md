@@ -102,6 +102,9 @@
 | `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
 | `scripts/capability_artifacts.py` | Транзакционные план и применение артефактов capability |
 | `scripts/presets.py` | Раскрытие preset в профиль, capability и стеки |
+| `scripts/release_manifest.py` | Контракт release capability: паспорт, ledger артефактов, `release_id` |
+| `scripts/build-capability-release.py` | Сборка и проверка release против локального staging |
+| `scripts/check-upstream-sources.py` | Отчёт о смещении pinned source; ничего не меняет |
 | `scripts/validate_project_support.py` | Чтение манифеста capability для скриптов вне валидатора |
 | `scripts/apply-capability-artifacts.py` | CLI плана и применения артефактов capability |
 | `scripts/apply-capability-artifacts.sh` | Обёртка плана артефактов для macOS/Linux |
@@ -130,6 +133,7 @@
 | `scripts/test-payload-classes.py` | Тесты доставки артефактов: подстановка против побайтного копирования |
 | `scripts/test-capability-artifacts.py` | Тесты транзакционной установки и обновления артефактов capability |
 | `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
+| `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/standardize_existing_project.py` | Read-only decision report для стандартизации существующего проекта |
 | `scripts/standardize-existing-project.sh` | Existing-project standardization planner для macOS/Linux |
 | `scripts/standardize-existing-project.ps1` | Existing-project standardization planner для Windows |

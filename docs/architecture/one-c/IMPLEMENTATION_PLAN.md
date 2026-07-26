@@ -71,7 +71,7 @@ related:
 | Э3. Классы payload | выполнен 2026-07-26 | PR #27, merge `a1ab42e` |
 | Э4. `capability_artifacts` | выполнен 2026-07-26 | PR #28, merge `3755deb` |
 | Э5. Preset и ядро | выполнен 2026-07-26 | PR (в работе) |
-| Э6. Build-time release | не начат | — |
+| Э6. Build-time release | частично 2026-07-26 | PR (в работе) |
 | Э7. Каркас проекта | не начат | — |
 | Э8. Skills и проекции | не начат | — |
 | Э9. Формат и конвертация | не начат | — |
@@ -231,7 +231,19 @@ capability создавал заведомо невалидный проект. 
 
 ### Э6. Build-time release capability
 
-Зависит от Э2, Э4. Размер: L. Ветка `feat/1c-release-build`.
+**Выполнен частично 2026-07-26.** Зависит от Э2, Э4. Размер: L.
+Ветка `feat/1c-release-build`.
+
+Сделаны формат и инструменты: паспорт `config/1c-release.json`, ledger
+`config/1c-artifacts.tsv`, детерминированный `release_id`, offline-сборка против
+локального staging и weekly-проверка, которая только уведомляет. Закрыт
+дефект №148: capability с установленным release нельзя убрать из metadata.
+
+**Не сделано:** сам импорт pinned `ai_rules_1c` и выпуск release. Для него нужны
+клон upstream и решение maintainer, поэтому в репозитории пока нет ни
+`1c-release.json`, ни строк ledger — только контракт и проверки. Приёмочные
+пункты «241 source-запись» и «release блокируется при пустом `practices/1c`»
+относятся к этому запуску и остаются невыполненными.
 
 1. `config/1c-release.json` и `config/1c-artifacts.tsv`: pinned commits,
    inventory, четыре действия, ownership, targets, dependencies, hashes.
