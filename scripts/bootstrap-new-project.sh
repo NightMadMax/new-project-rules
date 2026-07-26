@@ -137,7 +137,7 @@ while IFS="$tab" read -r row_capability source artifact_destination root_purpose
   [ "$row_capability" = capability ] && continue
   [ "$row_capability" = jira-confluence ] || { echo "Unknown capability '$row_capability'" >&2; exit 1; }
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
-  case "$payload_class" in
+  case "$(printf '%s' "$payload_class" | tr -d '\r')" in
     ""|-|template|verbatim|binary) ;;
     *) echo "Unknown payload class '$payload_class' for $artifact_destination" >&2; exit 1 ;;
   esac
@@ -223,7 +223,8 @@ install_verbatim() {
 install_artifact() {
   source_file=$1
   target_file=$2
-  payload_class=$3
+  # A manifest checked out with CRLF would otherwise yield "template\r".
+  payload_class=$(printf '%s' "$3" | tr -d '\r')
   case "$payload_class" in
     ""|-|template) install_template "$source_file" "$target_file" ;;
     verbatim|binary) install_verbatim "$source_file" "$target_file" ;;
@@ -249,7 +250,7 @@ install_generated() {
         while IFS="$tab" read -r attr_capability attr_source attr_destination attr_purpose attr_section attr_label attr_class; do
           [ "$attr_first" -eq 1 ] && { attr_first=0; continue; }
           [ "$attr_capability" = "$capability" ] || continue
-          case "$attr_class" in
+          case "$(printf '%s' "$attr_class" | tr -d '\r')" in
             verbatim|binary) printf '%s -text\n' "$attr_destination" >> "$destination/$target" ;;
           esac
         done < "$capabilities_manifest"

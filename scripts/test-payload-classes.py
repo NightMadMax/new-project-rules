@@ -52,7 +52,7 @@ def prepare(workspace: Path) -> Path:
     executable.chmod(0o755)
 
     manifest = contract / "config" / "capabilities.tsv"
-    rows = manifest.read_text(encoding="utf-8").rstrip("\n").split("\n")
+    rows = manifest.read_bytes().decode("utf-8").rstrip("\n").split("\n")
     for source, destination, payload_class in (
         ("payload/VERBATIM.md", "payload/VERBATIM.md", "verbatim"),
         ("payload/BINARY.bin", "payload/BINARY.bin", "binary"),
@@ -63,7 +63,7 @@ def prepare(workspace: Path) -> Path:
         rows.append("\t".join([
             CAPABILITY, f"capabilities/{CAPABILITY}/{source}", destination, "-", "-", "-", payload_class,
         ]))
-    manifest.write_text("\n".join(rows) + "\n", encoding="utf-8")
+    manifest.write_bytes(("\n".join(rows) + "\n").encode("utf-8"))
 
     # Bootstrap records the rules commit as provenance, so the copy needs one.
     git = ["git", "-C", str(contract), "-c", "user.name=test", "-c", "user.email=test@example.com"]
@@ -102,7 +102,8 @@ def check_project(project: Path, label: str) -> None:
         capture_output=True,
     )
     if committed.returncode != 0:
-        failures.append(f"{label}: payload is not in the initial commit")
+        reason = committed.stderr.decode("utf-8", "replace").strip()[:200]
+        failures.append(f"{label}: payload is not in the initial commit ({reason})")
     elif digest(committed.stdout) != digest(PAYLOAD):
         failures.append(f"{label}: payload was normalised when committed")
 
@@ -147,8 +148,8 @@ def run_bootstrap(contract: Path, workspace: Path, runner, label: str) -> None:
 def run_unknown_class(contract: Path, workspace: Path, runner, label: str) -> None:
     """An unknown class must stop the run instead of guessing a delivery mode."""
     manifest = contract / "config" / "capabilities.tsv"
-    original = manifest.read_text(encoding="utf-8")
-    manifest.write_text(original.replace("\tverbatim\n", "\tmystery\n", 1), encoding="utf-8")
+    original = manifest.read_bytes().decode("utf-8")
+    manifest.write_bytes(original.replace("\tverbatim\n", "\tmystery\n", 1).encode("utf-8"))
     destination = workspace / f"rejected-{label}"
     try:
         result = runner(contract, destination)
@@ -161,7 +162,7 @@ def run_unknown_class(contract: Path, workspace: Path, runner, label: str) -> No
         if destination.exists() and any(destination.iterdir()):
             failures.append(f"{label}: a rejected run left files behind")
     finally:
-        manifest.write_text(original, encoding="utf-8")
+        manifest.write_bytes(original.encode("utf-8"))
 
 
 def main() -> int:
