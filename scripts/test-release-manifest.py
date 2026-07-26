@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import os
 import json
 import subprocess
 import sys
@@ -350,11 +351,17 @@ with tempfile.TemporaryDirectory() as raw:
     before = (root / release.RELEASE_NAME).read_bytes()
 
     # A stub git keeps the suite offline and lets both answers be tested.
+    # Windows resolves a bare "git" through PATHEXT, so the stub has to be a
+    # .cmd there; a POSIX shell script would be ignored and the real git would
+    # answer - which is exactly the network call this test must not make.
     stub = root / "stub"
     stub.mkdir()
-    (stub / "git").write_text("#!/bin/sh\necho \"$FAKE_HEAD\tHEAD\"\n", encoding="utf-8")
-    (stub / "git").chmod(0o755)
-    environment = {**dict(__import__("os").environ), "PATH": f"{stub}:{__import__('os').environ['PATH']}"}
+    if os.name == "nt":
+        (stub / "git.cmd").write_text("@echo off\r\necho %FAKE_HEAD%\tHEAD\r\n", encoding="utf-8")
+    else:
+        (stub / "git").write_text("#!/bin/sh\nprintf '%s\\tHEAD\\n' \"$FAKE_HEAD\"\n", encoding="utf-8")
+        (stub / "git").chmod(0o755)
+    environment = {**dict(os.environ), "PATH": str(stub) + os.pathsep + os.environ["PATH"]}
 
     for head, expected in ((("1" * 40), "up to date"), (("2" * 40), "upstream")):
         check = subprocess.run(
