@@ -65,7 +65,7 @@ def vendored_skill(root: Path, name: str, files: dict[str, str], *, listed: dict
     write(root / "config/skills-payload" / f"{name}.sha256", "\n".join(lines) + "\n")
 
 
-CAPABILITIES_HEADER = "capability\tsource\tdestination\troot_purpose\tdocs_section\tdocs_label\n"
+CAPABILITIES_HEADER = "capability\tsource\tdestination\troot_purpose\tdocs_section\tdocs_label\tpayload_class\n"
 
 
 def manifest(root: Path, rows: list[str]) -> None:
@@ -336,7 +336,7 @@ def build_capability_skill_undeclared(root: Path) -> None:
     write(
         root / "config/capabilities.tsv",
         CAPABILITIES_HEADER
-        + "demo\tcapabilities/demo/.agents/skills/demo-skill/SKILL.md\t.agents/skills/demo-skill/SKILL.md\t-\t-\t-\n",
+        + "demo\tcapabilities/demo/.agents/skills/demo-skill/SKILL.md\t.agents/skills/demo-skill/SKILL.md\t-\t-\t-\ttemplate\n",
     )
 
 

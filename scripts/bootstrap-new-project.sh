@@ -133,10 +133,14 @@ capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${
   echo "Invalid capability manifest header: $capabilities_manifest" >&2
   exit 1
 }
-while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
   [ "$row_capability" = capability ] && continue
   [ "$row_capability" = jira-confluence ] || { echo "Unknown capability '$row_capability'" >&2; exit 1; }
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
+  case "$payload_class" in
+    ""|-|template|verbatim|binary) ;;
+    *) echo "Unknown payload class '$payload_class' for $artifact_destination" >&2; exit 1 ;;
+  esac
 done < "$capabilities_manifest"
 
 seen_destinations='|'
@@ -238,6 +242,18 @@ install_generated() {
     .gitattributes)
       printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
         '*.md text eol=lf' '*.json text eol=lf' > "$destination/$target"
+      # Byte-exact payload must survive the commit as well: without -text the
+      # generated rules above would normalise line endings on `git add`.
+      if [ -n "$capability" ]; then
+        attr_first=1
+        while IFS="$tab" read -r attr_capability attr_source attr_destination attr_purpose attr_section attr_label attr_class; do
+          [ "$attr_first" -eq 1 ] && { attr_first=0; continue; }
+          [ "$attr_capability" = "$capability" ] || continue
+          case "$attr_class" in
+            verbatim|binary) printf '%s -text\n' "$attr_destination" >> "$destination/$target" ;;
+          esac
+        done < "$capabilities_manifest"
+      fi
       ;;
     .editorconfig)
       cat > "$destination/$target" <<'EDITORCONFIG'
@@ -301,6 +317,7 @@ if [ "$capability" = jira-confluence ]; then
   first=1
   while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
     [ "$first" -eq 1 ] && { first=0; continue; }
+    [ "$row_capability" = "$capability" ] || continue
     install_artifact "$source" "$artifact_destination" "$payload_class"
   done < "$capabilities_manifest"
 fi
@@ -353,6 +370,7 @@ if [ "$capability" = jira-confluence ]; then
   first=1
   while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
     [ "$first" -eq 1 ] && { first=0; continue; }
+    [ "$row_capability" = "$capability" ] || continue
     ensure_index_entry "$artifact_destination" "$root_purpose"
     ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
   done < "$capabilities_manifest"

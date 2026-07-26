@@ -10,6 +10,7 @@ processing would rewrite it and change its hash.
 from __future__ import annotations
 
 import hashlib
+import os
 import shutil
 import subprocess
 import sys
@@ -18,7 +19,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CAPABILITY = "jira-confluence"
-PAYLOAD = b"<PROJECT_NAME> <YYYY-MM-DD> <SCHEMA_VERSION>\n\x00\x01\x02 binary tail\n"
+# Invalid UTF-8 on purpose: bytes that survive a text round-trip would let a
+# Get-Content/Set-Content style regression pass unnoticed. CRLF is here to catch
+# line-ending normalisation, including the one Git would apply on commit.
+PAYLOAD = b"<PROJECT_NAME> <YYYY-MM-DD>\r\n\xff\xfe\x00\x80 binary tail\r\n"
 failures: list[str] = []
 
 
@@ -34,7 +38,7 @@ def prepare(workspace: Path) -> Path:
     """
     contract = workspace / "rules"
     shutil.copytree(
-        ROOT, contract,
+        ROOT, contract, symlinks=True,
         ignore=shutil.ignore_patterns(".git", "__pycache__", ".venv", "venv", "node_modules"),
     )
     templates = contract / "templates" / "new-project" / "capabilities" / CAPABILITY
@@ -42,6 +46,10 @@ def prepare(workspace: Path) -> Path:
     (templates / "payload" / "VERBATIM.md").write_bytes(PAYLOAD)
     (templates / "payload" / "BINARY.bin").write_bytes(PAYLOAD)
     (templates / "payload" / "TEMPLATE.md").write_bytes(b"# <PROJECT_NAME>\n")
+    (templates / "payload" / "DASH.md").write_bytes(b"# <PROJECT_NAME>\n")
+    executable = templates / "payload" / "tool.sh"
+    executable.write_bytes(b"#!/bin/sh\necho tool\n")
+    executable.chmod(0o755)
 
     manifest = contract / "config" / "capabilities.tsv"
     rows = manifest.read_text(encoding="utf-8").rstrip("\n").split("\n")
@@ -49,6 +57,8 @@ def prepare(workspace: Path) -> Path:
         ("payload/VERBATIM.md", "payload/VERBATIM.md", "verbatim"),
         ("payload/BINARY.bin", "payload/BINARY.bin", "binary"),
         ("payload/TEMPLATE.md", "payload/TEMPLATE.md", "template"),
+        ("payload/DASH.md", "payload/DASH.md", "-"),
+        ("payload/tool.sh", "payload/tool.sh", "verbatim"),
     ):
         rows.append("\t".join([
             CAPABILITY, f"capabilities/{CAPABILITY}/{source}", destination, "-", "-", "-", payload_class,
@@ -71,59 +81,85 @@ def check_project(project: Path, label: str) -> None:
             continue
         if digest(delivered.read_bytes()) != digest(PAYLOAD):
             failures.append(f"{label}: {name} was modified in delivery")
-    template = project / "payload" / "TEMPLATE.md"
-    if not template.is_file():
-        failures.append(f"{label}: template artifact was not delivered")
-    elif "<PROJECT_NAME>" in template.read_text(encoding="utf-8"):
-        failures.append(f"{label}: template placeholders were not substituted")
+
+    # Both spellings of the default class must still be substituted.
+    for name in ("payload/TEMPLATE.md", "payload/DASH.md"):
+        template = project / name
+        if not template.is_file():
+            failures.append(f"{label}: {name} was not delivered")
+        elif "<PROJECT_NAME>" in template.read_bytes().decode("utf-8"):
+            failures.append(f"{label}: {name} placeholders were not substituted")
+
+    tool = project / "payload" / "tool.sh"
+    if not tool.is_file():
+        failures.append(f"{label}: executable payload was not delivered")
+    elif os.name != "nt" and not os.access(tool, os.X_OK):
+        failures.append(f"{label}: executable payload lost its exec bit")
+
+    # Byte-exactness must survive the commit bootstrap makes, not just the copy.
+    committed = subprocess.run(
+        ["git", "-C", str(project), "show", "HEAD:payload/VERBATIM.md"],
+        capture_output=True,
+    )
+    if committed.returncode != 0:
+        failures.append(f"{label}: payload is not in the initial commit")
+    elif digest(committed.stdout) != digest(PAYLOAD):
+        failures.append(f"{label}: payload was normalised when committed")
 
 
-def run_shell(contract: Path, workspace: Path) -> None:
-    destination = workspace / "sh-project"
-    result = subprocess.run(
-        ["sh", str(contract / "scripts" / "bootstrap-new-project.sh"),
-         str(destination), "demo", "operated", CAPABILITY],
+def shell_bootstrap(contract: Path, destination: Path):
+    """Run the POSIX entry point; forward slashes keep it usable on Windows."""
+    if not shutil.which("sh"):
+        print("SKIP: sh is not available on this machine")
+        return None
+    return subprocess.run(
+        ["sh", (contract / "scripts" / "bootstrap-new-project.sh").as_posix(),
+         destination.as_posix(), "demo", "operated", CAPABILITY],
         capture_output=True, text=True,
     )
-    if result.returncode != 0:
-        failures.append(f"shell bootstrap failed: {result.stderr.strip()[:400]}")
-        return
-    check_project(destination, "shell")
 
 
-def run_powershell(contract: Path, workspace: Path) -> None:
+def powershell_bootstrap(contract: Path, destination: Path):
     pwsh = shutil.which("pwsh") or shutil.which("powershell")
     if not pwsh:
         print("SKIP: PowerShell is not available on this machine")
-        return
-    destination = workspace / "ps-project"
-    result = subprocess.run(
+        return None
+    script = (contract / "scripts" / "bootstrap-new-project.ps1").as_posix()
+    return subprocess.run(
         [pwsh, "-NoProfile", "-Command",
-         f"& '{contract / 'scripts' / 'bootstrap-new-project.ps1'}' -ProjectName demo "
-         f"-Destination '{destination}' -Profile operated -Capability {CAPABILITY}"],
+         f"& '{script}' -ProjectName demo -Destination '{destination.as_posix()}' "
+         f"-Profile operated -Capability {CAPABILITY}"],
         capture_output=True, text=True,
     )
-    if result.returncode != 0:
-        failures.append(f"PowerShell bootstrap failed: {result.stderr.strip()[:400]}")
+
+
+def run_bootstrap(contract: Path, workspace: Path, runner, label: str) -> None:
+    destination = workspace / f"{label}-project"
+    result = runner(contract, destination)
+    if result is None:
         return
-    check_project(destination, "PowerShell")
+    if result.returncode != 0:
+        failures.append(f"{label} bootstrap failed: {result.stderr.strip()[:400]}")
+        return
+    check_project(destination, label)
 
 
-def run_unknown_class(contract: Path, workspace: Path) -> None:
+def run_unknown_class(contract: Path, workspace: Path, runner, label: str) -> None:
     """An unknown class must stop the run instead of guessing a delivery mode."""
     manifest = contract / "config" / "capabilities.tsv"
     original = manifest.read_text(encoding="utf-8")
     manifest.write_text(original.replace("\tverbatim\n", "\tmystery\n", 1), encoding="utf-8")
+    destination = workspace / f"rejected-{label}"
     try:
-        result = subprocess.run(
-            ["sh", str(contract / "scripts" / "bootstrap-new-project.sh"),
-             str(workspace / "rejected"), "demo", "operated", CAPABILITY],
-            capture_output=True, text=True,
-        )
+        result = runner(contract, destination)
+        if result is None:
+            return
         if result.returncode == 0:
-            failures.append("shell bootstrap accepted an unknown payload class")
+            failures.append(f"{label}: an unknown payload class was accepted")
         if "payload class" not in (result.stderr + result.stdout):
-            failures.append("shell bootstrap did not explain the unknown payload class")
+            failures.append(f"{label}: the unknown payload class was not explained")
+        if destination.exists() and any(destination.iterdir()):
+            failures.append(f"{label}: a rejected run left files behind")
     finally:
         manifest.write_text(original, encoding="utf-8")
 
@@ -132,9 +168,11 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as raw:
         workspace = Path(raw)
         contract = prepare(workspace)
-        run_shell(contract, workspace)
-        run_powershell(contract, workspace)
-        run_unknown_class(contract, workspace)
+        runners = ((shell_bootstrap, "shell"), (powershell_bootstrap, "powershell"))
+        for runner, label in runners:
+            run_bootstrap(contract, workspace, runner, label)
+        for runner, label in runners:
+            run_unknown_class(contract, workspace, runner, label)
 
     if failures:
         for failure in failures:

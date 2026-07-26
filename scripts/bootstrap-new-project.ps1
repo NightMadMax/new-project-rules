@@ -173,9 +173,11 @@ function Install-Verbatim {
 function Install-Artifact {
     param([string]$Source, [string]$Target, [string]$PayloadClass)
 
-    switch ($PayloadClass) {
-        { $_ -in @("", "-", "template") } { Install-Template $Source $Target; break }
-        { $_ -in @("verbatim", "binary") } { Install-Verbatim $Source $Target; break }
+    # Case-sensitive on purpose: POSIX `case` is, and the same manifest must not
+    # install on one platform and fail on the other.
+    switch -CaseSensitive ($PayloadClass) {
+        { $_ -ceq "" -or $_ -ceq "-" -or $_ -ceq "template" } { Install-Template $Source $Target; break }
+        { $_ -ceq "verbatim" -or $_ -ceq "binary" } { Install-Verbatim $Source $Target; break }
         default { throw "Unknown payload class '$PayloadClass' for $Target" }
     }
 }
@@ -190,10 +192,19 @@ function Install-Generated {
             )
         }
         ".gitattributes" {
-            Write-Utf8NoBom (Join-Path $Destination $Target) @(
+            $lines = @(
                 "* text=auto", "*.sh text eol=lf", "*.ps1 text eol=crlf",
                 "*.md text eol=lf", "*.json text eol=lf"
             )
+            # Byte-exact payload must survive the commit as well: without -text
+            # the generated rules above would normalise line endings on `git add`.
+            $lines += @(
+                $CapabilityArtifacts |
+                    Where-Object { $_.capability -in $Capability } |
+                    Where-Object { $_.payload_class -cin @("verbatim", "binary") } |
+                    ForEach-Object { "$($_.destination) -text" }
+            )
+            Write-Utf8NoBom (Join-Path $Destination $Target) $lines
         }
         ".editorconfig" {
             Write-Utf8NoBom (Join-Path $Destination $Target) @(
@@ -229,7 +240,8 @@ foreach ($artifact in $SelectedArtifacts) {
         Install-Generated $artifact.destination
     }
     else {
-        Install-Artifact $artifact.source $artifact.destination ($artifact.PSObject.Properties["payload_class"].Value)
+        $payloadClass = if ($artifact.PSObject.Properties.Name -contains "payload_class") { $artifact.payload_class } else { "" }
+        Install-Artifact $artifact.source $artifact.destination $payloadClass
     }
 }
 

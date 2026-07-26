@@ -35,9 +35,9 @@ EXPECTED_CAPABILITY_FIELDS = (
     "capability", "source", "destination", "root_purpose", "docs_section", "docs_label",
     "payload_class",
 )
-# How an artifact is delivered. "-" keeps the historical behaviour: substitute
-# placeholders. Byte-exact payloads must not be rewritten by substitution.
-PAYLOAD_CLASSES = {"-", "template", "verbatim", "binary"}
+# How an artifact is delivered; the vocabulary lives with the ledger contract so
+# the manifest and the ledger cannot drift apart.
+PAYLOAD_CLASSES = artifacts_ledger.MANIFEST_PAYLOAD_CLASSES
 IGNORED_PARTS = {
     ".git",
     "__pycache__",
@@ -206,7 +206,11 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
             reader = csv.DictReader(handle, delimiter="\t")
             if tuple(reader.fieldnames or ()) != EXPECTED_CAPABILITY_FIELDS:
                 raise ContractError(f"Unexpected capabilities.tsv header: {path}")
-            rows = [CapabilityArtifact(**row) for row in reader]
+            rows = []
+            for number, row in enumerate(reader, start=2):
+                if None in row or any(value is None for value in row.values()):
+                    raise ContractError(f"capabilities.tsv:{number} does not match the header")
+                rows.append(CapabilityArtifact(**row))
     except OSError as exc:
         raise ContractError(f"Cannot read {path}: {exc}") from exc
     templates = contract_root / "templates" / "new-project"
@@ -222,6 +226,15 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
             raise ContractError(f"Incomplete capability docs relationship: {row.destination}")
         if row.payload_class not in PAYLOAD_CLASSES:
             raise ContractError(f"Unknown payload class '{row.payload_class}': {row.destination}")
+        # A template is rewritten during delivery, so a source that is not text
+        # would be corrupted. Catch it in the manifest, not in the project.
+        if artifacts_ledger.manifest_class_to_ledger(row.payload_class) == "template":
+            try:
+                (templates / row.source).read_text(encoding="utf-8")
+            except (UnicodeDecodeError, ValueError):
+                raise ContractError(
+                    f"Source is not text but is declared as a template: {row.source}"
+                ) from None
     return rows
 
 
