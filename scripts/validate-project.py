@@ -33,7 +33,11 @@ EXPECTED_PROFILE_FIELDS = (
 )
 EXPECTED_CAPABILITY_FIELDS = (
     "capability", "source", "destination", "root_purpose", "docs_section", "docs_label",
+    "payload_class",
 )
+# How an artifact is delivered. "-" keeps the historical behaviour: substitute
+# placeholders. Byte-exact payloads must not be rewritten by substitution.
+PAYLOAD_CLASSES = {"-", "template", "verbatim", "binary"}
 IGNORED_PARTS = {
     ".git",
     "__pycache__",
@@ -88,6 +92,7 @@ class CapabilityArtifact:
     root_purpose: str
     docs_section: str
     docs_label: str
+    payload_class: str
 
 
 @dataclass(frozen=True)
@@ -215,6 +220,8 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
             raise ContractError(f"Missing capability template: {row.source}")
         if (row.docs_section == "-") != (row.docs_label == "-"):
             raise ContractError(f"Incomplete capability docs relationship: {row.destination}")
+        if row.payload_class not in PAYLOAD_CLASSES:
+            raise ContractError(f"Unknown payload class '{row.payload_class}': {row.destination}")
     return rows
 
 

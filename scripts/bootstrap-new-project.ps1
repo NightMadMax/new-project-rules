@@ -86,7 +86,7 @@ $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
 
-$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label"
+$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label`tpayload_class"
 $CapabilityLines = @(Get-Content -Encoding utf8 $CapabilitiesManifest)
 if ($CapabilityLines.Count -lt 2 -or $CapabilityLines[0] -cne $ExpectedCapabilitiesHeader) {
     throw "Invalid capability manifest header: $CapabilitiesManifest"
@@ -159,6 +159,27 @@ function Install-Template {
     Write-Utf8NoBom $targetPath $content
 }
 
+# Byte-exact delivery: vendored payload and binaries must arrive unchanged, so
+# no placeholder substitution and no text processing touches them.
+function Install-Verbatim {
+    param([string]$Source, [string]$Target)
+
+    $targetPath = Join-Path $Destination $Target
+    $targetDirectory = Split-Path -Parent $targetPath
+    New-Item -ItemType Directory -Force $targetDirectory | Out-Null
+    Copy-Item -LiteralPath (Join-Path $Templates $Source) -Destination $targetPath -Force
+}
+
+function Install-Artifact {
+    param([string]$Source, [string]$Target, [string]$PayloadClass)
+
+    switch ($PayloadClass) {
+        { $_ -in @("", "-", "template") } { Install-Template $Source $Target; break }
+        { $_ -in @("verbatim", "binary") } { Install-Verbatim $Source $Target; break }
+        default { throw "Unknown payload class '$PayloadClass' for $Target" }
+    }
+}
+
 function Install-Generated {
     param([string]$Target)
     switch ($Target) {
@@ -208,7 +229,7 @@ foreach ($artifact in $SelectedArtifacts) {
         Install-Generated $artifact.destination
     }
     else {
-        Install-Template $artifact.source $artifact.destination
+        Install-Artifact $artifact.source $artifact.destination ($artifact.PSObject.Properties["payload_class"].Value)
     }
 }
 

@@ -128,7 +128,7 @@ header=$(sed -n '1p' "$manifest")
   exit 1
 }
 
-capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label"
+capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label${tab}payload_class"
 [ "$(sed -n '1p' "$capabilities_manifest")" = "$capabilities_header" ] || {
   echo "Invalid capability manifest header: $capabilities_manifest" >&2
   exit 1
@@ -207,6 +207,26 @@ install_template() {
     "$templates/$source_file" > "$destination/$target_file"
 }
 
+# Byte-exact delivery: vendored payload and binaries must arrive unchanged, so
+# no placeholder substitution and no text processing touches them.
+install_verbatim() {
+  source_file=$1
+  target_file=$2
+  mkdir -p "$(dirname "$destination/$target_file")"
+  cp "$templates/$source_file" "$destination/$target_file"
+}
+
+install_artifact() {
+  source_file=$1
+  target_file=$2
+  payload_class=$3
+  case "$payload_class" in
+    ""|-|template) install_template "$source_file" "$target_file" ;;
+    verbatim|binary) install_verbatim "$source_file" "$target_file" ;;
+    *) echo "Unknown payload class '$payload_class' for $target_file" >&2; exit 1 ;;
+  esac
+}
+
 install_generated() {
   target=$1
   case "$target" in
@@ -279,9 +299,9 @@ done < "$manifest"
 
 if [ "$capability" = jira-confluence ]; then
   first=1
-  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
     [ "$first" -eq 1 ] && { first=0; continue; }
-    install_template "$source" "$artifact_destination"
+    install_artifact "$source" "$artifact_destination" "$payload_class"
   done < "$capabilities_manifest"
 fi
 
@@ -331,7 +351,7 @@ done < "$manifest"
 
 if [ "$capability" = jira-confluence ]; then
   first=1
-  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
     [ "$first" -eq 1 ] && { first=0; continue; }
     ensure_index_entry "$artifact_destination" "$root_purpose"
     ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
