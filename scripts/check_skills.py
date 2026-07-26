@@ -104,11 +104,16 @@ def read_manifest(root: Path) -> list[dict[str, str]]:
     return rows
 
 
+def has_frontmatter(text: str) -> bool:
+    lines = text.splitlines()
+    return bool(lines) and lines[0].lstrip("\ufeff").strip() == "---"
+
+
 def frontmatter_field(text: str, field: str) -> str:
     """Read a field from the leading --- block only, not from the body."""
-    lines = text.splitlines()
-    if not lines or lines[0].strip() != "---":
+    if not has_frontmatter(text):
         return ""
+    lines = text.splitlines()
     prefix = f"{field}: "
     for line in lines[1:]:
         if line.strip() == "---":
@@ -147,6 +152,8 @@ def check_document(path: Path, name: str, label: str, root: Path) -> tuple[list[
     if error:
         return [error], ""
     failures: list[str] = []
+    if not has_frontmatter(text):
+        return [f"missing frontmatter block in {path.relative_to(root)}"], ""
     if frontmatter_field(text, "name") != name:
         failures.append(f"name mismatch in {path.relative_to(root)}")
     description = frontmatter_field(text, "description")
@@ -234,29 +241,35 @@ def check_vendored(root: Path, row: dict[str, str]) -> list[str]:
     return failures
 
 
-def capability_skill_roots(root: Path) -> set[str]:
-    """Skill roots implied by config/capabilities.tsv, so the two agree."""
+def capability_skill_roots(root: Path) -> tuple[set[str], list[str]]:
+    """Skill roots implied by config/capabilities.tsv, so the two agree.
+
+    An unreadable capability manifest is a finding: silently returning nothing
+    would drop capability skills out of the coverage check.
+    """
     path = root / CAPABILITIES
     roots: set[str] = set()
     if not path.is_file():
-        return roots
+        return roots, [f"missing {CAPABILITIES}: capability skills cannot be covered"]
     text, error = read_text(path)
     if error:
-        return roots
+        return roots, [error]
     for row in csv.DictReader(io.StringIO(text), delimiter="\t"):
         source = (row.get("source") or "").strip()
         marker = f"/.{CANONICAL_ROOT}/"
         if marker in source:
             prefix = source.split(marker)[0]
             roots.add(f"templates/new-project/{prefix}/.{CANONICAL_ROOT}")
-    return roots
+    return roots, []
 
 
 def check_coverage(root: Path, rows: list[dict[str, str]]) -> list[str]:
     declared = {(row["root"], row["skill"]) for row in rows}
     failures: list[str] = []
 
-    roots = {row["root"] for row in rows} | {f".{CANONICAL_ROOT}"} | capability_skill_roots(root)
+    capability_roots, capability_failures = capability_skill_roots(root)
+    failures.extend(capability_failures)
+    roots = {row["root"] for row in rows} | {f".{CANONICAL_ROOT}"} | capability_roots
     for skill_root in sorted(roots):
         directory = root / skill_root
         if not directory.is_dir():

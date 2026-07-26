@@ -65,8 +65,16 @@ def vendored_skill(root: Path, name: str, files: dict[str, str], *, listed: dict
     write(root / "config/skills-payload" / f"{name}.sha256", "\n".join(lines) + "\n")
 
 
+CAPABILITIES_HEADER = "capability\tsource\tdestination\troot_purpose\tdocs_section\tdocs_label\n"
+
+
 def manifest(root: Path, rows: list[str]) -> None:
     write(root / "config/skills.tsv", HEADER + "".join(row + "\n" for row in rows))
+    # Coverage reads the capability manifest; fixtures need it unless a test
+    # deliberately removes it.
+    capabilities = root / "config/capabilities.tsv"
+    if not capabilities.is_file():
+        write(capabilities, CAPABILITIES_HEADER)
 
 
 def canonical_row(name: str, bridge: str = "required") -> str:
@@ -302,6 +310,7 @@ def build_missing_directory(root: Path) -> None:
 def build_blank_line_ignored(root: Path) -> None:
     canonical_skill(root, "alpha")
     write(root / "config/skills.tsv", HEADER + canonical_row("alpha") + "\n\n")
+    write(root / "config/capabilities.tsv", CAPABILITIES_HEADER)
 
 
 # --- coverage --------------------------------------------------------------
@@ -323,12 +332,12 @@ def build_capability_skill_undeclared(root: Path) -> None:
     capability_root = "templates/new-project/capabilities/demo/.agents/skills"
     write(root / capability_root / "demo-skill/SKILL.md", "---\nname: demo-skill\ndescription: Demo.\n---\n")
     write(root / capability_root / "demo-skill/agents/openai.yaml", 'interface:\n  display_name: "Demo"\n')
+    manifest(root, [canonical_row("alpha")])
     write(
         root / "config/capabilities.tsv",
-        "capability\tsource\tdestination\troot_purpose\tdocs_section\tdocs_label\n"
-        "demo\tcapabilities/demo/.agents/skills/demo-skill/SKILL.md\t.agents/skills/demo-skill/SKILL.md\t-\t-\t-\n",
+        CAPABILITIES_HEADER
+        + "demo\tcapabilities/demo/.agents/skills/demo-skill/SKILL.md\t.agents/skills/demo-skill/SKILL.md\t-\t-\t-\n",
     )
-    manifest(root, [canonical_row("alpha")])
 
 
 case("healthy repository", build_ok, None)
@@ -343,7 +352,7 @@ case("TODO in bridge", build_todo_in_bridge, "TODO remains")
 case("bridge points elsewhere", build_bridge_wrong_target, "must point at")
 case("non-ASCII UI metadata", build_non_ascii_metadata, "non-ASCII UI metadata")
 case("non-UTF-8 SKILL.md", build_non_utf8_skill, "not valid UTF-8")
-case("fields only in body", build_frontmatter_only, "name mismatch")
+case("fields only in body", build_frontmatter_only, "missing frontmatter block")
 case("vendored payload edited", build_vendored_changed, "vendored payload changed")
 case("untracked file in vendored subtree", build_vendored_untracked, "untracked file")
 case("vendored file missing", build_vendored_missing_file, "missing vendored file")
@@ -367,6 +376,136 @@ case("undeclared skill directory", build_undeclared_skill, "not declared in")
 case("bridge without owner", build_orphan_bridge, "bridge without a declared owner")
 case("capability skill not declared", build_capability_skill_undeclared, "not declared in")
 
+
+# --- cases added after the verification review ----------------------------
+
+def build_payload_backslash_path(root: Path) -> None:
+    vendored_skill(root, "vendored", {"SKILL.md": "upstream body\n"})
+    payload = root / "config/skills-payload/vendored.sha256"
+    digest = hashlib.sha256(b"x\n").hexdigest()
+    write(payload, payload.read_bytes().decode("utf-8") + f"{digest}  docs\\one.md\n")
+    manifest(root, [vendored_row("vendored")])
+
+
+def build_payload_colon_path(root: Path) -> None:
+    vendored_skill(root, "vendored", {"SKILL.md": "upstream body\n"})
+    payload = root / "config/skills-payload/vendored.sha256"
+    digest = hashlib.sha256(b"x\n").hexdigest()
+    write(payload, payload.read_bytes().decode("utf-8") + f"{digest}  C:/Windows/win.ini\n")
+    manifest(root, [vendored_row("vendored")])
+
+
+def build_vendored_symlinked_directory(root: Path) -> None:
+    vendored_skill(root, "vendored", {"SKILL.md": "upstream body\n"})
+    write(root / "outside/secret.md", "secret\n")
+    os.symlink(root / "outside", root / CANONICAL_ROOT / "vendored/leak")
+    manifest(root, [vendored_row("vendored")])
+
+
+def build_symlink_listed_in_payload(root: Path) -> None:
+    vendored_skill(root, "vendored", {"SKILL.md": "upstream body\n"})
+    write(root / "outside.md", "upstream body\n")
+    os.symlink(root / "outside.md", root / CANONICAL_ROOT / "vendored/link.md")
+    payload = root / "config/skills-payload/vendored.sha256"
+    digest = hashlib.sha256(b"upstream body\n").hexdigest()
+    write(payload, payload.read_bytes().decode("utf-8") + f"{digest}  link.md\n")
+    manifest(root, [vendored_row("vendored")])
+
+
+def build_quoted_frontmatter(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    write(
+        root / CANONICAL_ROOT / "alpha/SKILL.md",
+        '---\nname: "alpha"\ndescription: "Does a thing."\n---\n\n# alpha\n',
+    )
+    manifest(root, [canonical_row("alpha")])
+
+
+def build_field_after_frontmatter(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    write(
+        root / CANONICAL_ROOT / "alpha/SKILL.md",
+        "---\nname: alpha\n---\n\ndescription: Does a thing.\n",
+    )
+    manifest(root, [canonical_row("alpha")])
+
+
+def build_missing_frontmatter(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    write(root / CANONICAL_ROOT / "alpha/SKILL.md", "\n---\nname: alpha\ndescription: Does a thing.\n---\n")
+    manifest(root, [canonical_row("alpha")])
+
+
+def build_non_utf8_payload(root: Path) -> None:
+    vendored_skill(root, "vendored", {"SKILL.md": "upstream body\n"})
+    (root / "config/skills-payload/vendored.sha256").write_bytes(b"\xcd\xe0\xf1  SKILL.md\n")
+    manifest(root, [vendored_row("vendored")])
+
+
+def build_non_utf8_manifest(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    manifest(root, [canonical_row("alpha")])
+    (root / "config/skills.tsv").write_bytes(b"skill\tclass\troot\tbridge\tpayload_manifest\n\xcd\xe0\xf1\n")
+
+
+def build_missing_manifest(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    manifest(root, [canonical_row("alpha")])
+    (root / "config/skills.tsv").unlink()
+
+
+def build_missing_capabilities(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    manifest(root, [canonical_row("alpha")])
+    (root / "config/capabilities.tsv").unlink()
+
+
+def build_unsafe_skill_name(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    manifest(root, [f"../escape\tcanonical\t{CANONICAL_ROOT}\trequired\t-"])
+
+
+def build_two_skills_one_bridge(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    other_root = "templates/new-project/capabilities/demo/.agents/skills"
+    write(root / other_root / "alpha/SKILL.md", "---\nname: alpha\ndescription: Does a thing.\n---\n")
+    write(root / other_root / "alpha/agents/openai.yaml", 'interface:\n  display_name: "Thing"\n')
+    manifest(root, [canonical_row("alpha"), f"alpha\tcanonical\t{other_root}\trequired\t-"])
+
+
+def build_missing_skill_root(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    manifest(root, [canonical_row("alpha"), f"beta\tcanonical\ttemplates/absent/skills\tnone\t-"])
+
+
+def build_vendored_bridge_missing(root: Path) -> None:
+    vendored_skill(root, "vendored", {"SKILL.md": "upstream body\n"})
+    manifest(root, [vendored_row("vendored", bridge="required")])
+
+
+def build_tab_only_row(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    write(root / "config/skills.tsv", HEADER + canonical_row("alpha") + "\n\t\t\t\t\n")
+    write(root / "config/capabilities.tsv", CAPABILITIES_HEADER)
+
+
+case("payload path with backslashes", build_payload_backslash_path, "unsafe path")
+case("payload path with a drive letter", build_payload_colon_path, "unsafe path")
+case("symlinked directory in vendored subtree", build_vendored_symlinked_directory, "symlinked directory")
+case("symlink listed as payload file", build_symlink_listed_in_payload, "missing vendored file")
+case("quoted frontmatter values", build_quoted_frontmatter, None)
+case("description after the frontmatter block", build_field_after_frontmatter, "missing description")
+case("frontmatter not at the top", build_missing_frontmatter, "missing frontmatter block")
+case("non-UTF-8 payload manifest", build_non_utf8_payload, "not valid UTF-8")
+case("non-UTF-8 skills manifest", build_non_utf8_manifest, "not valid UTF-8")
+case("skills manifest missing", build_missing_manifest, "missing manifest")
+case("capability manifest missing", build_missing_capabilities, "capability skills cannot be covered")
+case("unsafe skill name", build_unsafe_skill_name, "unsafe skill name")
+case("two skills claim one bridge", build_two_skills_one_bridge, "claim the bridge")
+case("declared root does not exist", build_missing_skill_root, "declared skill root is missing")
+case("vendored skill without its bridge", build_vendored_bridge_missing, "missing .claude/skills/vendored/SKILL.md")
+case("row of empty fields is ignored", build_tab_only_row, None)
+
 # The entry point itself: both wrappers call main(), so its contract is tested.
 with tempfile.TemporaryDirectory() as raw:
     healthy = Path(raw)
@@ -382,6 +521,13 @@ with tempfile.TemporaryDirectory() as raw:
         broken_code = check_skills.main(["--root", str(broken)])
     if broken_code != 1:
         failures.append("main(): findings must exit 1")
+with tempfile.TemporaryDirectory() as raw:
+    malformed = Path(raw)
+    build_unknown_class(malformed)
+    with contextlib.redirect_stderr(io.StringIO()):
+        malformed_code = check_skills.main(["--root", str(malformed)])
+    if malformed_code != 1:
+        failures.append("main(): a malformed manifest must exit 1")
 
 if failures:
     for failure in failures:
