@@ -17,56 +17,24 @@ check_required_literals() {
   done
 }
 
-check_skill() {
-  name=$1
-  canonical="$root/.agents/skills/$name/SKILL.md"
-  bridge="$root/.claude/skills/$name/SKILL.md"
-  metadata="$root/.agents/skills/$name/agents/openai.yaml"
+python_command=
+for candidate in python3 python; do
+  if command -v "$candidate" >/dev/null 2>&1 &&
+     "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+    python_command=$candidate
+    break
+  fi
+done
+if [ -z "$python_command" ]; then
+  echo "Python 3.9+ is required for skill checks." >&2
+  exit 1
+fi
 
-  for file in "$canonical" "$bridge" "$metadata"; do
-    if [ ! -f "$file" ]; then
-      echo "FAIL: missing $file" >&2
-      fail=$((fail + 1))
-    fi
-  done
-  [ "$fail" -eq 0 ] || return
-
-  canonical_name=$(sed -n 's/^name: //p' "$canonical" | sed -n '1p')
-  bridge_name=$(sed -n 's/^name: //p' "$bridge" | sed -n '1p')
-  canonical_description=$(sed -n 's/^description: //p' "$canonical" | sed -n '1p')
-  bridge_description=$(sed -n 's/^description: //p' "$bridge" | sed -n '1p')
-
-  if [ "$canonical_name" != "$name" ] || [ "$bridge_name" != "$name" ]; then
-    echo "FAIL: name mismatch for $name" >&2
-    fail=$((fail + 1))
-  fi
-  if [ -z "$canonical_description" ] || [ "$canonical_description" != "$bridge_description" ]; then
-    echo "FAIL: description mismatch for $name" >&2
-    fail=$((fail + 1))
-  fi
-  if grep -q 'TODO\|\[TODO' "$canonical" "$bridge"; then
-    echo "FAIL: TODO remains in $name" >&2
-    fail=$((fail + 1))
-  fi
-  if ! grep -q "../../../.agents/skills/$name/SKILL.md" "$bridge"; then
-    echo "FAIL: Claude bridge target mismatch for $name" >&2
-    fail=$((fail + 1))
-  fi
-  if LC_ALL=C grep -q '[^ -~]' "$metadata"; then
-    echo "FAIL: non-ASCII UI metadata for $name" >&2
-    fail=$((fail + 1))
-  fi
-}
-
-check_skill setup-new-computer
-check_skill create-new-project
-check_skill assess-existing-project
-check_skill standardize-existing-project
-check_skill apply-promotion-candidate
-check_skill promote-project-knowledge
-check_skill reflect-and-record
-check_skill compress-project
-check_skill document-process-workflow
+# Skill contracts live in config/skills.tsv and are checked by one shared
+# implementation, so adding a skill does not mean editing this test.
+if ! "$python_command" "$script_dir/check_skills.py" --root "$root"; then
+  fail=$((fail + 1))
+fi
 
 reflect_skill="$root/.agents/skills/reflect-and-record/SKILL.md"
 check_required_literals "$reflect_skill" \

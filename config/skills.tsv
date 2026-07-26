@@ -1,0 +1,12 @@
+skill	class	root	bridge	payload_manifest
+setup-new-computer	canonical	.agents/skills	required	-
+create-new-project	canonical	.agents/skills	required	-
+assess-existing-project	canonical	.agents/skills	required	-
+standardize-existing-project	canonical	.agents/skills	required	-
+apply-promotion-candidate	canonical	.agents/skills	required	-
+promote-project-knowledge	canonical	.agents/skills	required	-
+reflect-and-record	canonical	.agents/skills	required	-
+compress-project	canonical	.agents/skills	required	-
+document-process-workflow	canonical	.agents/skills	required	-
+setup-atlassian-mcp	canonical	templates/new-project/capabilities/jira-confluence/.agents/skills	none	-
+work-with-jira-confluence	canonical	templates/new-project/capabilities/jira-confluence/.agents/skills	none	-
