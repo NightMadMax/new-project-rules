@@ -132,6 +132,8 @@ try {
     Copy-Item -LiteralPath (Join-Path $Root "config/standard-source.txt") -Destination (Join-Path $fixtureRoot "config/standard-source.txt")
     Copy-Item -LiteralPath (Join-Path $Root "config/migrations.tsv") -Destination (Join-Path $fixtureRoot "config/migrations.tsv")
     Copy-Item -LiteralPath (Join-Path $Root "config/capabilities.tsv") -Destination (Join-Path $fixtureRoot "config/capabilities.tsv")
+    Copy-Item -LiteralPath (Join-Path $Root "config/presets.tsv") -Destination (Join-Path $fixtureRoot "config/presets.tsv")
+    Copy-Item -LiteralPath (Join-Path $Root "config/capability-core.tsv") -Destination (Join-Path $fixtureRoot "config/capability-core.tsv")
     Copy-Item -LiteralPath $Templates -Destination (Join-Path $fixtureRoot "templates") -Recurse
     $fixtureManifest = $manifestLines |
         Where-Object { $_ -notmatch "`tCHANGELOG\.template\.md`t" } |

@@ -16,6 +16,7 @@
 | `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
 | `config/skills.tsv` | Реестр skills: класс проверки, корень, необходимость Claude-моста |
 | `config/presets.tsv` | Раскрытие preset создания: минимальный профиль, capability и стеки практик |
+| `config/capability-core.tsv` | Ядро capability: минимальный профиль и обязательный стек практик |
 | `config/standard-source.txt` | Канонический owner/repository без credentials и локальных путей |
 | [[CHANGELOG|CHANGELOG.md]] | Заметные изменения набора правил |
 | [[CHANGELOG_ARCHIVE|CHANGELOG_ARCHIVE.md]] | Архив старых релизов, перенесённых при компрессии |

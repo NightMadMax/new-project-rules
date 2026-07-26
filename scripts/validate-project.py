@@ -41,8 +41,7 @@ PAYLOAD_CLASSES = artifacts_ledger.MANIFEST_PAYLOAD_CLASSES
 # Who owns the artifact after delivery: the standard keeps updating a managed
 # file, while a seed is created once and belongs to the user afterwards.
 ARTIFACT_POLICIES = {"managed", "seed"}
-# A capability whose core includes engineering practices from the shared base.
-CAPABILITY_REQUIRED_STACK = {"1c": "1c"}
+CAPABILITY_REQUIRED_STACK = project_metadata.CAPABILITY_REQUIRED_STACK
 TEMPLATE_MARKS = (b"<PROJECT_NAME>", b"<YYYY-MM-DD>", b"<SCHEMA_VERSION>")
 IGNORED_PARTS = {
     ".git",
@@ -304,7 +303,10 @@ def check_capability_core(root: Path, capabilities: Sequence[str]) -> list[Findi
     not enough: a section set to optout means the stack was declined, and the
     core of the preset would be missing while looking present.
     """
-    required = {name: name for name in capabilities if name in CAPABILITY_REQUIRED_STACK}
+    required = {
+        name: CAPABILITY_REQUIRED_STACK[name]
+        for name in capabilities if name in CAPABILITY_REQUIRED_STACK
+    }
     if not required:
         return []
     path = root / ".best-practices.json"

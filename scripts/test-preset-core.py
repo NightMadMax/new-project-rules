@@ -110,6 +110,73 @@ note(
     "a higher profile must remain valid",
 )
 
+# --- the core follows the capability, not the preset -----------------------
+
+core_rows = [
+    line.split("\t")
+    for line in (ROOT / "config/capability-core.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
+]
+declared = {row[0]: {"min_profile": row[1], "stack": row[2]} for row in core_rows}
+note(
+    declared == project_metadata.CAPABILITY_CORE,
+    f"config/capability-core.tsv and CAPABILITY_CORE disagree: {declared} vs {project_metadata.CAPABILITY_CORE}",
+)
+
+with tempfile.TemporaryDirectory() as raw:
+    workspace = Path(raw)
+    for label, runner, arguments in (
+        ("shell", run_shell, ("minimal", "1c")),
+        ("powershell", run_powershell, ("-Profile", "minimal", "-Capability", "1c")),
+    ):
+        destination = workspace / label
+        result = runner(destination, *arguments)
+        if result is None:
+            continue
+        note(result.returncode == 0, f"{label}: a positional capability must be accepted: {result.stderr[:200]}")
+        if result.returncode != 0:
+            continue
+        data = metadata_of(destination)
+        note(data["profile"] == "operated", f"{label}: the core must raise the profile, got {data['profile']}")
+        manifest = destination / ".best-practices.json"
+        note(manifest.is_file(), f"{label}: the core stack was not recorded without a preset")
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note("0 error(s)" in check.stdout, f"{label}: choosing a capability directly must not create an invalid project")
+
+
+# --- a declined stack breaks the core -------------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    destination = Path(raw) / "declined"
+    result = run_shell(destination, "minimal", "--preset", "1c")
+    if result is not None and result.returncode == 0:
+        manifest = destination / ".best-practices.json"
+        data = json.loads(manifest.read_text(encoding="utf-8"))
+        data["preferences"]["sections"]["1c"] = "optout"
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note("capability.stack_declined" in check.stdout, f"a declined stack must break the core: {check.stdout[-200:]}")
+
+        manifest.unlink()
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note("capability.stack_missing" in check.stdout, f"a missing manifest must break the core: {check.stdout[-200:]}")
+
+        manifest.write_text("{not json", encoding="utf-8")
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note("capability.stack_unreadable" in check.stdout, f"an unreadable manifest must be reported: {check.stdout[-200:]}")
+
+
 # --- both implementations agree -------------------------------------------
 
 with tempfile.TemporaryDirectory() as raw:
@@ -149,6 +216,11 @@ with tempfile.TemporaryDirectory() as raw:
         note(
             metadata_of(results["shell"])["capabilities"] == metadata_of(results["powershell"])["capabilities"],
             "the two implementations recorded different capabilities",
+        )
+        note(
+            (results["shell"] / ".best-practices.json").read_bytes()
+            == (results["powershell"] / ".best-practices.json").read_bytes(),
+            "the two implementations wrote different practice manifests",
         )
 
 # --- rejections ------------------------------------------------------------

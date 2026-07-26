@@ -81,6 +81,7 @@ templates="$project_rules_root/templates/new-project"
 manifest="$project_rules_root/config/profiles.tsv"
 capabilities_manifest="$project_rules_root/config/capabilities.tsv"
 presets_manifest="$project_rules_root/config/presets.tsv"
+capability_core_manifest="$project_rules_root/config/capability-core.tsv"
 best_practices_stacks=
 migrations_manifest="$project_rules_root/config/migrations.tsv"
 standard_source_file="$project_rules_root/config/standard-source.txt"
@@ -203,6 +204,32 @@ while IFS="$tab" read -r row_capability source artifact_destination root_purpose
   esac
 done < "$capabilities_manifest"
 
+# Whatever selected the capability - a preset or a positional argument - its
+# core follows: a project cannot exist with the capability but without the
+# profile and practice stack that capability requires.
+apply_capability_core() {
+  [ -f "$capability_core_manifest" ] || return 0
+  core_first=1
+  while IFS="$tab" read -r core_capability core_min_profile core_stack; do
+    [ "$core_first" -eq 1 ] && { core_first=0; continue; }
+    capability_selected "$core_capability" || continue
+    if [ "$(profile_rank "$profile")" -lt "$(profile_rank "$core_min_profile")" ]; then
+      profile=$core_min_profile
+    fi
+    [ -n "$core_stack" ] && [ "$core_stack" != - ] || continue
+    case ",$best_practices_stacks," in
+      *",$core_stack,"*) ;;
+      *)
+        if [ -z "$best_practices_stacks" ]; then
+          best_practices_stacks=$core_stack
+        else
+          best_practices_stacks="$best_practices_stacks,$core_stack"
+        fi
+        ;;
+    esac
+  done < "$capability_core_manifest"
+}
+
 # A capability may be declared by a preset before it ships any artifact, so
 # both manifests together define what "known" means.
 if [ -f "$presets_manifest" ]; then
@@ -219,6 +246,8 @@ for selected_capability in $capability; do
   }
 done
 IFS=$old_ifs
+
+apply_capability_core
 
 seen_destinations='|'
 first=1

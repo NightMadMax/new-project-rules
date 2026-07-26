@@ -19,6 +19,7 @@ $Templates = Join-Path $RulesRoot "templates/new-project"
 $Manifest = Join-Path $RulesRoot "config/profiles.tsv"
 $CapabilitiesManifest = Join-Path $RulesRoot "config/capabilities.tsv"
 $PresetsManifest = Join-Path $RulesRoot "config/presets.tsv"
+$CapabilityCoreManifest = Join-Path $RulesRoot "config/capability-core.tsv"
 $StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
 $StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
 $MigrationsManifest = Join-Path $RulesRoot "config/migrations.tsv"
@@ -86,6 +87,9 @@ foreach ($artifact in $Artifacts) {
 }
 $BestPracticesStacks = @()
 if ($Preset) {
+    if (-not (Test-Path -LiteralPath $PresetsManifest -PathType Leaf)) {
+        throw "Preset manifest not found: $PresetsManifest"
+    }
     $ExpectedPresetsHeader = "preset`tmin_profile`tcapabilities`tbest_practices"
     $PresetLines = @(Get-Content -Encoding utf8 $PresetsManifest)
     if ($PresetLines.Count -lt 2 -or $PresetLines[0] -cne $ExpectedPresetsHeader) {
@@ -106,6 +110,22 @@ if ($Preset) {
     $BestPracticesStacks = @($PresetRow.best_practices -split "," | Where-Object { $_ -and $_ -ne "-" })
 }
 
+# Whatever selected the capability - a preset or the -Capability parameter -
+# its core follows: a project cannot exist with the capability but without the
+# profile and practice stack that capability requires.
+if (Test-Path -LiteralPath $CapabilityCoreManifest -PathType Leaf) {
+    $CoreRows = @(Get-Content -Encoding utf8 $CapabilityCoreManifest | ConvertFrom-Csv -Delimiter "`t")
+    foreach ($core in $CoreRows) {
+        if ($core.capability -notin $Capability) { continue }
+        if ($ProfileRanks[$Profile] -lt $ProfileRanks[$core.min_profile]) {
+            $Profile = $core.min_profile
+        }
+        if ($core.stack -and $core.stack -ne "-" -and $core.stack -notin $BestPracticesStacks) {
+            $BestPracticesStacks += $core.stack
+        }
+    }
+}
+
 $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
@@ -120,7 +140,7 @@ $KnownCapabilities = @($CapabilityArtifacts | ForEach-Object capability)
 # A capability may be declared by a preset before it ships any artifact, so both
 # manifests together define what "known" means.
 $KnownCapabilities += @(
-    @(Get-Content -Encoding utf8 $PresetsManifest | Select-Object -Skip 1) |
+    @(if (Test-Path -LiteralPath $PresetsManifest -PathType Leaf) { Get-Content -Encoding utf8 $PresetsManifest | Select-Object -Skip 1 }) |
         Where-Object { $_.Trim() -ne "" } |
         ForEach-Object { ($_ -split "`t")[2] -split "," } |
         Where-Object { $_ -and $_ -ne "-" }

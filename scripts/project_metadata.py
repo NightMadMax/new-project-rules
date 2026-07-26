@@ -9,9 +9,13 @@ from typing import Optional, Sequence
 
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
 PROFILE_NAMES = set(PROFILE_RANKS)
-# A capability may require a floor profile: the operational half of a 1C project
-# (environments, databases, diagnostics) has no place in a lighter profile.
-CAPABILITY_MIN_PROFILE = {"1c": "operated"}
+# The core a capability cannot be created without. Mirrored in
+# config/capability-core.tsv for the shell and PowerShell bootstrap; a test
+# keeps the two in step. The operational half of a 1C project (environments,
+# databases, diagnostics) has no place in a lighter profile.
+CAPABILITY_CORE = {"1c": {"min_profile": "operated", "stack": "1c"}}
+CAPABILITY_MIN_PROFILE = {name: core["min_profile"] for name, core in CAPABILITY_CORE.items()}
+CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()}
 CAPABILITY_NAMES = {"jira-confluence", "1c"}
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
