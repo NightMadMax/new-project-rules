@@ -26,17 +26,22 @@ import os
 import sys
 from pathlib import Path, PurePosixPath
 
-MANIFEST = Path("config/skills.tsv")
-CAPABILITIES = Path("config/capabilities.tsv")
+MANIFEST = "config/skills.tsv"
+CAPABILITIES = "config/capabilities.tsv"
 HEADER = ["skill", "class", "root", "bridge", "payload_manifest"]
 CLASSES = ("canonical", "vendored")
 BRIDGE_VALUES = ("required", "none")
 CANONICAL_ROOT = "agents/skills"
-BRIDGE_ROOT = Path(".claude/skills")
+BRIDGE_ROOT = ".claude/skills"
 
 
 class ManifestError(Exception):
     """The manifest itself is malformed; checking cannot start."""
+
+
+def shown(path: Path, base: Path) -> str:
+    """Path as it appears in findings: forward slashes on every platform."""
+    return path.relative_to(base).as_posix()
 
 
 def unsafe_relative(value: str) -> bool:
@@ -136,12 +141,12 @@ def iter_files(directory: Path) -> tuple[list[Path], list[str]]:
         for name in list(subdirectories):
             candidate = current_path / name
             if candidate.is_symlink():
-                findings.append(f"symlinked directory in vendored skill: {candidate.relative_to(directory)}")
+                findings.append(f"symlinked directory in vendored skill: {shown(candidate, directory)}")
                 subdirectories.remove(name)
         for name in names:
             candidate = current_path / name
             if candidate.is_symlink():
-                findings.append(f"symlinked file in vendored skill: {candidate.relative_to(directory)}")
+                findings.append(f"symlinked file in vendored skill: {shown(candidate, directory)}")
                 continue
             files.append(candidate)
     return files, findings
@@ -153,14 +158,14 @@ def check_document(path: Path, name: str, label: str, root: Path) -> tuple[list[
         return [error], ""
     failures: list[str] = []
     if not has_frontmatter(text):
-        return [f"missing frontmatter block in {path.relative_to(root)}"], ""
+        return [f"missing frontmatter block in {shown(path, root)}"], ""
     if frontmatter_field(text, "name") != name:
-        failures.append(f"name mismatch in {path.relative_to(root)}")
+        failures.append(f"name mismatch in {shown(path, root)}")
     description = frontmatter_field(text, "description")
     if not description:
         failures.append(f"missing description in {label} of {name}")
     if "TODO" in text:
-        failures.append(f"TODO remains in {path.relative_to(root)}")
+        failures.append(f"TODO remains in {shown(path, root)}")
     return failures, description
 
 
@@ -168,7 +173,7 @@ def check_bridge(root: Path, row: dict[str, str], description: str) -> list[str]
     name = row["skill"]
     bridge = root / BRIDGE_ROOT / name / "SKILL.md"
     if not bridge.is_file():
-        return [f"missing {bridge.relative_to(root)}"]
+        return [f"missing {shown(bridge, root)}"]
     failures, bridge_description = check_document(bridge, name, "bridge", root)
     if description and bridge_description != description:
         failures.append(f"description mismatch between canonical and bridge for {name}")
@@ -185,7 +190,7 @@ def check_canonical(root: Path, row: dict[str, str]) -> list[str]:
     skill_dir = root / row["root"] / name
     canonical = skill_dir / "SKILL.md"
     metadata = skill_dir / "agents" / "openai.yaml"
-    failures = [f"missing {p.relative_to(root)}" for p in (canonical, metadata) if not p.is_file()]
+    failures = [f"missing {shown(p, root)}" for p in (canonical, metadata) if not p.is_file()]
     if failures:
         return failures
 
@@ -194,7 +199,7 @@ def check_canonical(root: Path, row: dict[str, str]) -> list[str]:
     # Bytes, not text: metadata in a legacy encoding must fail the ASCII
     # contract instead of crashing the checker.
     if not metadata.read_bytes().isascii():
-        failures.append(f"non-ASCII UI metadata in {metadata.relative_to(root)}")
+        failures.append(f"non-ASCII UI metadata in {shown(metadata, root)}")
     if row["bridge"] == "required":
         failures.extend(check_bridge(root, row, description))
     return failures
@@ -235,7 +240,7 @@ def check_vendored(root: Path, row: dict[str, str]) -> list[str]:
     failures.extend(f"{finding} ({name})" for finding in symlink_findings)
     for candidate in sorted(present):
         if candidate not in listed:
-            failures.append(f"untracked file in vendored skill {name}: {candidate.relative_to(skill_dir)}")
+            failures.append(f"untracked file in vendored skill {name}: {shown(candidate, skill_dir)}")
     if row["bridge"] == "required":
         failures.extend(check_bridge(root, row, ""))
     return failures

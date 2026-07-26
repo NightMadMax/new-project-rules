@@ -506,6 +506,20 @@ case("declared root does not exist", build_missing_skill_root, "declared skill r
 case("vendored skill without its bridge", build_vendored_bridge_missing, "missing .claude/skills/vendored/SKILL.md")
 case("row of empty fields is ignored", build_tab_only_row, None)
 
+
+# Findings must read the same on every platform: Windows CI compared them
+# against forward-slash paths and failed on backslashes.
+with tempfile.TemporaryDirectory() as raw:
+    separators = Path(raw)
+    build_missing_bridge(separators)
+    canonical_skill(separators, "beta", bridge=False)
+    write(separators / CANONICAL_ROOT / "gamma/notes.md", "stray\n")
+    reported = check_skills.check_all(separators)
+    if not reported:
+        failures.append("path separators: fixture must produce findings")
+    if any("\\" in item for item in reported):
+        failures.append(f"path separators: findings must use forward slashes, got {reported}")
+
 # The entry point itself: both wrappers call main(), so its contract is tested.
 with tempfile.TemporaryDirectory() as raw:
     healthy = Path(raw)
