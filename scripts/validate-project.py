@@ -374,6 +374,42 @@ def check_artifacts_ledger(root: Path) -> list[Finding]:
     ]
 
 
+def check_capability_evidence(root: Path, capabilities: Sequence[str]) -> list[Finding]:
+    """The ledger is the project's own record of what was installed.
+
+    Metadata is a file a person edits; the ledger is written by the delivery
+    transaction. If the ledger still owns artifacts of a capability that
+    metadata no longer lists, the capability was removed by hand - which the
+    standard does not allow.
+    """
+    path = root / ".project-standard-artifacts.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+        entries = data["artifacts"]
+        if not isinstance(entries, list):
+            raise ValueError("artifacts must be an array")
+    except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+        return []  # the ledger check above already reports a broken ledger
+
+    installed = {
+        entry["owner"].split(":", 1)[1]
+        for entry in entries
+        if isinstance(entry, dict) and isinstance(entry.get("owner"), str)
+        and entry["owner"].startswith("capability:")
+    }
+    return [
+        Finding(
+            "ERROR", "capability.removed",
+            f"Capability '{name}' installed artifacts recorded in the ledger but is missing from metadata.",
+            ".project-standard.json",
+            "A capability cannot be removed from a project; recreate the project instead.",
+        )
+        for name in sorted(installed - set(capabilities))
+    ]
+
+
 def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> list[Finding]:
     findings: list[Finding] = []
     for path in files:
@@ -748,6 +784,7 @@ def validate(
         if metadata:
             findings.extend(check_capabilities(root, capability_rows, metadata.get("capabilities", [])))
             findings.extend(check_capability_core(root, metadata.get("capabilities", [])))
+            findings.extend(check_capability_evidence(root, metadata.get("capabilities", [])))
         findings.extend(check_project_baseline(root, contract_root, version))
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))

@@ -265,6 +265,33 @@ with tempfile.TemporaryDirectory() as raw:
         note(wrong_case_shell.returncode != 0, "shell: capability names must be case-sensitive")
 
 
+# --- the ledger is independent evidence of what was installed --------------
+
+with tempfile.TemporaryDirectory() as raw:
+    destination = Path(raw) / "removal"
+    result = run_shell(destination, "minimal", "--preset", "1c")
+    if result is not None and result.returncode == 0:
+        (destination / ".project-standard-artifacts.json").write_text(json.dumps({
+            "schema_version": 1,
+            "artifacts": [{
+                "target": "README.md", "owner": "capability:1c", "policy": "managed",
+                "payload_class": "template", "hash": "sha256:" + "0" * 64,
+            }],
+        }), encoding="utf-8")
+        data = metadata_of(destination)
+        data["capabilities"] = []
+        data["capability_releases"] = {}
+        (destination / ".project-standard.json").write_text(json.dumps(data), encoding="utf-8")
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note(
+            "capability.removed" in check.stdout,
+            f"removing a capability recorded in the ledger must be an error: {check.stdout[-300:]}",
+        )
+
+
 # --- both implementations agree -------------------------------------------
 
 with tempfile.TemporaryDirectory() as raw:

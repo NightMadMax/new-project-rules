@@ -188,6 +188,28 @@ Read-only проверка и secret-safe diff переносимых глоба
 - Когда вручную: проверить drift глобальных правил; diff не показывает
   содержимое приватных инструкций.
 
+### Release capability (только для мейнтейнера стандарта)
+
+Проверить согласованность паспорта и ledger, а заодно сверить их с локальным
+клоном upstream:
+
+```sh
+python3 scripts/build-capability-release.py --staging ai_rules_1c=../ai_rules_1c
+```
+
+Команда read-only. Запись нового `release_id` требует staging для каждого
+источника, чистого дерева на pinned commit и отсутствия находок:
+
+```sh
+python3 scripts/build-capability-release.py --staging ai_rules_1c=../ai_rules_1c --write
+```
+
+Выпуск фиксируется прямым push в `main` — это признанный admin-bypass защиты, и
+каждый такой выпуск записывается отдельной строкой в `ACTIONS.md` (решение 1.25).
+
+Еженедельная проверка смещения upstream ничего не меняет и запускается сама;
+вручную — `python3 scripts/check-upstream-sources.py --report-only`.
+
 ### Артефакты capability
 
 Открыть агента в папке проекта-правил и попросить: «покажи план артефактов

@@ -1,0 +1,25 @@
+name: upstream-check
+
+# Notification only: it never edits files, branches or releases. A new upstream
+# commit is a signal for a maintainer to run the refresh workflow deliberately,
+# not something to apply automatically.
+on:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Compare pinned sources with upstream
+        id: compare
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 scripts/check-upstream-sources.py --report-only >> "$GITHUB_STEP_SUMMARY"
