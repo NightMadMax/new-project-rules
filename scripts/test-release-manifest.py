@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import importlib.util
+import io
 import os
 import json
 import subprocess
@@ -350,26 +352,53 @@ with tempfile.TemporaryDirectory() as raw:
     write_release(root, passport(), [row()])
     before = (root / release.RELEASE_NAME).read_bytes()
 
-    # A stub git keeps the suite offline and lets both answers be tested.
-    # Windows resolves a bare "git" through PATHEXT, so the stub has to be a
-    # .cmd there; a POSIX shell script would be ignored and the real git would
-    # answer - which is exactly the network call this test must not make.
-    stub = root / "stub"
-    stub.mkdir()
-    if os.name == "nt":
-        (stub / "git.cmd").write_text("@echo off\r\necho %FAKE_HEAD%\tHEAD\r\n", encoding="utf-8")
-    else:
-        (stub / "git").write_text("#!/bin/sh\nprintf '%s\\tHEAD\\n' \"$FAKE_HEAD\"\n", encoding="utf-8")
-        (stub / "git").chmod(0o755)
-    environment = {**dict(os.environ), "PATH": str(stub) + os.pathsep + os.environ["PATH"]}
+    # Import the checker and replace its command runner: a PATH stub cannot
+    # work here, because a Python subprocess on Windows resolves a bare "git"
+    # only to git.exe. Faking at the seam keeps the suite offline everywhere.
+    upstream_spec = importlib.util.spec_from_file_location("check_upstream", SCRIPTS / "check-upstream-sources.py")
+    assert upstream_spec and upstream_spec.loader
+    upstream = importlib.util.module_from_spec(upstream_spec)
+    sys.modules["check_upstream"] = upstream
+    upstream_spec.loader.exec_module(upstream)
+
+    class FakeResult:
+        def __init__(self, stdout: str) -> None:
+            self.returncode = 0
+            self.stdout = stdout
+            self.stderr = ""
 
     for head, expected in ((("1" * 40), "up to date"), (("2" * 40), "upstream")):
-        check = subprocess.run(
-            [sys.executable, str(SCRIPTS / "check-upstream-sources.py"), "--contract-root", str(root), "--report-only"],
-            capture_output=True, text=True, env={**environment, "FAKE_HEAD": head},
-        )
-        note(check.returncode == 0, f"the upstream check must stay report-only: {check.stderr[-200:]}")
-        note(expected in check.stdout, f"expected '{expected}' in the report, got {check.stdout[:200]}")
+        calls: list[list[str]] = []
+
+        def fake_run(command, **kwargs):
+            calls.append(command)
+            return FakeResult(f"{head}\tHEAD\n")
+
+        real_run = upstream.subprocess.run
+        upstream.subprocess.run = fake_run
+        captured = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(captured):
+                code = upstream.main(["--contract-root", str(root), "--report-only"])
+        finally:
+            upstream.subprocess.run = real_run
+        note(code == 0, f"the upstream check must stay report-only, got {code}")
+        note(expected in captured.getvalue(), f"expected '{expected}' in the report, got {captured.getvalue()[:200]}")
+        note(bool(calls), "the upstream check must actually ask git")
+
+    # Without --report-only a moved source is a signal a person can act on.
+    def moved_run(command, **kwargs):
+        return FakeResult(f"{'2' * 40}\tHEAD\n")
+
+    real_run = upstream.subprocess.run
+    upstream.subprocess.run = moved_run
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            code = upstream.main(["--contract-root", str(root)])
+    finally:
+        upstream.subprocess.run = real_run
+    note(code == 1, f"drift must be reported with a non-zero code, got {code}")
+
     note((root / release.RELEASE_NAME).read_bytes() == before, "the upstream check must not modify the release")
 
 
