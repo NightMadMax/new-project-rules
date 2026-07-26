@@ -10,9 +10,15 @@ carry most of the weight.
   edit.
 * **Seed artifacts are created once.** They belong to the user afterwards, so
   they are never compared, updated or removed.
-* **A template with placeholders cannot be updated.** Its rendered content
-  depends on values known only at bootstrap (project name, date), so it is
-  delivered as a seed rather than re-rendered from guesses.
+* **Ownership is declared, not guessed.** Policy comes from the manifest, so a
+  seed stays a seed even when its text happens to look like a managed file.
+  A template whose source still carries placeholders is rendered by bootstrap;
+  this handler records it but never creates it, because the values it would
+  need (project name, date) exist only at creation time.
+* **What bootstrap already installed is adopted, not fought over.** Bootstrap
+  is the first delivery and writes no ledger, so on the first run a file whose
+  bytes match the release is recorded as ours instead of reported as a
+  conflict. Only content that differs is a conflict.
 """
 
 from __future__ import annotations
@@ -29,7 +35,7 @@ import artifacts_ledger
 
 LEDGER_NAME = ".project-standard-artifacts.json"
 PLACEHOLDERS = (b"<PROJECT_NAME>", b"<YYYY-MM-DD>", b"<SCHEMA_VERSION>")
-ACTIONS = ("create", "update", "remove", "skip")
+ACTIONS = ("create", "adopt", "update", "remove", "skip")
 
 
 class CapabilityArtifactsError(Exception):
@@ -86,24 +92,23 @@ def installed_entries(ledger: dict, owner: str) -> dict[str, dict]:
     return {entry["target"]: entry for entry in ledger["artifacts"] if entry["owner"] == owner}
 
 
-def is_seed(source: Path, payload_class: str) -> bool:
-    """A template that still carries placeholders cannot be re-rendered later."""
+def needs_rendering(source: Path, payload_class: str) -> bool:
+    """True when delivery would require values only bootstrap knows."""
     if artifacts_ledger.manifest_class_to_ledger(payload_class) != "template":
         return False
-    body = source.read_bytes()
-    return any(placeholder in body for placeholder in PLACEHOLDERS)
+    return any(placeholder in source.read_bytes() for placeholder in PLACEHOLDERS)
 
 
 def build_plan(
     project_root: Path,
     capability: str,
-    artifacts: Sequence[tuple[str, Path, str]],
+    artifacts: Sequence[tuple[str, Path, str, str]],
 ) -> Plan:
     """Compare the release with the project.
 
-    ``artifacts`` is a sequence of ``(target, source, payload_class)`` for one
-    capability; the caller resolves it from the manifest, so this module stays
-    independent of how the release is described.
+    ``artifacts`` is a sequence of ``(target, source, payload_class, policy)``
+    for one capability; the caller resolves it from the manifest, so this module
+    stays independent of how the release is described.
     """
     owner = f"capability:{capability}"
     ledger = read_ledger(project_root)
@@ -113,7 +118,7 @@ def build_plan(
     conflicts: list[str] = []
     seen: set[str] = set()
 
-    for target, source, payload_class in artifacts:
+    for target, source, payload_class, policy in artifacts:
         if target in seen:
             raise CapabilityArtifactsError(f"Release declares {target} twice")
         seen.add(target)
@@ -121,20 +126,47 @@ def build_plan(
             raise CapabilityArtifactsError(f"Unsafe target in release: {target}")
         if not source.is_file():
             raise CapabilityArtifactsError(f"Missing release source for {target}")
+        if policy not in ("managed", "seed"):
+            raise CapabilityArtifactsError(f"Unsupported policy '{policy}' for {target}")
+        if payload_class not in artifacts_ledger.MANIFEST_PAYLOAD_CLASSES:
+            raise CapabilityArtifactsError(f"Unknown payload class '{payload_class}' for {target}")
+        parent = (project_root / target).parent
+        if parent.exists() and parent.resolve() != (project_root / target).parent.absolute().resolve():
+            raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
+        if parent.exists() and project_root.resolve() not in parent.resolve().parents and parent.resolve() != project_root.resolve():
+            raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
 
         path = project_root / target
         current = path.read_bytes() if path.is_file() else None
         record = installed.get(target)
-        seed = is_seed(source, payload_class)
-        policy = "seed" if seed else "managed"
         ledger_class = artifacts_ledger.manifest_class_to_ledger(payload_class)
+        rendered = needs_rendering(source, payload_class)
 
-        if seed:
-            action = "skip" if current is not None else "create"
-            detail = "seed already present" if current is not None else "seed created once"
+        if rendered and current is None:
+            # Only bootstrap can fill the placeholders; creating the file here
+            # would deliver "<PROJECT_NAME>" literally.
+            conflicts.append(f"{target}: is created by bootstrap and is missing from the project")
+            continue
+
+        if policy == "seed":
+            if current is None:
+                action, detail = "create", "seed created once"
+            elif record is None:
+                action, detail = "adopt", "seed already present, recording it"
+            else:
+                action, detail = "skip", "seed already present"
             operations.append(Operation(
                 target, action, policy, ledger_class, owner, source, None,
                 record["hash"] if record else None, detail,
+            ))
+            continue
+
+        if rendered:
+            # Rendered at creation, so its bytes legitimately differ from the
+            # source: record it, never compare or overwrite.
+            operations.append(Operation(
+                target, "skip" if record else "adopt", "managed", ledger_class, owner,
+                source, None, record["hash"] if record else None, "rendered by bootstrap",
             ))
             continue
 
@@ -148,6 +180,13 @@ def build_plan(
 
         current_hash = digest_bytes(current)
         if record is None:
+            if current_hash == desired:
+                # Installed by bootstrap, which writes no ledger: record it.
+                operations.append(Operation(
+                    target, "adopt", policy, ledger_class, owner, source, desired, None,
+                    "already matches the release",
+                ))
+                continue
             conflicts.append(f"{target}: file exists but is not recorded as ours")
             continue
         if record["hash"] != current_hash:
@@ -164,6 +203,10 @@ def build_plan(
         path = project_root / target
         if record["policy"] == "seed":
             continue
+        if record["policy"] == "owned-block":
+            raise CapabilityArtifactsError(
+                f"{target}: removing an owned block is not supported; it shares the file with others"
+            )
         if not path.is_file():
             operations.append(Operation(
                 target, "skip", record["policy"], record["payload_class"], owner,
@@ -196,15 +239,26 @@ def apply_plan(project_root: Path, plan: Plan) -> None:
     if plan.status != "ready":
         raise CapabilityArtifactsError(f"Plan is not ready to apply: {plan.status}")
 
+    # Build and validate the ledger before touching files: a document that
+    # would be rejected must not leave the project half-updated.
+    document = ledger_document(project_root, plan)
+
     staged: list[tuple[Path, Path]] = []
     removed: list[tuple[Path, Path]] = []
     created: list[Path] = []
+    created_directories: list[Path] = []
     try:
+        verify_preconditions(project_root, plan)
         # Stage first: nothing in the project changes until every file is ready.
         for operation in plan.operations:
             if operation.action in ("create", "update"):
                 assert operation.source is not None
                 path = project_root / operation.target
+                for ancestor in reversed(path.parent.parents):
+                    if not ancestor.exists() and project_root in ancestor.parents:
+                        created_directories.append(ancestor)
+                if not path.parent.exists():
+                    created_directories.append(path.parent)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 staged_path = _staged_name(path)
                 shutil.copyfile(operation.source, staged_path)
@@ -222,10 +276,15 @@ def apply_plan(project_root: Path, plan: Plan) -> None:
                 removed.append((backup, path))
 
         for staged_path, path in staged:
-            existed = path.exists()
-            os.replace(staged_path, path)
-            if not existed:
+            if path.exists():
+                # Keep the original until the whole chain has landed: a failure
+                # on a later file must be able to put this one back.
+                backup = path.with_name(f".{path.name}.capability-artifacts-previous")
+                os.replace(path, backup)
+                removed.append((backup, path))
+            else:
                 created.append(path)
+            os.replace(staged_path, path)
         staged.clear()
     except (OSError, CapabilityArtifactsError) as exc:
         # Roll back in reverse: restore removals, drop files we created, and
@@ -237,39 +296,82 @@ def apply_plan(project_root: Path, plan: Plan) -> None:
             path.unlink(missing_ok=True)
         for staged_path, _ in staged:
             staged_path.unlink(missing_ok=True)
+        for directory in reversed(created_directories):
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
         raise CapabilityArtifactsError(f"Apply failed and was rolled back: {exc}") from exc
+
+    try:
+        write_ledger_document(project_root, document)
+    except OSError as exc:
+        for backup, path in reversed(removed):
+            if backup.exists():
+                os.replace(backup, path)
+        for path in reversed(created):
+            path.unlink(missing_ok=True)
+        raise CapabilityArtifactsError(f"Ledger write failed and files were rolled back: {exc}") from exc
 
     for backup, _ in removed:
         backup.unlink(missing_ok=True)
-    write_ledger(project_root, plan)
 
 
-def write_ledger(project_root: Path, plan: Plan) -> None:
+def verify_preconditions(project_root: Path, plan: Plan) -> None:
+    """The project must still look the way the plan was built against."""
+    for operation in plan.operations:
+        path = project_root / operation.target
+        if operation.action == "create":
+            if path.exists():
+                raise CapabilityArtifactsError(f"{operation.target} appeared after planning")
+        elif operation.action in ("update", "remove"):
+            if not path.is_file():
+                raise CapabilityArtifactsError(f"{operation.target} disappeared after planning")
+            if digest_bytes(path.read_bytes()) != operation.installed_hash:
+                raise CapabilityArtifactsError(f"{operation.target} changed after planning")
+
+
+def ledger_document(project_root: Path, plan: Plan) -> dict:
+    """The ledger as it will look once the plan has been applied."""
     owner = f"capability:{plan.capability}"
     ledger = read_ledger(project_root)
     entries = [entry for entry in ledger["artifacts"] if entry["owner"] != owner]
+    touched = {operation.target for operation in plan.operations}
+
+    # Entries this plan says nothing about stay, as long as their file is there.
+    for entry in ledger["artifacts"]:
+        if entry["owner"] == owner and entry["target"] not in touched:
+            if (project_root / entry["target"]).exists():
+                entries.append(dict(entry))
 
     for operation in plan.operations:
         if operation.action == "remove":
             continue
         path = project_root / operation.target
-        if operation.policy == "seed":
+        if operation.policy == "seed" or operation.detail == "rendered by bootstrap":
             entries.append({
                 "target": operation.target, "owner": owner, "policy": "seed",
                 "payload_class": operation.payload_class, "hash": None,
             })
             continue
-        if not path.is_file():
+        expected = operation.desired_hash or (
+            digest_bytes(path.read_bytes()) if path.is_file() else None
+        )
+        if expected is None:
             continue
         entries.append({
             "target": operation.target, "owner": owner, "policy": operation.policy,
-            "payload_class": operation.payload_class, "hash": digest_bytes(path.read_bytes()),
+            "payload_class": operation.payload_class, "hash": expected,
         })
 
     document = artifacts_ledger.build_ledger(entries)
     issues = artifacts_ledger.validate_ledger(document)
     if issues:
         raise CapabilityArtifactsError(f"Refusing to write an invalid ledger: {issues[0]}")
+    return document
+
+
+def write_ledger_document(project_root: Path, document: dict) -> None:
     path = project_root / LEDGER_NAME
     staged_path = _staged_name(path)
     staged_path.write_bytes((json.dumps(document, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))

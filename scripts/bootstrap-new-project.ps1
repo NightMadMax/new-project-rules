@@ -86,7 +86,7 @@ $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
 
-$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label`tpayload_class"
+$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label`tpayload_class`tpolicy"
 $CapabilityLines = @(Get-Content -Encoding utf8 $CapabilitiesManifest)
 if ($CapabilityLines.Count -lt 2 -or $CapabilityLines[0] -cne $ExpectedCapabilitiesHeader) {
     throw "Invalid capability manifest header: $CapabilitiesManifest"

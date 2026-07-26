@@ -26,14 +26,19 @@ def note(condition: bool, message: str) -> None:
         failures.append(message)
 
 
-def release(root: Path, files: dict[str, bytes], payload_class: str = "verbatim") -> list[tuple[str, Path, str]]:
+def release(
+    root: Path,
+    files: dict[str, bytes],
+    payload_class: str = "verbatim",
+    policy: str = "managed",
+) -> list[tuple[str, Path, str, str]]:
     source_root = root / "release"
     artifacts = []
     for target, content in files.items():
         source = source_root / target
         source.parent.mkdir(parents=True, exist_ok=True)
         source.write_bytes(content)
-        artifacts.append((target, source, payload_class))
+        artifacts.append((target, source, payload_class, policy))
     return artifacts
 
 
@@ -130,13 +135,13 @@ def _(root: Path, project: Path) -> None:
 
 @scenario("seed is created once and then owned by the user")
 def _(root: Path, project: Path) -> None:
-    artifacts = release(root, {"USER-RULES.md": b"# <PROJECT_NAME>\n"}, payload_class="template")
+    artifacts = release(root, {"USER-RULES.md": b"# rules\n"}, payload_class="template", policy="seed")
     plan = module.build_plan(project, "1c", artifacts)
-    note(plan.operations[0].policy == "seed", "a template with placeholders must be a seed")
+    note(plan.operations[0].policy == "seed", "policy must come from the manifest")
     module.apply_plan(project, plan)
     (project / "USER-RULES.md").write_bytes(b"# my own rules\n")
 
-    changed = release(root / "next", {"USER-RULES.md": b"# <PROJECT_NAME> v2\n"}, payload_class="template")
+    changed = release(root / "next", {"USER-RULES.md": b"# rules v2\n"}, payload_class="template", policy="seed")
     repeat = module.build_plan(project, "1c", changed)
     note(repeat.status == "up_to_date", f"a seed must not be updated, got {repeat.status}")
     module.apply_plan(project, repeat)
@@ -147,12 +152,15 @@ def _(root: Path, project: Path) -> None:
 
 @scenario("a seed is never removed")
 def _(root: Path, project: Path) -> None:
-    artifacts = release(root, {"memory.md": b"# <PROJECT_NAME>\n"}, payload_class="template")
+    artifacts = release(root, {"memory.md": b"# memory\n"}, payload_class="template", policy="seed")
     module.apply_plan(project, module.build_plan(project, "1c", artifacts))
     plan = module.build_plan(project, "1c", [])
+    note(plan.status in ("ready", "up_to_date"), f"dropping a seed must not be a conflict, got {plan.status}")
     note(all(operation.action != "remove" for operation in plan.operations), "a seed was scheduled for removal")
-    module.apply_plan(project, plan) if plan.status == "ready" else None
+    module.apply_plan(project, plan)
     note((project / "memory.md").exists(), "seed was removed")
+    entries = ledger_of(project)["artifacts"]
+    note([entry["target"] for entry in entries] == ["memory.md"], f"seed left the ledger: {entries}")
 
 
 @scenario("failure in the middle rolls the whole chain back")
@@ -172,6 +180,171 @@ def _(root: Path, project: Path) -> None:
         pass
     after = {path.name: path.read_bytes() for path in (project / "config").iterdir() if not path.name.startswith(".")}
     note(after == before, f"project was left half-updated: {after}")
+
+
+@scenario("a failed rename restores what already landed")
+def _(root: Path, project: Path) -> None:
+    first = release(root, {"a.txt": b"one\n", "b.txt": b"two\n"})
+    module.apply_plan(project, module.build_plan(project, "1c", first))
+    before = {path.name: path.read_bytes() for path in project.iterdir()
+              if path.is_file() and not path.name.startswith(".")}
+
+    second = release(root / "next", {"a.txt": b"one-new\n", "b.txt": b"two-new\n"})
+    plan = module.build_plan(project, "1c", second)
+
+    real_replace = module.os.replace
+
+    def flaky(source, target, *args, **kwargs):
+        # Fail when the second payload is moved into place, after the first
+        # one has already landed.
+        if str(source).endswith(".b.txt.capability-artifacts"):
+            raise OSError("simulated failure during rename")
+        return real_replace(source, target, *args, **kwargs)
+
+    module.os.replace = flaky
+    try:
+        module.apply_plan(project, plan)
+        failures.append("rename rollback: apply must fail")
+    except module.CapabilityArtifactsError:
+        pass
+    finally:
+        module.os.replace = real_replace
+
+    after = {path.name: path.read_bytes() for path in project.iterdir()
+             if path.is_file() and not path.name.startswith(".")}
+    note(after == before, f"a failed rename left the project half-updated: {after}")
+    leftovers = [path.name for path in project.iterdir() if path.name.startswith(".") and "capability-artifacts" in path.name]
+    note(not leftovers, f"temporary files were left behind: {leftovers}")
+
+
+@scenario("a template rendered by bootstrap is recorded, not recreated")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"JIRA.md": b"# <PROJECT_NAME>\n"}, payload_class="template")
+    plan = module.build_plan(project, "1c", artifacts)
+    note(plan.status == "conflict", f"a missing rendered template must be a conflict, got {plan.status}")
+
+    (project / "JIRA.md").write_bytes(b"# demo\n")
+    plan = module.build_plan(project, "1c", artifacts)
+    note(plan.operations[0].action == "adopt", f"a rendered template must be adopted, got {plan.operations[0].action}")
+    module.apply_plan(project, plan)
+    note((project / "JIRA.md").read_bytes() == b"# demo\n", "the rendered file was overwritten")
+
+    changed = release(root / "next", {"JIRA.md": b"# <PROJECT_NAME> v2\n"}, payload_class="template")
+    note(module.build_plan(project, "1c", changed).status == "up_to_date", "a rendered template must not be updated")
+
+
+@scenario("declared duplicates and missing sources stop planning")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"a.txt": b"one\n"})
+    try:
+        module.build_plan(project, "1c", artifacts + artifacts)
+        failures.append("duplicate target was accepted")
+    except module.CapabilityArtifactsError:
+        pass
+
+    artifacts[0][1].unlink()
+    try:
+        module.build_plan(project, "1c", artifacts)
+        failures.append("missing source was accepted")
+    except module.CapabilityArtifactsError:
+        pass
+
+
+@scenario("an unknown payload class stops planning")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"a.txt": b"one\n"}, payload_class="mystery")
+    try:
+        module.build_plan(project, "1c", artifacts)
+        failures.append("unknown payload class was accepted")
+    except module.CapabilityArtifactsError:
+        pass
+
+
+@scenario("an unknown policy stops planning")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"a.txt": b"one\n"}, policy="mystery")
+    try:
+        module.build_plan(project, "1c", artifacts)
+        failures.append("unknown policy was accepted")
+    except module.CapabilityArtifactsError:
+        pass
+
+
+@scenario("a change between planning and applying is refused")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"a.txt": b"one\n"})
+    module.apply_plan(project, module.build_plan(project, "1c", artifacts))
+    next_release = release(root / "next", {"a.txt": b"two\n"})
+    plan = module.build_plan(project, "1c", next_release)
+    (project / "a.txt").write_bytes(b"user edit after planning\n")
+    try:
+        module.apply_plan(project, plan)
+        failures.append("stale plan: apply must refuse")
+    except module.CapabilityArtifactsError:
+        pass
+    note((project / "a.txt").read_bytes() == b"user edit after planning\n", "a late edit was overwritten")
+
+
+@scenario("a corrupted staged copy stops the apply")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"a.txt": b"one\n"})
+    plan = module.build_plan(project, "1c", artifacts)
+    real_copy = module.shutil.copyfile
+
+    def wrong_copy(source, target, *args, **kwargs):
+        Path(target).write_bytes(b"corrupted\n")
+
+    module.shutil.copyfile = wrong_copy
+    try:
+        module.apply_plan(project, plan)
+        failures.append("staged check: apply must refuse a copy that does not match")
+    except module.CapabilityArtifactsError:
+        pass
+    finally:
+        module.shutil.copyfile = real_copy
+    note(not (project / "a.txt").exists(), "a corrupted copy was left in place")
+
+
+@scenario("removal is refused when the file changed")
+def _(root: Path, project: Path) -> None:
+    first = release(root, {"a.txt": b"one\n", "gone.txt": b"bye\n"})
+    module.apply_plan(project, module.build_plan(project, "1c", first))
+    (project / "gone.txt").write_bytes(b"user made it theirs\n")
+    second = release(root / "next", {"a.txt": b"one\n"})
+    plan = module.build_plan(project, "1c", second)
+    note(plan.status == "conflict", f"changed file must not be removed, got {plan.status}")
+    note((project / "gone.txt").exists(), "the changed file was removed")
+
+
+@scenario("a ledger that would be invalid stops before files move")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"a.txt": b"one\n"})
+    plan = module.build_plan(project, "1c", artifacts)
+    broken = module.Plan(plan.capability, plan.status, tuple(
+        module.Operation(
+            operation.target, operation.action, operation.policy, "mystery",
+            operation.owner, operation.source, operation.desired_hash,
+            operation.installed_hash, operation.detail,
+        ) for operation in plan.operations
+    ))
+    try:
+        module.apply_plan(project, broken)
+        failures.append("invalid ledger: apply must refuse")
+    except module.CapabilityArtifactsError:
+        pass
+    note(not (project / "a.txt").exists(), "files moved before the ledger was validated")
+
+
+@scenario("a target inside .git is rejected")
+def _(root: Path, project: Path) -> None:
+    source = root / "release" / "hook"
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(b"#!/bin/sh\n")
+    try:
+        module.build_plan(project, "1c", [(".git/hooks/pre-commit", source, "verbatim", "managed")])
+        failures.append("a target inside .git was accepted")
+    except module.CapabilityArtifactsError:
+        pass
 
 
 @scenario("other owners are preserved")
@@ -196,7 +369,7 @@ def _(root: Path, project: Path) -> None:
     source.write_bytes(b"x")
     for target in ("../escape.md", "/etc/hosts", "config/../../escape.md"):
         try:
-            module.build_plan(project, "1c", [(target, source, "verbatim")])
+            module.build_plan(project, "1c", [(target, source, "verbatim", "managed")])
             failures.append(f"unsafe target accepted: {target}")
         except module.CapabilityArtifactsError:
             pass

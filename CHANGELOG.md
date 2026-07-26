@@ -9,7 +9,8 @@
 - Этап Э4: обработчик `capability_artifacts` — транзакционная установка и обновление
   артефактов capability с остановкой на дрейфе, откатом всей цепочки при отказе,
   seed-артефактами и обновлением ledger только после успешной записи. Добавлен
-  read-only CLI `apply-capability-artifacts` с парой shell/PowerShell.
+  read-only CLI `apply-capability-artifacts` с парой shell/PowerShell. В манифест
+  добавлена колонка `policy`: владение объявляется, а не выводится из содержимого.
 - Этап Э3: в `config/capabilities.tsv` добавлена колонка `payload_class`, оба bootstrap
   доставляют `verbatim` и `binary` побайтно вместо текстовой подстановки, неизвестный
   класс останавливает установку. Тест проверяет обе реализации на payload с NUL-байтом

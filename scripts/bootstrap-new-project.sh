@@ -128,12 +128,12 @@ header=$(sed -n '1p' "$manifest")
   exit 1
 }
 
-capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label${tab}payload_class"
+capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label${tab}payload_class${tab}policy"
 [ "$(sed -n '1p' "$capabilities_manifest")" = "$capabilities_header" ] || {
   echo "Invalid capability manifest header: $capabilities_manifest" >&2
   exit 1
 }
-while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
+while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
   [ "$row_capability" = capability ] && continue
   [ "$row_capability" = jira-confluence ] || { echo "Unknown capability '$row_capability'" >&2; exit 1; }
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
@@ -247,7 +247,7 @@ install_generated() {
       # generated rules above would normalise line endings on `git add`.
       if [ -n "$capability" ]; then
         attr_first=1
-        while IFS="$tab" read -r attr_capability attr_source attr_destination attr_purpose attr_section attr_label attr_class; do
+        while IFS="$tab" read -r attr_capability attr_source attr_destination attr_purpose attr_section attr_label attr_class attr_policy; do
           [ "$attr_first" -eq 1 ] && { attr_first=0; continue; }
           [ "$attr_capability" = "$capability" ] || continue
           case "$(printf '%s' "$attr_class" | tr -d '\r')" in
@@ -316,7 +316,7 @@ done < "$manifest"
 
 if [ "$capability" = jira-confluence ]; then
   first=1
-  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
     [ "$first" -eq 1 ] && { first=0; continue; }
     [ "$row_capability" = "$capability" ] || continue
     install_artifact "$source" "$artifact_destination" "$payload_class"
@@ -369,7 +369,7 @@ done < "$manifest"
 
 if [ "$capability" = jira-confluence ]; then
   first=1
-  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
     [ "$first" -eq 1 ] && { first=0; continue; }
     [ "$row_capability" = "$capability" ] || continue
     ensure_index_entry "$artifact_destination" "$root_purpose"
