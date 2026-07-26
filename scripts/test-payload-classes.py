@@ -19,6 +19,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 CAPABILITY = "jira-confluence"
+GIT_IDENTITY = {
+    "GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.com",
+    "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.com",
+}
 # Invalid UTF-8 on purpose: bytes that survive a text round-trip would let a
 # Get-Content/Set-Content style regression pass unnoticed. CRLF is here to catch
 # line-ending normalisation, including the one Git would apply on commit.
@@ -116,7 +120,7 @@ def shell_bootstrap(contract: Path, destination: Path):
     return subprocess.run(
         ["sh", (contract / "scripts" / "bootstrap-new-project.sh").as_posix(),
          destination.as_posix(), "demo", "operated", CAPABILITY],
-        capture_output=True, text=True,
+        capture_output=True, text=True, env={**os.environ, **GIT_IDENTITY},
     )
 
 
@@ -130,7 +134,7 @@ def powershell_bootstrap(contract: Path, destination: Path):
         [pwsh, "-NoProfile", "-Command",
          f"& '{script}' -ProjectName demo -Destination '{destination.as_posix()}' "
          f"-Profile operated -Capability {CAPABILITY}"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, env={**os.environ, **GIT_IDENTITY},
     )
 
 
