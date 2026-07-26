@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Этап Э1 плана реализации capability `1c`: реестр `config/skills.tsv`, общая проверка
+  `scripts/check_skills.py` (canonical-триада и vendored payload по hash), оба entry
+  point делегируют ей, добавлены юнит-тесты на временных фикстурах. Проверка сразу
+  нашла два дефекта в шаблонах capability `jira-confluence` (№143 и №144).
 - Добавлен [[docs/architecture/one-c/IMPLEMENTATION_PLAN|план реализации capability `1c`]]:
   этапы Э1–Э10 в порядке выполнения, обязательное архитектурное ревью независимым
   ревьюером после каждого этапа, ветка и pull request на этап, отдельная веха Windows.

@@ -45,6 +45,7 @@ jobs:
           python3 scripts/test-github-governance.py
           python3 scripts/test-best-practices-manifest.py
           python3 scripts/test-standard-metrics.py
+          python3 scripts/test-check-skills.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
