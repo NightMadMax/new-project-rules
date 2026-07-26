@@ -62,6 +62,16 @@ def run_shell(destination: Path, *arguments: str):
     )
 
 
+def run_shell_raw(*arguments: str):
+    """Call the shell entry point with exactly these arguments."""
+    if not shutil.which("sh"):
+        return None
+    return subprocess.run(
+        ["sh", (SCRIPTS / "bootstrap-new-project.sh").as_posix(), *arguments],
+        capture_output=True, text=True, env={**dict(__import__("os").environ), **GIT_IDENTITY},
+    )
+
+
 def run_powershell(destination: Path, *arguments: str):
     pwsh = shutil.which("pwsh") or shutil.which("powershell")
     if not pwsh:
@@ -88,6 +98,46 @@ note(capabilities == ["jira-confluence", "1c"], f"capabilities must merge withou
 try:
     presets.resolve(ROOT, "ghost", "minimal", [])
     failures.append("an unknown preset must be rejected")
+except presets.PresetError:
+    pass
+
+# --- the manifest reader ---------------------------------------------------
+
+HEADER = "preset\tmin_profile\tcapabilities\tbest_practices\n"
+
+
+def manifest_case(name: str, body: str, expect: str | None) -> None:
+    with tempfile.TemporaryDirectory() as raw:
+        contract = Path(raw)
+        (contract / "config").mkdir()
+        (contract / "config/presets.tsv").write_bytes(body.encode("utf-8"))
+        try:
+            presets.read_presets(contract)
+            issue = None
+        except presets.PresetError as error:
+            issue = str(error)
+        if expect is None:
+            note(issue is None, f"{name}: expected no error, got {issue}")
+        else:
+            note(issue is not None and expect in issue, f"{name}: expected '{expect}', got {issue}")
+
+
+manifest_case("healthy manifest", HEADER + "1c\toperated\t1c\t1c\n", None)
+manifest_case("bad header", "preset\tmin_profile\n1c\toperated\n", "Unexpected header")
+manifest_case("row too short", HEADER + "1c\toperated\n", "does not match the header")
+manifest_case("duplicate preset", HEADER + "1c\toperated\t1c\t1c\n1c\tall\t1c\t1c\n", "duplicate preset")
+manifest_case("unknown profile", HEADER + "1c\tmystery\t1c\t1c\n", "unknown profile")
+manifest_case("unknown capability", HEADER + "1c\toperated\tghost\t1c\n", "unknown capability")
+manifest_case("unknown stack", HEADER + "1c\toperated\t1c\tghost\n", "unknown practice stack")
+manifest_case("no presets", HEADER, "declares no presets")
+manifest_case("missing manifest", "", "Unexpected header")
+
+note(presets.split("-") == [], "a dash must mean 'nothing'")
+note(presets.split("a,,b") == ["a", "b"], "empty entries must be dropped")
+
+try:
+    presets.resolve(Path("."), "1c", "mystery", [])
+    failures.append("an unknown profile must be rejected")
 except presets.PresetError:
     pass
 
@@ -162,6 +212,22 @@ with tempfile.TemporaryDirectory() as raw:
         )
         note("capability.stack_declined" in check.stdout, f"a declined stack must break the core: {check.stdout[-200:]}")
 
+        data = json.loads(json.dumps({"schema_version": 2, "preferences": {"global": "ask", "sections": {}}, "practices": {}}))
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note("capability.stack_missing" in check.stdout, f"an unrecorded stack must break the core: {check.stdout[-200:]}")
+
+        data["preferences"] = {"global": "optout", "sections": {"1c": "ask"}}
+        manifest.write_text(json.dumps(data), encoding="utf-8")
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
+            capture_output=True, text=True,
+        )
+        note("capability.stack_declined" in check.stdout, f"a globally declined base must break the core: {check.stdout[-200:]}")
+
         manifest.unlink()
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
@@ -175,6 +241,28 @@ with tempfile.TemporaryDirectory() as raw:
             capture_output=True, text=True,
         )
         note("capability.stack_unreadable" in check.stdout, f"an unreadable manifest must be reported: {check.stdout[-200:]}")
+
+
+# --- argument handling ------------------------------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    workspace = Path(raw)
+    empty_name = run_shell_raw((workspace / "empty-name").as_posix(), "", "minimal")
+    if empty_name is not None:
+        note(empty_name.returncode != 0, "shell: an empty project name must be rejected")
+        note("must not be empty" in empty_name.stderr, f"shell: unclear message: {empty_name.stderr[:120]}")
+
+    twice = run_shell(workspace / "twice", "minimal", "--preset", "1c", "--preset", "1c")
+    if twice is not None:
+        note(twice.returncode != 0, "shell: --preset given twice must be rejected")
+
+    wrong_case = run_powershell(workspace / "case", "-Capability", "1C")
+    if wrong_case is not None:
+        note(wrong_case.returncode != 0, "powershell: capability names must be case-sensitive")
+
+    wrong_case_shell = run_shell(workspace / "case-shell", "minimal", "1C")
+    if wrong_case_shell is not None:
+        note(wrong_case_shell.returncode != 0, "shell: capability names must be case-sensitive")
 
 
 # --- both implementations agree -------------------------------------------

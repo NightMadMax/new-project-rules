@@ -113,14 +113,17 @@ if ($Preset) {
 # Whatever selected the capability - a preset or the -Capability parameter -
 # its core follows: a project cannot exist with the capability but without the
 # profile and practice stack that capability requires.
+if ($Capability.Count -gt 0 -and -not (Test-Path -LiteralPath $CapabilityCoreManifest -PathType Leaf)) {
+    throw "Capability core manifest not found: $CapabilityCoreManifest"
+}
 if (Test-Path -LiteralPath $CapabilityCoreManifest -PathType Leaf) {
     $CoreRows = @(Get-Content -Encoding utf8 $CapabilityCoreManifest | ConvertFrom-Csv -Delimiter "`t")
     foreach ($core in $CoreRows) {
-        if ($core.capability -notin $Capability) { continue }
+        if ($Capability -cnotcontains $core.capability) { continue }
         if ($ProfileRanks[$Profile] -lt $ProfileRanks[$core.min_profile]) {
             $Profile = $core.min_profile
         }
-        if ($core.stack -and $core.stack -ne "-" -and $core.stack -notin $BestPracticesStacks) {
+        if ($core.stack -and $core.stack -ne "-" -and $BestPracticesStacks -cnotcontains $core.stack) {
             $BestPracticesStacks += $core.stack
         }
     }
@@ -147,7 +150,7 @@ $KnownCapabilities += @(
 )
 $KnownCapabilities = @($KnownCapabilities | Sort-Object -Unique)
 foreach ($selectedCapability in $Capability) {
-    if ($selectedCapability -notin $KnownCapabilities) { throw "Unknown capability '$selectedCapability'" }
+    if ($KnownCapabilities -cnotcontains $selectedCapability) { throw "Unknown capability '$selectedCapability'" }
 }
 foreach ($artifact in $CapabilityArtifacts) {
     if ([System.IO.Path]::IsPathRooted($artifact.destination) -or

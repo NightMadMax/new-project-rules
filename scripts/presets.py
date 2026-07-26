@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import best_practices_manifest  # noqa: E402
 import project_metadata  # noqa: E402
 
 MANIFEST = Path("config/presets.tsv")
@@ -46,6 +47,9 @@ def read_presets(contract_root: Path) -> dict[str, dict[str, str]]:
         for capability in split(row["capabilities"]):
             if capability not in project_metadata.CAPABILITY_NAMES:
                 raise PresetError(f"{MANIFEST}:{number} unknown capability '{capability}'")
+        for stack in split(row["best_practices"]):
+            if stack not in best_practices_manifest.ALLOWED_SECTIONS:
+                raise PresetError(f"{MANIFEST}:{number} unknown practice stack '{stack}'")
         presets[row["preset"]] = row
     if not presets:
         raise PresetError(f"{MANIFEST} declares no presets")

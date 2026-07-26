@@ -16,6 +16,7 @@ from typing import Iterable, Optional, Sequence
 
 import sync_global_agents as agent_sync
 import artifacts_ledger
+import presets as preset_manifest
 import project_metadata
 import plan_migration as migration_planner
 import promotion_candidates
@@ -319,7 +320,8 @@ def check_capability_core(root: Path, capabilities: Sequence[str]) -> list[Findi
         )]
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
-        sections = data["preferences"]["sections"]
+        preferences = data["preferences"]
+        sections = preferences["sections"]
         if not isinstance(sections, dict):
             raise ValueError("sections must be an object")
     except (OSError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
@@ -327,10 +329,25 @@ def check_capability_core(root: Path, capabilities: Sequence[str]) -> list[Findi
 
     findings: list[Finding] = []
     for capability, stack in sorted(required.items()):
-        if sections.get(stack) == "optout":
+        # Connected means recorded and not declined. A missing section is not
+        # "connected by default": the core would look present while nothing
+        # ever chose the stack.
+        if stack not in sections:
+            findings.append(Finding(
+                "ERROR", "capability.stack_missing",
+                f"Capability '{capability}' requires the '{stack}' practice stack, which is not recorded.",
+                ".best-practices.json",
+            ))
+        elif sections[stack] == "optout":
             findings.append(Finding(
                 "ERROR", "capability.stack_declined",
                 f"Capability '{capability}' requires the '{stack}' practice stack, which is set to optout.",
+                ".best-practices.json",
+            ))
+        elif preferences.get("global") == "optout":
+            findings.append(Finding(
+                "ERROR", "capability.stack_declined",
+                f"Capability '{capability}' requires the '{stack}' practice stack, but the whole base is set to optout.",
                 ".best-practices.json",
             ))
     return findings
@@ -696,6 +713,10 @@ def validate(
             if not (root / required).is_file():
                 findings.append(Finding("ERROR", "rules.required", "Required rules-repository artifact is missing.", required))
         findings.extend(check_policy_contract(root))
+        try:
+            preset_manifest.read_presets(root)
+        except preset_manifest.PresetError as error:
+            findings.append(Finding("ERROR", "presets.invalid", str(error), "config/presets.tsv"))
         findings.extend(
             Finding("ERROR", "promotion.candidate", message, path)
             for path, message in promotion_candidates.validate_candidates(root)

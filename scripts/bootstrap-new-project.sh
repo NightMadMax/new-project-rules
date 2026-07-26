@@ -40,28 +40,29 @@ directory_is_empty() {
 }
 
 preset=
-positional=""
-while [ "$#" -gt 0 ]; do
+preset_seen=0
+remaining=$#
+while [ "$remaining" -gt 0 ]; do
   case "$1" in
     --preset)
       [ "$#" -ge 2 ] || usage
+      [ "$preset_seen" -eq 0 ] || { echo "--preset given twice" >&2; exit 2; }
       preset=$2
+      preset_seen=1
       shift 2
+      remaining=$((remaining - 2))
+      ;;
+    --)
+      shift
+      remaining=$((remaining - 1))
       ;;
     *)
-      positional="$positional$1
-"
+      set -- "$@" "$1"
       shift
+      remaining=$((remaining - 1))
       ;;
   esac
 done
-default_ifs=$IFS
-set -f
-IFS='
-'
-set -- $positional
-IFS=$default_ifs
-set +f
 
 [ "$#" -ge 2 ] && [ "$#" -le 4 ] || usage
 
@@ -69,6 +70,9 @@ destination=$1
 project_name=$2
 profile=${3:-minimal}
 capability=${4:-}
+
+[ -n "$destination" ] || { echo "Destination must not be empty" >&2; exit 2; }
+[ -n "$project_name" ] || { echo "Project name must not be empty" >&2; exit 2; }
 
 case "$profile" in
   minimal|software|operated|all) ;;
@@ -154,7 +158,7 @@ capability_selected() {
 if [ -n "$preset" ]; then
   [ -f "$presets_manifest" ] || { echo "Preset manifest not found: $presets_manifest" >&2; exit 1; }
   presets_header="preset${tab}min_profile${tab}capabilities${tab}best_practices"
-  [ "$(sed -n '1p' "$presets_manifest")" = "$presets_header" ] || {
+  [ "$(sed -n '1p' "$presets_manifest" | tr -d '\r')" = "$presets_header" ] || {
     echo "Invalid preset manifest header: $presets_manifest" >&2
     exit 1
   }
@@ -208,7 +212,11 @@ done < "$capabilities_manifest"
 # core follows: a project cannot exist with the capability but without the
 # profile and practice stack that capability requires.
 apply_capability_core() {
-  [ -f "$capability_core_manifest" ] || return 0
+  [ -n "$capability" ] || return 0
+  [ -f "$capability_core_manifest" ] || {
+    echo "Capability core manifest not found: $capability_core_manifest" >&2
+    exit 1
+  }
   core_first=1
   while IFS="$tab" read -r core_capability core_min_profile core_stack; do
     [ "$core_first" -eq 1 ] && { core_first=0; continue; }
