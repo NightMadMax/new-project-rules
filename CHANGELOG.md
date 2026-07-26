@@ -6,6 +6,10 @@
 
 ### Добавлено
 
+- Этап Э2 плана реализации capability `1c`: schema стандарта повышена до 5,
+  metadata получает запись `capability_releases`, добавлены миграции 0013–0015 для
+  всех трёх targets, введён ledger `.project-standard-artifacts.json` со своей схемой,
+  валидатором `scripts/artifacts_ledger.py` и проверкой в `validate-project.py`.
 - Добавлен [[docs/architecture/one-c/IMPLEMENTATION_PLAN|план реализации capability `1c`]]:
   этапы Э1–Э10 в порядке выполнения, обязательное архитектурное ревью независимым
   ревьюером после каждого этапа, ветка и pull request на этап, отдельная веха Windows.

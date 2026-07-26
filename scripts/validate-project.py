@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Iterable, Optional, Sequence
 
 import sync_global_agents as agent_sync
+import artifacts_ledger
 import project_metadata
 import plan_migration as migration_planner
 import promotion_candidates
@@ -260,6 +261,27 @@ def load_metadata(
         for issue in project_metadata.validate_metadata(data, standard_version, source, project_migrations)
     ]
     return data if isinstance(data, dict) else None, findings
+
+
+def check_artifacts_ledger(root: Path) -> list[Finding]:
+    """Validate the artifacts ledger when a project has one.
+
+    The ledger is optional: only projects that received capability artifacts
+    have it. A malformed ledger is an error, because the update workflow reads
+    it to tell drift from an untouched artifact.
+    """
+    path = root / ".project-standard-artifacts.json"
+    if not path.exists():
+        return []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return [Finding("ERROR", "ledger.invalid", f"Invalid artifacts ledger: {exc}", relative(path, root))]
+    known_owners = {"standard"} | {f"capability:{name}" for name in project_metadata.CAPABILITY_NAMES}
+    return [
+        Finding("ERROR", "ledger.schema", issue, relative(path, root))
+        for issue in artifacts_ledger.validate_ledger(data, known_owners)
+    ]
 
 
 def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> list[Finding]:
@@ -608,6 +630,7 @@ def validate(
     else:
         metadata, metadata_findings = load_metadata(root, version, source, project_migrations)
         findings.extend(metadata_findings)
+        findings.extend(check_artifacts_ledger(root))
         metadata_profile = metadata.get("profile") if metadata else None
         if requested_profile != "auto":
             profile = requested_profile

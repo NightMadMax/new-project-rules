@@ -95,6 +95,8 @@
 | `scripts/test-contract.sh` | Parity contract и bootstrap outputs (macOS/Linux) |
 | `scripts/test-contract.ps1` | Parity contract и bootstrap outputs (Windows) |
 | `scripts/validate-project.py` | Общая read-only validation logic на Python 3.9+ |
+| `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
+| `scripts/artifacts_ledger.py` | Контракт и валидация `.project-standard-artifacts.json` |
 | `scripts/validate-project.sh` | Validator wrapper для macOS/Linux |
 | `scripts/validate-project.ps1` | Validator wrapper для Windows |
 | `scripts/project-doctor.sh` | Environment + project doctor для macOS/Linux |
@@ -115,6 +117,7 @@
 | `scripts/plan-migration.sh` | Migration planner wrapper для macOS/Linux |
 | `scripts/plan-migration.ps1` | Migration planner wrapper для Windows |
 | `scripts/test-migration-planner.py` | Regression tests manifests, blockers, previews и no-mutation |
+| `scripts/test-artifacts-ledger.py` | Тесты контракта ledger managed-артефактов |
 | `scripts/standardize_existing_project.py` | Read-only decision report для стандартизации существующего проекта |
 | `scripts/standardize-existing-project.sh` | Existing-project standardization planner для macOS/Linux |
 | `scripts/standardize-existing-project.ps1` | Existing-project standardization planner для Windows |
