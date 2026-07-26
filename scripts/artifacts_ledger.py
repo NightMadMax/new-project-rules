@@ -20,6 +20,16 @@ from typing import Iterable, Sequence
 LEDGER_SCHEMA = 1
 POLICIES = {"managed", "seed", "owned-block"}
 PAYLOAD_CLASSES = {"template", "verbatim", "binary", "owned-block"}
+# What a capability manifest row may declare. "owned-block" is a ledger-only
+# state: a mixed file is edited in place, never delivered as a whole, so no
+# bootstrap can install it. "-" and "" mean template, kept for older rows.
+MANIFEST_PAYLOAD_CLASSES = {"-", "", "template", "verbatim", "binary"}
+BYTE_EXACT_CLASSES = {"verbatim", "binary"}
+
+
+def manifest_class_to_ledger(value: str) -> str:
+    """Translate a manifest class into its ledger spelling."""
+    return "template" if value in ("-", "") else value
 OWNER_RE = re.compile(r"^(standard|capability:[a-z0-9][a-z0-9-]*)$")
 HASH_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 ENTRY_FIELDS = {"target", "owner", "policy", "payload_class", "hash"}

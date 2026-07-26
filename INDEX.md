@@ -11,7 +11,7 @@
 | [[ACTIONS|ACTIONS.md]] | Журнал значимых действий вне Git и rollback evidence |
 | `STANDARD_VERSION` | Версия схемы project standard |
 | `config/profiles.tsv` | Канонический состав bootstrap-профилей и index relationships |
-| `config/capabilities.tsv` | Канонический состав подключаемых возможностей проекта |
+| `config/capabilities.tsv` | Канонический состав подключаемых возможностей проекта и класс доставки каждого артефакта |
 | `config/policy-contract.tsv` | Обязательные policy literals в переносимых правилах |
 | `config/migrations.tsv` | Migration IDs, targets, schema transitions и handlers |
 | `config/skills.tsv` | Реестр skills: класс проверки, корень, необходимость Claude-моста |
@@ -119,6 +119,7 @@
 | `scripts/plan-migration.ps1` | Migration planner wrapper для Windows |
 | `scripts/test-migration-planner.py` | Regression tests manifests, blockers, previews и no-mutation |
 | `scripts/test-artifacts-ledger.py` | Тесты контракта ledger managed-артефактов |
+| `scripts/test-payload-classes.py` | Тесты доставки артефактов: подстановка против побайтного копирования |
 | `scripts/standardize_existing_project.py` | Read-only decision report для стандартизации существующего проекта |
 | `scripts/standardize-existing-project.sh` | Existing-project standardization planner для macOS/Linux |
 | `scripts/standardize-existing-project.ps1` | Existing-project standardization planner для Windows |

@@ -215,6 +215,40 @@ class ValidatorTests(unittest.TestCase):
         _, _, findings = self.validate_project(project)
         self.assertNotIn("ledger.schema", finding_codes(findings))
 
+    def test_capability_manifest_contract_is_enforced(self):
+        import shutil
+
+        contract = self.temp_path / "contract"
+        shutil.copytree(
+            ROOT, contract, symlinks=True,
+            ignore=shutil.ignore_patterns(".git", "__pycache__", ".venv", "venv", "node_modules"),
+        )
+        manifest = contract / "config" / "capabilities.tsv"
+        original = manifest.read_text(encoding="utf-8")
+
+        def rows_with(last_row: str) -> None:
+            manifest.write_text(original.rstrip("\n") + "\n" + last_row + "\n", encoding="utf-8")
+
+        template = "capabilities/jira-confluence/JIRA.template.md"
+        rows_with(f"jira-confluence\t{template}\tX.md\t-\t-\t-\tmystery")
+        with self.assertRaises(validator.ContractError):
+            validator.load_capability_artifacts(contract)
+
+        # A row that does not match the header must be named, not crash.
+        rows_with(f"jira-confluence\t{template}\tX.md\t-\t-\t-\ttemplate\textra")
+        with self.assertRaises(validator.ContractError):
+            validator.load_capability_artifacts(contract)
+
+        # A non-text source cannot be delivered by substitution.
+        payload = contract / "templates" / "new-project" / "capabilities" / "jira-confluence" / "payload.bin"
+        payload.write_bytes(b"\xff\xfe\x00\x80")
+        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\ttemplate")
+        with self.assertRaises(validator.ContractError):
+            validator.load_capability_artifacts(contract)
+
+        rows_with("jira-confluence\tcapabilities/jira-confluence/payload.bin\tX.bin\t-\t-\t-\tbinary")
+        validator.load_capability_artifacts(contract)
+
     def test_global_rule_drift_is_reported_without_exposing_content(self):
         home = self.temp_path / "home"
         active = home / ".codex" / "AGENTS.md"

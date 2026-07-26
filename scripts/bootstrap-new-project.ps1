@@ -86,7 +86,7 @@ $SelectedArtifacts = @($Artifacts | Where-Object {
         $ProfileRanks[$_.minimum_profile] -le $ProfileRanks[$Profile]
     })
 
-$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label"
+$ExpectedCapabilitiesHeader = "capability`tsource`tdestination`troot_purpose`tdocs_section`tdocs_label`tpayload_class"
 $CapabilityLines = @(Get-Content -Encoding utf8 $CapabilitiesManifest)
 if ($CapabilityLines.Count -lt 2 -or $CapabilityLines[0] -cne $ExpectedCapabilitiesHeader) {
     throw "Invalid capability manifest header: $CapabilitiesManifest"
@@ -159,6 +159,29 @@ function Install-Template {
     Write-Utf8NoBom $targetPath $content
 }
 
+# Byte-exact delivery: vendored payload and binaries must arrive unchanged, so
+# no placeholder substitution and no text processing touches them.
+function Install-Verbatim {
+    param([string]$Source, [string]$Target)
+
+    $targetPath = Join-Path $Destination $Target
+    $targetDirectory = Split-Path -Parent $targetPath
+    New-Item -ItemType Directory -Force $targetDirectory | Out-Null
+    Copy-Item -LiteralPath (Join-Path $Templates $Source) -Destination $targetPath -Force
+}
+
+function Install-Artifact {
+    param([string]$Source, [string]$Target, [string]$PayloadClass)
+
+    # Case-sensitive on purpose: POSIX `case` is, and the same manifest must not
+    # install on one platform and fail on the other.
+    switch -CaseSensitive ($PayloadClass) {
+        { $_ -ceq "" -or $_ -ceq "-" -or $_ -ceq "template" } { Install-Template $Source $Target; break }
+        { $_ -ceq "verbatim" -or $_ -ceq "binary" } { Install-Verbatim $Source $Target; break }
+        default { throw "Unknown payload class '$PayloadClass' for $Target" }
+    }
+}
+
 function Install-Generated {
     param([string]$Target)
     switch ($Target) {
@@ -169,10 +192,19 @@ function Install-Generated {
             )
         }
         ".gitattributes" {
-            Write-Utf8NoBom (Join-Path $Destination $Target) @(
+            $lines = @(
                 "* text=auto", "*.sh text eol=lf", "*.ps1 text eol=crlf",
                 "*.md text eol=lf", "*.json text eol=lf"
             )
+            # Byte-exact payload must survive the commit as well: without -text
+            # the generated rules above would normalise line endings on `git add`.
+            $lines += @(
+                $CapabilityArtifacts |
+                    Where-Object { $_.capability -in $Capability } |
+                    Where-Object { $_.payload_class -cin @("verbatim", "binary") } |
+                    ForEach-Object { "$($_.destination) -text" }
+            )
+            Write-Utf8NoBom (Join-Path $Destination $Target) $lines
         }
         ".editorconfig" {
             Write-Utf8NoBom (Join-Path $Destination $Target) @(
@@ -208,7 +240,8 @@ foreach ($artifact in $SelectedArtifacts) {
         Install-Generated $artifact.destination
     }
     else {
-        Install-Template $artifact.source $artifact.destination
+        $payloadClass = if ($artifact.PSObject.Properties.Name -contains "payload_class") { $artifact.payload_class } else { "" }
+        Install-Artifact $artifact.source $artifact.destination $payloadClass
     }
 }
 

@@ -128,15 +128,19 @@ header=$(sed -n '1p' "$manifest")
   exit 1
 }
 
-capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label"
+capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${tab}docs_section${tab}docs_label${tab}payload_class"
 [ "$(sed -n '1p' "$capabilities_manifest")" = "$capabilities_header" ] || {
   echo "Invalid capability manifest header: $capabilities_manifest" >&2
   exit 1
 }
-while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
   [ "$row_capability" = capability ] && continue
   [ "$row_capability" = jira-confluence ] || { echo "Unknown capability '$row_capability'" >&2; exit 1; }
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
+  case "$(printf '%s' "$payload_class" | tr -d '\r')" in
+    ""|-|template|verbatim|binary) ;;
+    *) echo "Unknown payload class '$payload_class' for $artifact_destination" >&2; exit 1 ;;
+  esac
 done < "$capabilities_manifest"
 
 seen_destinations='|'
@@ -207,6 +211,27 @@ install_template() {
     "$templates/$source_file" > "$destination/$target_file"
 }
 
+# Byte-exact delivery: vendored payload and binaries must arrive unchanged, so
+# no placeholder substitution and no text processing touches them.
+install_verbatim() {
+  source_file=$1
+  target_file=$2
+  mkdir -p "$(dirname "$destination/$target_file")"
+  cp "$templates/$source_file" "$destination/$target_file"
+}
+
+install_artifact() {
+  source_file=$1
+  target_file=$2
+  # A manifest checked out with CRLF would otherwise yield "template\r".
+  payload_class=$(printf '%s' "$3" | tr -d '\r')
+  case "$payload_class" in
+    ""|-|template) install_template "$source_file" "$target_file" ;;
+    verbatim|binary) install_verbatim "$source_file" "$target_file" ;;
+    *) echo "Unknown payload class '$payload_class' for $target_file" >&2; exit 1 ;;
+  esac
+}
+
 install_generated() {
   target=$1
   case "$target" in
@@ -218,6 +243,18 @@ install_generated() {
     .gitattributes)
       printf '%s\n' '* text=auto' '*.sh text eol=lf' '*.ps1 text eol=crlf' \
         '*.md text eol=lf' '*.json text eol=lf' > "$destination/$target"
+      # Byte-exact payload must survive the commit as well: without -text the
+      # generated rules above would normalise line endings on `git add`.
+      if [ -n "$capability" ]; then
+        attr_first=1
+        while IFS="$tab" read -r attr_capability attr_source attr_destination attr_purpose attr_section attr_label attr_class; do
+          [ "$attr_first" -eq 1 ] && { attr_first=0; continue; }
+          [ "$attr_capability" = "$capability" ] || continue
+          case "$(printf '%s' "$attr_class" | tr -d '\r')" in
+            verbatim|binary) printf '%s -text\n' "$attr_destination" >> "$destination/$target" ;;
+          esac
+        done < "$capabilities_manifest"
+      fi
       ;;
     .editorconfig)
       cat > "$destination/$target" <<'EDITORCONFIG'
@@ -279,9 +316,10 @@ done < "$manifest"
 
 if [ "$capability" = jira-confluence ]; then
   first=1
-  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
     [ "$first" -eq 1 ] && { first=0; continue; }
-    install_template "$source" "$artifact_destination"
+    [ "$row_capability" = "$capability" ] || continue
+    install_artifact "$source" "$artifact_destination" "$payload_class"
   done < "$capabilities_manifest"
 fi
 
@@ -331,8 +369,9 @@ done < "$manifest"
 
 if [ "$capability" = jira-confluence ]; then
   first=1
-  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label; do
+  while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class; do
     [ "$first" -eq 1 ] && { first=0; continue; }
+    [ "$row_capability" = "$capability" ] || continue
     ensure_index_entry "$artifact_destination" "$root_purpose"
     ensure_docs_index_entry "$docs_section" "$artifact_destination" "$docs_label"
   done < "$capabilities_manifest"
