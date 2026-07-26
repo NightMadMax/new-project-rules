@@ -34,6 +34,7 @@ def digest(data: bytes) -> str:
 def row(**overrides) -> dict[str, str]:
     body = overrides.pop("body", b"one\n")
     base = {
+        "source": "ai_rules_1c",
         "source_path": "content/a.md",
         "source_selector": "-",
         "source_sha256": digest(body),
@@ -55,6 +56,9 @@ def passport(**overrides) -> dict:
         "release_id": "0" * 64,
         "inventory_count": 1,
         "sources": [{"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": "1" * 40}],
+        "dependencies": [{"name": "Node.js", "class": "conditional", "reason": "md-to-docx"}],
+        "mcp_roles": [{"role": "syntax", "provider_id": "1c-syntax-checker-mcp", "tier": "initial"}],
+        "binaries": [{"name": "toolkit-read-only.epf", "sha256": "b" * 64, "application_kind": "ordinary"}],
     }
     base.update(overrides)
     return base
@@ -159,22 +163,34 @@ with tempfile.TemporaryDirectory() as raw:
     (staging / "content/a.md").write_bytes(b"one\n")
     subprocess.run(["git", "-C", str(staging), "init", "-q"], check=True)
     subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "staging"], check=True, capture_output=True,
+    )
+    head = subprocess.run(
+        ["git", "-C", str(staging), "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+    ).stdout.strip()
 
     rows = [row()]
-    write_release(root, passport(), rows)
+    pinned = passport(sources=[{"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": head}])
+    write_release(root, pinned, rows)
 
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "build-capability-release.py"),
-         "--contract-root", str(root), "--staging", str(staging)],
+         "--contract-root", str(root), "--staging", f"ai_rules_1c={staging}"],
         capture_output=True, text=True,
     )
     note(check.returncode == 0, f"a matching staging must pass: {check.stderr[-300:]}")
 
     (staging / "content/b.md").write_bytes(b"two\n")
     subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "new file"], check=True, capture_output=True,
+    )
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "build-capability-release.py"),
-         "--contract-root", str(root), "--staging", str(staging)],
+         "--contract-root", str(root), "--staging", f"ai_rules_1c={staging}"],
         capture_output=True, text=True,
     )
     note(check.returncode != 0, "a new upstream file must fail the build")
@@ -183,13 +199,69 @@ with tempfile.TemporaryDirectory() as raw:
     (staging / "content/b.md").unlink()
     (staging / "content/a.md").write_bytes(b"edited upstream\n")
     subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "edit"], check=True, capture_output=True,
+    )
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "build-capability-release.py"),
-         "--contract-root", str(root), "--staging", str(staging)],
+         "--contract-root", str(root), "--staging", f"ai_rules_1c={staging}"],
         capture_output=True, text=True,
     )
     note(check.returncode != 0, "a changed source must fail the build")
     note("source changed" in check.stderr, f"the changed file must be named: {check.stderr[-200:]}")
+
+# --- writing a release is guarded -----------------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw) / "rules"
+    staging = Path(raw) / "staging"
+    staging.mkdir()
+    (staging / "a.md").write_bytes(b"one\n")
+    subprocess.run(["git", "-C", str(staging), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "staging"], check=True, capture_output=True,
+    )
+    head = subprocess.run(
+        ["git", "-C", str(staging), "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+    ).stdout.strip()
+    rows = [row(source_path="a.md")]
+    write_release(root, passport(sources=[{"name": "ai_rules_1c", "repository": "a/b", "commit": head}]), rows)
+
+    def build(*arguments: str):
+        return subprocess.run(
+            [sys.executable, str(SCRIPTS / "build-capability-release.py"), "--contract-root", str(root), *arguments],
+            capture_output=True, text=True,
+        )
+
+    before = (root / release.RELEASE_NAME).read_bytes()
+    result = build("--write")
+    note(result.returncode != 0, "writing without staging must be refused")
+    note((root / release.RELEASE_NAME).read_bytes() == before, "a refused write must not touch the release")
+
+    # An inventory that disagrees must not be blessed with a fresh id.
+    write_release(root, passport(inventory_count=9, sources=[{"name": "ai_rules_1c", "repository": "a/b", "commit": head}]), rows)
+    before = (root / release.RELEASE_NAME).read_bytes()
+    result = build("--staging", f"ai_rules_1c={staging}", "--write")
+    note(result.returncode != 0, "writing over findings must be refused")
+    note((root / release.RELEASE_NAME).read_bytes() == before, "a refused write must not touch the release")
+
+    # A staging on the wrong commit is not the pinned source.
+    (staging / "b.md").write_bytes(b"two\n")
+    subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "moved"], check=True, capture_output=True,
+    )
+    result = build("--staging", f"ai_rules_1c={staging}")
+    note(result.returncode != 0, "a staging on another commit must fail")
+    note("but the release pins" in result.stderr, f"the commit mismatch must be named: {result.stderr[-200:]}")
+
+    result = build("--staging", str(staging))
+    note(result.returncode == 2, "--staging without a name must be rejected")
+
 
 # --- the upstream check reports and changes nothing -------------------------
 
@@ -204,11 +276,21 @@ with tempfile.TemporaryDirectory() as raw:
 
     write_release(root, passport(), [row()])
     before = (root / release.RELEASE_NAME).read_bytes()
-    check = subprocess.run(
-        [sys.executable, str(SCRIPTS / "check-upstream-sources.py"), "--contract-root", str(root), "--report-only"],
-        capture_output=True, text=True,
-    )
-    note(check.returncode == 0, f"the upstream check must stay report-only: {check.stderr[-200:]}")
+
+    # A stub git keeps the suite offline and lets both answers be tested.
+    stub = root / "stub"
+    stub.mkdir()
+    (stub / "git").write_text("#!/bin/sh\necho \"$FAKE_HEAD\tHEAD\"\n", encoding="utf-8")
+    (stub / "git").chmod(0o755)
+    environment = {**dict(__import__("os").environ), "PATH": f"{stub}:{__import__('os').environ['PATH']}"}
+
+    for head, expected in ((("1" * 40), "up to date"), (("2" * 40), "upstream")):
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "check-upstream-sources.py"), "--contract-root", str(root), "--report-only"],
+            capture_output=True, text=True, env={**environment, "FAKE_HEAD": head},
+        )
+        note(check.returncode == 0, f"the upstream check must stay report-only: {check.stderr[-200:]}")
+        note(expected in check.stdout, f"expected '{expected}' in the report, got {check.stdout[:200]}")
     note((root / release.RELEASE_NAME).read_bytes() == before, "the upstream check must not modify the release")
 
 

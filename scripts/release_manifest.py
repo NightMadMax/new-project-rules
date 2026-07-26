@@ -26,10 +26,11 @@ RELEASE_NAME = "config/1c-release.json"
 ARTIFACTS_NAME = "config/1c-artifacts.tsv"
 RELEASE_SCHEMA = 1
 ARTIFACT_FIELDS = (
-    "source_path", "source_selector", "source_sha256", "action", "action_id",
+    "source", "source_path", "source_selector", "source_sha256", "action", "action_id",
     "ownership", "target_path", "target_sha256",
 )
 ACTIONS = ("copy", "adapt", "compile", "route")
+DEPENDENCY_CLASSES = ("required", "conditional", "optional")
 OWNERSHIPS = ("project-managed", "project-seed", "provider-only", "pinned-external")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -61,7 +62,10 @@ def validate_release(data: object) -> list[str]:
         return ["release passport must be a JSON object"]
 
     issues: list[str] = []
-    expected = {"schema_version", "capability", "version", "release_id", "sources", "inventory_count"}
+    expected = {
+        "schema_version", "capability", "version", "release_id", "sources", "inventory_count",
+        "dependencies", "mcp_roles", "binaries",
+    }
     unknown = sorted(set(data) - expected)
     if unknown:
         issues.append(f"unknown keys: {', '.join(unknown)}")
@@ -79,6 +83,35 @@ def validate_release(data: object) -> list[str]:
         issues.append("release_id must be a 64-hex digest")
     if not isinstance(data["inventory_count"], int) or isinstance(data["inventory_count"], bool) or data["inventory_count"] < 0:
         issues.append("inventory_count must be a non-negative integer")
+
+    for name in ("dependencies", "mcp_roles", "binaries"):
+        if not isinstance(data[name], list):
+            issues.append(f"{name} must be an array")
+
+    if isinstance(data["dependencies"], list):
+        for position, dependency in enumerate(data["dependencies"]):
+            where = f"dependencies[{position}]"
+            if not isinstance(dependency, dict) or set(dependency) != {"name", "class", "reason"}:
+                issues.append(f"{where} must hold name, class and reason")
+                continue
+            if dependency["class"] not in DEPENDENCY_CLASSES:
+                issues.append(f"{where}.class must be one of {', '.join(DEPENDENCY_CLASSES)}")
+
+    if isinstance(data["mcp_roles"], list):
+        for position, role in enumerate(data["mcp_roles"]):
+            where = f"mcp_roles[{position}]"
+            if not isinstance(role, dict) or set(role) != {"role", "provider_id", "tier"}:
+                issues.append(f"{where} must hold role, provider_id and tier")
+
+    if isinstance(data["binaries"], list):
+        # Executable payload the project trusts by hash: EPF and the like.
+        for position, binary in enumerate(data["binaries"]):
+            where = f"binaries[{position}]"
+            if not isinstance(binary, dict) or set(binary) != {"name", "sha256", "application_kind"}:
+                issues.append(f"{where} must hold name, sha256 and application_kind")
+                continue
+            if not isinstance(binary["sha256"], str) or not SHA_RE.fullmatch(binary["sha256"]):
+                issues.append(f"{where}.sha256 must be a 64-hex digest")
 
     sources = data["sources"]
     if not isinstance(sources, list) or not sources:
@@ -100,7 +133,7 @@ def validate_release(data: object) -> list[str]:
     return issues
 
 
-def read_artifacts(contract_root: Path) -> list[dict[str, str]]:
+def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> list[dict[str, str]]:
     path = contract_root / ARTIFACTS_NAME
     try:
         text = path.read_bytes().decode("utf-8")
@@ -112,10 +145,13 @@ def read_artifacts(contract_root: Path) -> list[dict[str, str]]:
         raise ReleaseError(f"Unexpected header in {ARTIFACTS_NAME}")
 
     rows: list[dict[str, str]] = []
-    seen: set[tuple[str, str]] = set()
+    seen: set[tuple[str, str, str]] = set()
+    sources = set(known_sources)
     for number, row in enumerate(reader, start=2):
         if None in row or any(value is None for value in row.values()):
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} does not match the header")
+        if sources and row["source"] not in sources:
+            raise ReleaseError(f"{ARTIFACTS_NAME}:{number} unknown source '{row['source']}'")
         action = row["action"]
         if action not in ACTIONS:
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} unknown action '{action}'")
@@ -138,7 +174,7 @@ def read_artifacts(contract_root: Path) -> list[dict[str, str]]:
         elif not SHA_RE.fullmatch(row["target_sha256"]):
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} target_sha256 must be a 64-hex digest")
 
-        key = (row["source_path"], row["source_selector"])
+        key = (row["source"], row["source_path"], row["source_selector"])
         if key in seen:
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} duplicate source {row['source_path']}")
         seen.add(key)
@@ -150,7 +186,7 @@ def read_artifacts(contract_root: Path) -> list[dict[str, str]]:
 
 def artifacts_text(rows: Iterable[dict[str, str]]) -> str:
     lines = ["\t".join(ARTIFACT_FIELDS)]
-    for row in sorted(rows, key=lambda item: (item["source_path"], item["source_selector"])):
+    for row in sorted(rows, key=lambda item: (item["source"], item["source_path"], item["source_selector"])):
         lines.append("\t".join(row[field] for field in ARTIFACT_FIELDS))
     return "\n".join(lines) + "\n"
 
@@ -159,8 +195,13 @@ def compute_release_id(passport: dict, rows: Iterable[dict[str, str]]) -> str:
     """Deterministic identity of a release: same input, same id, no timestamp."""
     without_id = {key: value for key, value in passport.items() if key != "release_id"}
     digest = hashlib.sha256()
-    digest.update(canonical_json(without_id).encode("utf-8"))
-    digest.update(artifacts_text(rows).encode("utf-8"))
+    passport_bytes = canonical_json(without_id).encode("utf-8")
+    ledger_bytes = artifacts_text(rows).encode("utf-8")
+    # Lengths first: without them, text moved between the two documents could
+    # produce the same concatenation and therefore the same identifier.
+    digest.update(f"{len(passport_bytes)}:{len(ledger_bytes)}\n".encode("utf-8"))
+    digest.update(passport_bytes)
+    digest.update(ledger_bytes)
     return digest.hexdigest()
 
 
@@ -169,7 +210,7 @@ def check_release(contract_root: Path) -> list[str]:
     findings: list[str] = []
     try:
         passport = read_release(contract_root)
-        rows = read_artifacts(contract_root)
+        rows = read_artifacts(contract_root, {source["name"] for source in passport["sources"]})
     except ReleaseError as error:
         return [str(error)]
 

@@ -8,6 +8,7 @@ a maintainer decision with a review, not a scheduled side effect.
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -19,10 +20,20 @@ import release_manifest as release  # noqa: E402
 
 
 def remote_head(repository: str) -> str | None:
-    result = subprocess.run(
-        ["git", "ls-remote", f"https://github.com/{repository}.git", "HEAD"],
-        capture_output=True, text=True, timeout=60,
-    )
+    """The upstream HEAD, or None when it cannot be read.
+
+    A weekly notification must never fail the job: no network, a private
+    repository or a hanging connection are all "unknown", not an error. The
+    prompt is disabled so a credential request cannot block the runner.
+    """
+    try:
+        result = subprocess.run(
+            ["git", "ls-remote", f"https://github.com/{repository}.git", "HEAD"],
+            capture_output=True, text=True, timeout=60,
+            env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
+        )
+    except (subprocess.TimeoutExpired, OSError):
+        return None
     if result.returncode != 0 or not result.stdout.strip():
         return None
     return result.stdout.split()[0]
