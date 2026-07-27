@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "servers": [
+    {
+      "role": "edt",
+      "provider_id": "onec-edt",
+      "scope": "per-workspace",
+      "tier": "initial",
+      "mode": "analysis",
+      "endpoint": "from-provider-manifest",
+      "purpose": "EDT workspace, metadata, BSL, errors, debugging"
+    },
+    {
+      "role": "syntax",
+      "provider_id": "1c-syntax-checker-mcp",
+      "scope": "provider-shared",
+      "tier": "initial",
+      "mode": "read-only",
+      "endpoint": "from-provider-manifest",
+      "purpose": "BSL syntax through BSL Language Server"
+    },
+    {
+      "role": "help",
+      "provider_id": "1C-docs-mcp",
+      "scope": "provider-shared",
+      "tier": "initial",
+      "mode": "read-only",
+      "endpoint": "from-provider-manifest",
+      "purpose": "platform documentation for a specific version"
+    },
+    {
+      "role": "ssl",
+      "provider_id": "1c-ssl-mcp",
+      "scope": "provider-shared",
+      "tier": "initial",
+      "mode": "read-only",
+      "endpoint": "from-provider-manifest",
+      "purpose": "search across the standard subsystems library"
+    },
+    {
+      "role": "templates",
+      "provider_id": "1c-templates-mcp",
+      "scope": "provider-shared",
+      "tier": "initial",
+      "mode": "read-only",
+      "endpoint": "from-provider-manifest",
+      "purpose": "code templates and a limited project memory index"
+    },
+    {
+      "role": "code-check",
+      "provider_id": "1c-code-check-mcp",
+      "scope": "provider-shared",
+      "tier": "initial",
+      "mode": "review",
+      "endpoint": "from-provider-manifest",
+      "purpose": "review and code fixes through 1C:Naparnik"
+    },
+    {
+      "role": "toolkit",
+      "provider_id": "onec-toolkit",
+      "scope": "per-base",
+      "tier": "initial",
+      "mode": "write-capable",
+      "endpoint": "local-port",
+      "purpose": "live infobase data, metadata and operations"
+    },
+    {
+      "role": "code-metadata",
+      "provider_id": "1c-code-metadata-mcp",
+      "scope": "provider-shared",
+      "tier": "optional",
+      "mode": "read-only",
+      "endpoint": "from-provider-manifest",
+      "purpose": "indexed search over code and metadata"
+    },
+    {
+      "role": "graph-metadata",
+      "provider_id": "1c-graph-metadata-mcp",
+      "scope": "provider-shared",
+      "tier": "optional",
+      "mode": "read-only",
+      "endpoint": "from-provider-manifest",
+      "purpose": "metadata graph and impact analysis"
+    },
+    {
+      "role": "data",
+      "provider_id": "1c-data-mcp",
+      "scope": "provider-shared",
+      "tier": "optional-disabled",
+      "mode": "write-capable",
+      "endpoint": "from-provider-manifest",
+      "purpose": "published infobase over HTTP; disabled until a security review"
+    }
+  ]
+}

@@ -16,3 +16,19 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/setup-atlassian-mcp/
 jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confluence/SKILL.md	.agents/skills/work-with-jira-confluence/SKILL.md	-	-	-	template	managed
 jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confluence/agents/openai.yaml	.agents/skills/work-with-jira-confluence/agents/openai.yaml	-	-	-	template	managed
 jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confluence/references/models.md	.agents/skills/work-with-jira-confluence/references/models.md	-	-	-	template	managed
+1c	capabilities/1c/configurations/AGENTS.template.md	configurations/AGENTS.md	-	-	-	template	managed
+1c	capabilities/1c/configurations/CLAUDE.template.md	configurations/CLAUDE.md	-	-	-	template	managed
+1c	capabilities/1c/1c-mcp-catalog.template.json	config/1c-mcp-catalog.json	-	-	-	template	managed
+1c	capabilities/1c/dev.env.template	.dev.env.example	-	-	-	template	managed
+1c	capabilities/1c/launch/toolkit.template.launch	configurations/launch/toolkit.launch	-	-	-	template	managed
+1c	capabilities/1c/launch/ordinary-http-debug.template.launch	configurations/launch/ordinary-http-debug.launch	-	-	-	template	managed
+1c	capabilities/1c/docs/TOOLCHAIN.template.md	docs/operations/TOOLCHAIN.md	Инструменты 1С и их проверенные версии	Operations	Toolchain	template	seed
+1c	capabilities/1c/docs/EDT_SETUP.template.md	docs/operations/EDT_SETUP.md	Порядок настройки EDT и профили запуска	Operations	EDT setup	template	managed
+1c	capabilities/1c/docs/TEST_MODEL.template.md	docs/quality/TEST_MODEL.md	Уровни проверок 1С и чем каждый выполняется	Quality	Test model	template	seed
+1c	capabilities/1c/docs/ONE_C_INTEGRATIONS.template.md	docs/integrations/ONE_C_INTEGRATIONS.md	Обмены и внешние вызовы конфигурации	Integrations	1C integrations	template	seed
+1c	capabilities/1c/ONE_C_WORKSPACE.template.md	ONE_C_WORKSPACE.md	Общая область 1С и реестр баз	-	-	template	seed
+1c	capabilities/1c/docs/ENVIRONMENT_REGISTRY.template.md	docs/operations/ENVIRONMENT_REGISTRY.md	Назначение контуров, данные, backup и восстановление	Operations	Контуры 1С	template	seed
+1c	capabilities/1c/1c-projects.template.tsv	config/1c-projects.tsv	-	-	-	template	seed
+1c	capabilities/1c/USER-RULES.template.md	USER-RULES.md	Постоянные правила проекта, принадлежат команде	-	-	template	seed
+1c	capabilities/1c/memory.template.md	memory.md	Проверенные долговременные факты проекта	-	-	template	seed
+1c	capabilities/1c/LLM-RULES.template.md	LLM-RULES.md	Одобренные пользователем правила поведения агента	-	-	template	seed
