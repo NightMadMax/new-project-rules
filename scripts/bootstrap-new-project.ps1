@@ -322,11 +322,49 @@ function Ensure-DocsIndexEntry {
     $docsIndex = Join-Path $Destination "docs/README.md"
     $linkPath = $Path -replace '\.md$', ''
     $docsContent = Get-Content -Raw -Encoding utf8 $docsIndex
-    if (-not $docsContent.Contains("[[$linkPath")) {
-        Append-Utf8NoBom $docsIndex ""
-        Append-Utf8NoBom $docsIndex "## $Heading"
-        Append-Utf8NoBom $docsIndex ""
-        Append-Utf8NoBom $docsIndex "- [[$linkPath|$Label]]"
+    if ($docsContent.Contains("[[$linkPath")) { return }
+    $entry = "- [[$linkPath|$Label]]"
+    $lines = @(Get-Content -Encoding utf8 $docsIndex)
+    $headingIndex = [array]::IndexOf($lines, "## $Heading")
+    if ($headingIndex -lt 0) {
+        Write-Utf8NoBom $docsIndex ($lines + @("", "## $Heading", "", $entry))
+        return
+    }
+    # Into the section that already exists: a second heading with the same name
+    # splits the index, and a reader then trusts whichever half they saw first.
+    $insertAt = $headingIndex
+    for ($i = $headingIndex + 1; $i -lt $lines.Count; $i++) {
+        if ($lines[$i] -like "## *") { break }
+        if ($lines[$i] -like "- *") { $insertAt = $i }
+    }
+    if ($insertAt -eq $headingIndex) { $insertAt = $headingIndex + 1 }
+    $head = if ($insertAt -ge 0) { @($lines[0..$insertAt]) } else { @() }
+    $tail = if ($insertAt + 1 -lt $lines.Count) { @($lines[($insertAt + 1)..($lines.Count - 1)]) } else { @() }
+    Write-Utf8NoBom $docsIndex ($head + @($entry) + $tail)
+}
+
+# A capability also contributes lines to files the profile generates: what git
+# must not track, what git must not normalise, and which project files an agent
+# has to read. They cannot be separate artifacts because the generated file
+# already exists.
+foreach ($appendixCapability in $Capability) {
+    $appendixRoot = Join-Path $Templates "capabilities/$appendixCapability/appendix"
+    foreach ($appendixName in @("gitignore", "gitattributes", "AGENTS.md")) {
+        $appendixFile = Join-Path $appendixRoot $appendixName
+        if (-not (Test-Path -LiteralPath $appendixFile -PathType Leaf)) { continue }
+        if ($appendixName -ceq "AGENTS.md") {
+            $appendixTarget = "AGENTS.md"
+            $appendixMark = "<!-- capability: $appendixCapability -->"
+        }
+        else {
+            $appendixTarget = ".$appendixName"
+            $appendixMark = "# capability: $appendixCapability"
+        }
+        Append-Utf8NoBom (Join-Path $Destination $appendixTarget) ""
+        Append-Utf8NoBom (Join-Path $Destination $appendixTarget) $appendixMark
+        foreach ($appendixLine in (Get-Content -Encoding utf8 $appendixFile)) {
+            Append-Utf8NoBom (Join-Path $Destination $appendixTarget) $appendixLine
+        }
     }
 }
 

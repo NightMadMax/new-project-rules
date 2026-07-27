@@ -443,6 +443,24 @@ if [ -n "$capability" ]; then
     capability_selected "$row_capability" || continue
     install_artifact "$source" "$artifact_destination" "$payload_class"
   done < "$capabilities_manifest"
+
+  # A capability also contributes lines to files the profile generates: what git
+  # must not track, what git must not normalise, and which project files an
+  # agent has to read. They cannot be separate artifacts because the generated
+  # file already exists.
+  for appendix_capability in $(printf '%s' "$capability" | tr ',' ' '); do
+    appendix_root="$templates/capabilities/$appendix_capability/appendix"
+    for appendix_name in gitignore gitattributes AGENTS.md; do
+      appendix_file="$appendix_root/$appendix_name"
+      [ -f "$appendix_file" ] || continue
+      case "$appendix_name" in
+        AGENTS.md) appendix_target=AGENTS.md; appendix_mark="<!-- capability: $appendix_capability -->" ;;
+        *) appendix_target=".$appendix_name"; appendix_mark="# capability: $appendix_capability" ;;
+      esac
+      printf '\n%s\n' "$appendix_mark" >> "$destination/$appendix_target"
+      cat "$appendix_file" >> "$destination/$appendix_target"
+    done
+  done
 fi
 
 ensure_index_entry() {
@@ -477,8 +495,30 @@ ensure_docs_index_entry() {
     echo "Could not read $destination/docs/README.md while indexing '$path'." >&2
     exit 1
   }
-  printf '\n## %s\n\n- [[%s|%s]]\n' "$heading" "$link_path" "$label" \
-    >> "$destination/docs/README.md"
+  if grep -Fqx "## $heading" "$destination/docs/README.md"; then
+    # Into the section that already exists: a second heading with the same name
+    # splits the index, and a reader then trusts whichever half they saw first.
+    awk -v heading="## $heading" -v entry="- [[$link_path|$label]]" '
+      function flush(  i, last) {
+        last = 0
+        for (i = 1; i <= n; i++) if (substr(buffer[i], 1, 2) == "- ") last = i
+        for (i = 1; i <= last; i++) print buffer[i]
+        print entry
+        for (i = last + 1; i <= n; i++) print buffer[i]
+        inside = 0; n = 0
+      }
+      $0 == heading { inside = 1; n = 0; print; print ""; next }
+      inside && /^## / { flush(); print; next }
+      inside && n == 0 && $0 == "" { next }
+      inside { buffer[++n] = $0; next }
+      { print }
+      END { if (inside) flush() }
+    ' "$destination/docs/README.md" > "$destination/docs/README.md.tmp"
+    mv "$destination/docs/README.md.tmp" "$destination/docs/README.md"
+  else
+    printf '\n## %s\n\n- [[%s|%s]]\n' "$heading" "$link_path" "$label" \
+      >> "$destination/docs/README.md"
+  fi
 }
 
 first=1

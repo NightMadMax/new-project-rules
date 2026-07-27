@@ -36,12 +36,12 @@ MANAGED = (
     ".dev.env.example",
     "configurations/launch/toolkit.launch",
     "configurations/launch/ordinary-http-debug.launch",
-    "docs/operations/TOOLCHAIN.md",
     "docs/operations/EDT_SETUP.md",
-    "docs/quality/TEST_MODEL.md",
-    "docs/integrations/ONE_C_INTEGRATIONS.md",
 )
 SEED = (
+    "docs/operations/TOOLCHAIN.md",
+    "docs/quality/TEST_MODEL.md",
+    "docs/integrations/ONE_C_INTEGRATIONS.md",
     "ONE_C_WORKSPACE.md",
     "docs/operations/ENVIRONMENT_REGISTRY.md",
     "config/1c-projects.tsv",
@@ -135,6 +135,32 @@ with tempfile.TemporaryDirectory() as raw:
         )
         note("registry.port" in report.stdout, f"the validator must check the registry: {report.stdout[-300:]}")
 
+        # What git must not track and must not normalise. The template promises
+        # .dev.env is ignored, and a normalised EPF is a corrupted EPF.
+        ignored = (project / ".gitignore").read_text(encoding="utf-8")
+        for line in (".dev.env", ".v8-project.json"):
+            note(line in ignored.splitlines(), f".gitignore must hold {line}")
+        attributes = (project / ".gitattributes").read_text(encoding="utf-8").splitlines()
+        for line in ("*.epf binary", "*.cf binary", "*.bsl text eol=lf"):
+            note(line in attributes, f".gitattributes must hold '{line}'")
+
+        # The companion files are only rules if something loads them.
+        root_rules = (project / "AGENTS.md").read_text(encoding="utf-8")
+        for companion in ("USER-RULES.md", "LLM-RULES.md", "memory.md"):
+            note(f"@{companion}" in root_rules, f"the root rules must load {companion}")
+
+        # Every section of the docs index must appear once: a repeated heading
+        # splits the index and a reader trusts whichever half they saw first.
+        headings = [line for line in (project / "docs/README.md").read_text(encoding="utf-8").splitlines()
+                    if line.startswith("## ")]
+        note(len(headings) == len(set(headings)), f"the docs index repeats a section: {headings}")
+
+        # The instruction chain has a hard budget: past 32 KiB an agent stops
+        # loading files and the rules that did not fit simply do not apply.
+        chain = sum((project / relative).stat().st_size for relative in
+                    ("AGENTS.md", "configurations/AGENTS.md", "USER-RULES.md", "LLM-RULES.md", "memory.md"))
+        note(chain < 32 * 1024, f"the instruction chain is {chain} bytes, over the 32 KiB budget")
+
 
 # --- what the registry must reject -----------------------------------------
 
@@ -174,11 +200,29 @@ registry_case(
     registry_rows(base_row(), base_row(project_id="zup")),
     "registry.port",
 )
+# A path check that depends on the host would let each platform through the
+# other's mistake: the repository is prepared on macOS and used on Windows.
+for case, value in (
+    ("posix machine path", "/Users/someone/workspace"),
+    ("windows machine path", "C:\\Users\\someone\\workspace"),
+    ("windows share", "\\\\server\\share\\workspace"),
+    ("home path", "~/workspace"),
+    ("path out of the project", "../../elsewhere"),
+):
+    registry_case(case, registry_rows(base_row(edt_workspace=value)), "registry.path")
+registry_case("machine path in a profile", registry_rows(base_row(edt_profile="C:/profiles/dev")), "registry.path")
+
+registry_case("byte order mark", "\ufeff" + registry_rows(base_row()), None)
+# The header is a prefix: the standard adds columns over time and the project
+# owns this file, so an upgrade must not turn every existing row into an error.
 registry_case(
-    "machine path in the registry",
-    registry_rows(base_row(edt_workspace="/Users/someone/workspace")),
-    "registry.path",
+    "extra project column",
+    registry_rows(base_row()).replace("owner\n", "owner\tbsp_version\n", 1).replace("\tteam\n", "\tteam\t3.1\n", 1),
+    None,
 )
+registry_case("empty identity", registry_rows(base_row(project_id="", environment_id="")), "registry.value")
+registry_case("identifier with a separator", registry_rows(base_row(project_id="erp/main")), "registry.value")
+registry_case("port with a leading zero collides", registry_rows(base_row(), base_row(project_id="zup", server_port="06003")), "registry.port")
 registry_case("row that does not match the header", registry_rows("erp\tdev"), "registry.row")
 
 # A base that does not expose MCP is legitimate and needs no port.
