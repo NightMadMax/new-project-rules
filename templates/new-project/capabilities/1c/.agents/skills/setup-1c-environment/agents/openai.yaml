@@ -1,0 +1,4 @@
+interface:
+  display_name: "1C Environment Setup"
+  short_description: "Bring a machine up to the project's 1C toolchain"
+  default_prompt: "Use $setup-1c-environment to prepare this machine for the 1C project."

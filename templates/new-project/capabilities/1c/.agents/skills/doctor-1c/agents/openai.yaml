@@ -1,0 +1,4 @@
+interface:
+  display_name: "1C Environment Doctor"
+  short_description: "Read-only diagnostics of the 1C toolchain and projections"
+  default_prompt: "Use $doctor-1c to report the state of the 1C environment."

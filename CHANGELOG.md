@@ -6,6 +6,14 @@
 
 ### Добавлено
 
+- Этап Э8 (частично): восемь capability-native skills 1С — `doctor-1c`,
+  `setup-1c-environment`, `select-1c-project`, `query-1c-infobase`,
+  `measure-1c-performance`, `work-with-1c-edt`, `add-1c-base`,
+  `activate-1c-client` — и renderer клиентских проекций
+  `scripts/render-1c-clients.py` с парой shell/PowerShell. Проекция владеет
+  только серверами `onec-…` и правилами `mcp__onec-…`: сторонние MCP и
+  пользовательские настройки сохраняются, повторная сборка ничего не меняет.
+  Нерешённый endpoint показывается как `SKIP`, роль `data` не устанавливается.
 - Этап Э7: каркас 1С-проекта — scoped-правила `configurations/AGENTS.md`, реестр баз,
   реестр контуров, каталог MCP, документы инструментов, настройки EDT, модели
   тестирования и интеграций, профили запуска и project-seed companion-файлы.

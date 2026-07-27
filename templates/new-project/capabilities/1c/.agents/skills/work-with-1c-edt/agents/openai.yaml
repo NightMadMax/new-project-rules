@@ -1,0 +1,4 @@
+interface:
+  display_name: "Work with 1C EDT"
+  short_description: "Edit configuration sources through EDT, XML only as a fallback"
+  default_prompt: "Use $work-with-1c-edt for configuration work in this project."

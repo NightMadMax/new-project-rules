@@ -10,3 +10,11 @@ compress-project	canonical	.agents/skills	required	-
 document-process-workflow	canonical	.agents/skills	required	-
 setup-atlassian-mcp	canonical	templates/new-project/capabilities/jira-confluence/.agents/skills	none	-
 work-with-jira-confluence	canonical	templates/new-project/capabilities/jira-confluence/.agents/skills	none	-
+doctor-1c	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+setup-1c-environment	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+select-1c-project	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+query-1c-infobase	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+measure-1c-performance	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+work-with-1c-edt	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+add-1c-base	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+activate-1c-client	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
