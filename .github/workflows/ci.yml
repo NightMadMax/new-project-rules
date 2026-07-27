@@ -51,6 +51,7 @@ jobs:
           python3 scripts/test-capability-artifacts.py
           python3 scripts/test-preset-core.py
           python3 scripts/test-release-manifest.py
+          python3 scripts/test-one-c-scaffold.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -99,6 +100,7 @@ jobs:
           python .\scripts\test-capability-artifacts.py
           python .\scripts\test-preset-core.py
           python .\scripts\test-release-manifest.py
+          python .\scripts\test-one-c-scaffold.py
       - name: Validator report on Windows
         shell: powershell
         run: |

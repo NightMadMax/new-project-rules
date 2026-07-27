@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import io
 import json
 import re
 import shutil
@@ -372,6 +373,101 @@ def check_artifacts_ledger(root: Path) -> list[Finding]:
         Finding("ERROR", "ledger.schema", issue, relative(path, root))
         for issue in artifacts_ledger.validate_ledger(data, known_owners)
     ]
+
+
+ONE_C_REGISTRY = "config/1c-projects.tsv"
+ONE_C_REGISTRY_FIELDS = (
+    "project_id", "environment_id", "folder", "configuration", "platform_version",
+    "compatibility_mode", "application_kind", "support_mode", "source_format",
+    "edt_workspace", "edt_profile", "server_port", "is_production", "mcp_enabled", "owner",
+)
+ONE_C_ENUMS = {
+    "application_kind": {"ordinary", "managed"},
+    "support_mode": {"on-support", "partially", "off-support"},
+    "source_format": {"edt", "designer-xml"},
+    "is_production": {"true", "false"},
+    "mcp_enabled": {"true", "false"},
+}
+ONE_C_PORTS = range(6003, 6013)
+
+
+def check_one_c_registry(root: Path) -> list[Finding]:
+    """The registry of infobases: identity, ports and no credentials.
+
+    Every rule here exists because getting it wrong is expensive at runtime: a
+    duplicate identity makes "which base" ambiguous, a shared port sends an
+    operation to the wrong infobase, and a credential column would put a
+    password into Git.
+    """
+    path = root / ONE_C_REGISTRY
+    if not path.is_file():
+        return []
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        return [Finding("ERROR", "registry.unreadable", f"Cannot read the 1C registry: {exc}", ONE_C_REGISTRY)]
+
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    if tuple(reader.fieldnames or ()) != ONE_C_REGISTRY_FIELDS:
+        return [Finding(
+            "ERROR", "registry.header",
+            f"{ONE_C_REGISTRY} header must be: {', '.join(ONE_C_REGISTRY_FIELDS)}.",
+            ONE_C_REGISTRY,
+        )]
+
+    findings: list[Finding] = []
+    identities: set[tuple[str, str]] = set()
+    ports: dict[str, str] = {}
+    for number, row in enumerate(reader, start=2):
+        where = f"{ONE_C_REGISTRY}:{number}"
+        if None in row or any(value is None for value in row.values()):
+            findings.append(Finding("ERROR", "registry.row", f"{where} does not match the header.", ONE_C_REGISTRY))
+            continue
+
+        identity = (row["project_id"], row["environment_id"])
+        if identity in identities:
+            findings.append(Finding(
+                "ERROR", "registry.duplicate",
+                f"{where} repeats the identity {identity[0]}/{identity[1]}.", ONE_C_REGISTRY,
+            ))
+        identities.add(identity)
+
+        for column, allowed in ONE_C_ENUMS.items():
+            if row[column] not in allowed:
+                findings.append(Finding(
+                    "ERROR", "registry.value",
+                    f"{where} column '{column}' must be one of {', '.join(sorted(allowed))}.", ONE_C_REGISTRY,
+                ))
+
+        if row["mcp_enabled"] == "true":
+            port = row["server_port"]
+            if not port.isdigit() or int(port) not in ONE_C_PORTS:
+                findings.append(Finding(
+                    "ERROR", "registry.port",
+                    f"{where} exposes MCP and needs a port in {ONE_C_PORTS.start}-{ONE_C_PORTS.stop - 1}.",
+                    ONE_C_REGISTRY,
+                ))
+            elif port in ports:
+                findings.append(Finding(
+                    "ERROR", "registry.port",
+                    f"{where} shares port {port} with {ports[port]}; an operation would reach the wrong infobase.",
+                    ONE_C_REGISTRY,
+                ))
+            else:
+                ports[port] = f"{row['project_id']}/{row['environment_id']}"
+        elif row["server_port"]:
+            findings.append(Finding(
+                "ERROR", "registry.port",
+                f"{where} does not expose MCP, so its port must stay empty.", ONE_C_REGISTRY,
+            ))
+
+        for column in ("edt_workspace", "folder"):
+            if Path(row[column]).is_absolute():
+                findings.append(Finding(
+                    "ERROR", "registry.path",
+                    f"{where} column '{column}' must not hold a machine path.", ONE_C_REGISTRY,
+                ))
+    return findings
 
 
 def check_capability_evidence(root: Path, capabilities: Sequence[str]) -> list[Finding]:
@@ -785,6 +881,7 @@ def validate(
             findings.extend(check_capabilities(root, capability_rows, metadata.get("capabilities", [])))
             findings.extend(check_capability_core(root, metadata.get("capabilities", [])))
             findings.extend(check_capability_evidence(root, metadata.get("capabilities", [])))
+            findings.extend(check_one_c_registry(root))
         findings.extend(check_project_baseline(root, contract_root, version))
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))

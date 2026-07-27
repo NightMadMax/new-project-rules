@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<launchConfiguration type="com._1c.g5.v8.dt.launching.core.runtimeClient">
+    <stringAttribute key="ATTR_PROJECT_NAME" value="&lt;EDT_PROJECT&gt;"/>
+    <stringAttribute key="ATTR_RUNTIME_INSTALLATION" value="&lt;RUNTIME_INSTALLATION&gt;"/>
+    <stringAttribute key="ATTR_CLIENT_TYPE" value="ru.biatech.edt.ordinaryapp.OrdinaryClient"/>
+    <booleanAttribute key="ATTR_DEBUG_ENABLED" value="true"/>
+</launchConfiguration>
