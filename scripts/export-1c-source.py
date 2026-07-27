@@ -7,6 +7,7 @@ import argparse
 import csv
 import io
 import json
+import shlex
 import sys
 from pathlib import Path
 
@@ -17,7 +18,7 @@ from one_c_source import (  # noqa: E402
 )
 
 REGISTRY = "config/1c-projects.tsv"
-EXPORT_RECORD = "export.json"
+RECORD = "export.json"
 
 
 def read_base(root: Path, identity: str) -> dict[str, str]:
@@ -32,9 +33,16 @@ def read_base(root: Path, identity: str) -> dict[str, str]:
     raise SourceError(f"Base '{identity}' is not in {REGISTRY}; known bases: {known}")
 
 
-def converter(command: str | None):
-    """The EDT CLI, or nothing: a missing converter is a SKIP, not a failure."""
-    return cli_converter(command.split()) if command else None
+def converter(command: str, source_option: str, target_option: str):
+    """The converter, or nothing: a missing one is a SKIP, not a failure."""
+    if not command:
+        return None
+    # Not str.split: the usual path on Windows holds spaces. Not POSIX mode
+    # either: it would eat the backslashes in that same path — so quotes are
+    # removed by hand instead.
+    tokens = [token[1:-1] if len(token) > 1 and token[0] == token[-1] == '"' else token
+              for token in shlex.split(command, posix=False)]
+    return cli_converter(tokens, source_option, target_option)
 
 
 def main() -> int:
@@ -45,52 +53,76 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="project root")
     parser.add_argument("--base", required=True, help="base identity as project_id/environment_id")
-    parser.add_argument("--converter", default="", help="EDT CLI command for canon → XML; empty means the route is unavailable")
+    parser.add_argument("--converter", default="", help="command converting the canon to XML")
     parser.add_argument("--converter-back", dest="converter_back", default="",
-                        help="EDT CLI command for XML → canon; the two directions are different commands")
+                        help="command converting XML back; the two directions are different commands")
+    parser.add_argument("--source-option", default="--source", help="how the converter names its input")
+    parser.add_argument("--target-option", default="--target", help="how the converter names its output")
+    parser.add_argument("--skip-determinism-check", action="store_true",
+                        help="do not convert twice; halves the cost and drops the guarantee")
     parser.add_argument("--import", dest="do_import", action="store_true", help="return to the canon")
-    parser.add_argument("--apply", action="store_true", help="accept a reviewed return")
-    parser.add_argument("--release", action="store_true", help="drop the export and the lock")
+    parser.add_argument("--apply", action="store_true", help="accept the review that was shown")
+    parser.add_argument("--release", action="store_true", help="drop the export, the staging and the lock")
     arguments = parser.parse_args()
 
     root = Path(arguments.root).resolve()
-    record = state_directory(root) / EXPORT_RECORD
     try:
         base = read_base(root, arguments.base)
         source = root / base["folder"]
-        convert = converter(arguments.converter or None)
-        convert_back = converter(arguments.converter_back or None)
+        record = state_directory(root, arguments.base) / RECORD
+        stored = json.loads(record.read_text(encoding="utf-8")) if record.is_file() else {}
 
         if arguments.release:
-            stored = json.loads(record.read_text(encoding="utf-8")) if record.is_file() else {}
-            release(root, Path(stored["export"]) if stored.get("export") else None)
+            release(root, arguments.base)
             record.unlink(missing_ok=True)
-            print("[RELEASE  ] выгрузка и блокировка удалены")
+            print("[RELEASE  ] выгрузка, staging и блокировка удалены")
+            return 0
+
+        if arguments.apply and not arguments.do_import:
+            # Applying what was shown, not what a fresh conversion would produce.
+            if not stored.get("staging"):
+                raise SourceError("There is no reviewed return to apply; run --import first")
+            accept(root, source, Path(stored["staging"]))
+            stored.pop("staging", None)
+            record.write_text(json.dumps(stored), encoding="utf-8")
+            print("[APPLIED  ] канон обновлён")
             return 0
 
         if arguments.do_import:
-            stored = json.loads(record.read_text(encoding="utf-8")) if record.is_file() else {}
             if not stored.get("export"):
                 raise SourceError("There is no export to return from")
-            result = import_back(root, source, Path(stored["export"]), convert_back)
+            result = import_back(
+                root, arguments.base, source, Path(stored["export"]),
+                converter(arguments.converter_back, arguments.source_option, arguments.target_option),
+            )
             print(f"[{result['action'].upper():9}] {result['reason'] or arguments.base}")
             if result["action"] != "review":
                 return 0
             print(result["diff"])
+            stored["staging"] = str(result["staging"])
+            record.write_text(json.dumps(stored), encoding="utf-8")
             if not arguments.apply:
                 print("Изменения не применены. Показать пользователю и повторить с --apply.")
                 return 1
-            accept(source, result["staging"])
+            accept(root, source, Path(stored["staging"]))
+            stored.pop("staging", None)
+            record.write_text(json.dumps(stored), encoding="utf-8")
             print("[APPLIED  ] канон обновлён")
             return 0
 
-        result = export(root, source, base["source_format"], convert)
+        result = export(
+            root, arguments.base, source, base["source_format"],
+            converter(arguments.converter, arguments.source_option, arguments.target_option),
+            check_determinism=not arguments.skip_determinism_check,
+        )
         if result["action"] == "skip":
             print(f"[SKIP     ] {result['reason']}")
             return 0
         record.parent.mkdir(parents=True, exist_ok=True)
         record.write_text(json.dumps({"export": str(result["export"]), "base": arguments.base}), encoding="utf-8")
         print(f"[EXPORT   ] {result['export']}")
+        if result["reason"]:
+            print(f"[WARN     ] {result['reason']}")
         return 0
     except SourceError as error:
         print(f"[ERROR    ] {error}", file=sys.stderr)

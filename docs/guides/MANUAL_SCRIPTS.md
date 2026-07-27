@@ -236,21 +236,34 @@ sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c
 <id> проекта <путь>». Или вручную:
 
 ```sh
-sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --converter "<CLI EDT>"
-sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --converter-back "<CLI EDT>" --import
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --converter "<команда>"
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --converter-back "<команда>" --import
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --apply
 sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --release
 ```
 
 ```powershell
-.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -Converter "<CLI EDT>"
-.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -ConverterBack "<CLI EDT>" -Import
+.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -Converter "<команда>"
+.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -ConverterBack "<команда>" -Import
+.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -Apply
 .\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -Release
 ```
 
 Выгрузка создаётся в системном временном каталоге, вне репозитория. `--import`
-показывает изменения по файлам и завершается кодом 1, пока их не применили
-`--apply`. Без конвертера команда даёт `SKIP`: маршрут недоступен, проект не
-сломан. Для базы с `source_format = designer-xml` конвертация пропускается.
+показывает изменённые файлы и строки внутри них и завершается кодом 1, пока их
+не применили `--apply`; применяется именно показанный результат. Без конвертера
+команда даёт `SKIP`: маршрут недоступен, проект не сломан. Для базы с
+`source_format = designer-xml` конвертация пропускается.
+
+Команда конвертера и имена её параметров задаются снаружи
+(`--source-option`, `--target-option`): фактическая форма CLI ещё не
+зафиксирована — дефект №166. По умолчанию дерево конвертируется дважды, чтобы
+проверить детерминизм: это удваивает время и место. `--skip-determinism-check`
+снимает проверку и печатает `WARN`.
+
+Состояние привязано к паре «репозиторий + база», временные каталоги помечены
+владельцем: выгрузка одной базы не мешает другой и не удаляет чужие. Блокировка
+снимается `--release` или истекает через 12 часов.
 
 ### Клиентские проекции 1С
 

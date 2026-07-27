@@ -4,33 +4,46 @@ The canon in Git is the EDT tree (decision 1.21). Part of the tooling only
 speaks the configurator's XML export, so the tree is converted for those tools
 and converted back as a separate, explicit step.
 
-Three properties make that detour safe, and each is a rule here rather than a
+Four properties make that detour safe, and each is a rule here rather than a
 habit:
 
 * **The export cannot reach the repository.** It is written to the system
   temporary directory and handed to tools as an absolute path, so no ignore
-  rule has to be correct for the working tree to stay clean. A leftover from an
-  interrupted run is removed by the next one.
+  rule has to be correct for the working tree to stay clean.
+* **Everything is owned.** State, exports and staging are keyed by repository
+  *and* base, and every temporary directory carries a marker saying whose it is.
+  Cleaning up after an interrupted run must never touch a directory that belongs
+  to another project — or to another base of this one.
 * **The conversion is deterministic.** The same tree must produce the same
   bytes. "Close enough" is a stop, not a result: without this, the diff of the
-  return step stops meaning anything.
-* **The return is never silent.** Coming back to the canon shows the diff and
-  waits, and it refuses outright if the canon moved while the export was out —
-  otherwise it would quietly overwrite work done meanwhile.
+  return step stops meaning anything. The check costs a second conversion, which
+  is why it can be turned off deliberately and never silently.
+* **The return is never silent.** Coming back to the canon shows what would
+  change and waits, applies exactly what it showed, and refuses outright if the
+  canon moved while the export was out.
 """
 
 from __future__ import annotations
 
+import difflib
 import hashlib
+import json
 import os
 import shutil
-import subprocess
 import tempfile
+import time
 from pathlib import Path
 
-TEMP_PREFIX = "new-project-rules-1c-"
+PREFIX = "new-project-rules-1c-"
+MARKER = ".owner.json"
 LOCK_NAME = "conversion.lock"
 FINGERPRINT_NAME = "canon.sha256"
+# How long a lock survives its owner. A conversion is a foreground operation:
+# past this the session that took the lock is gone, and blocking a base until
+# someone deletes a file by hand would be worse than reclaiming it.
+LOCK_TTL_SECONDS = 12 * 3600
+DIFF_CONTEXT_LINES = 3
+DIFF_MAX_LINES = 400
 
 
 class SourceError(Exception):
@@ -38,10 +51,11 @@ class SourceError(Exception):
 
 
 def fingerprint(tree: Path) -> str:
-    """Identity of a source tree: paths and bytes, in a fixed order.
+    """Identity of a source tree: paths, lengths and bytes, in a fixed order.
 
-    Paths are part of the digest, or a rename between two files with swapped
-    contents would look like no change at all.
+    Paths are part of the digest, or a rename would look like no change at all;
+    lengths are, or the contents of neighbouring files would run together. The
+    order is sorted because filesystems return files in their own order.
     """
     digest = hashlib.sha256()
     for path in sorted(p for p in tree.rglob("*") if p.is_file() and not p.is_symlink()):
@@ -52,50 +66,13 @@ def fingerprint(tree: Path) -> str:
     return digest.hexdigest()
 
 
-def alive(pid: int) -> bool:
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except (PermissionError, OSError):
-        return True
-    return True
+def state_key(root: Path, base: str) -> str:
+    """One state per repository *and* base: a project has several infobases."""
+    return hashlib.sha256(f"{root.resolve()}\n{base}".encode("utf-8")).hexdigest()[:16]
 
 
-def acquire_lock(directory: Path) -> Path:
-    """One conversion per base at a time.
-
-    Two conversions of one tree would race over the same export and hand a
-    half-written directory to a tool. A lock left by a process that no longer
-    exists is reclaimed: otherwise a crash would block the base until someone
-    deletes a file by hand.
-    """
-    directory.mkdir(parents=True, exist_ok=True)
-    lock = directory / LOCK_NAME
-    try:
-        handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError:
-        owner = lock.read_text(encoding="utf-8").strip()
-        if owner.isdigit() and alive(int(owner)):
-            raise SourceError(f"Another conversion holds {lock} (pid {owner})") from None
-        lock.unlink(missing_ok=True)
-        try:
-            handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError:
-            raise SourceError(f"Another conversion took {lock} first") from None
-    with os.fdopen(handle, "w", encoding="utf-8") as stream:
-        stream.write(str(os.getpid()))
-    return lock
-
-
-def state_directory(root: Path) -> Path:
-    """Where the lock and the recorded fingerprint live: outside the repository.
-
-    Keyed by the repository path so two checkouts do not share a lock, and
-    stable across runs so an interrupted run can be noticed by the next one.
-    """
-    key = hashlib.sha256(str(root.resolve()).encode("utf-8")).hexdigest()[:16]
-    return Path(tempfile.gettempdir()) / f"{TEMP_PREFIX}state-{key}"
+def state_directory(root: Path, base: str) -> Path:
+    return Path(tempfile.gettempdir()) / f"{PREFIX}state-{state_key(root, base)}"
 
 
 def outside(directory: Path, root: Path) -> bool:
@@ -106,75 +83,179 @@ def outside(directory: Path, root: Path) -> bool:
     return False
 
 
-def export(root: Path, source: Path, source_format: str, convert=None) -> dict:
+def check_source(root: Path, source: Path) -> None:
+    """The canon must be a directory strictly inside the repository.
+
+    ``folder`` comes from the registry, and the return step replaces whatever it
+    points at: ``.`` or ``../elsewhere`` would put the repository itself, or
+    something outside it, under a replacement.
+    """
+    resolved, base = source.resolve(), root.resolve()
+    if resolved == base or outside(resolved, base):
+        raise SourceError(f"The source tree {source} must be a directory inside {root}")
+    if not resolved.is_dir():
+        raise SourceError(f"Source tree not found: {source}")
+
+
+def make_owned(kind: str, key: str) -> Path:
+    """A temporary directory that says whose it is — from the outside.
+
+    The marker is a sibling file, not a file inside: the export is handed to a
+    tool whole, and a stray file in it would be part of what the tool sees and
+    part of what the fingerprint measures.
+    """
+    directory = Path(tempfile.mkdtemp(prefix=f"{PREFIX}{kind}-"))
+    marker_path(directory).write_text(json.dumps({"key": key, "kind": kind}), encoding="utf-8")
+    return directory
+
+
+def marker_path(directory: Path) -> Path:
+    return directory.with_name(directory.name + MARKER)
+
+
+def owner_of(directory: Path) -> str:
+    marker = marker_path(directory)
+    if not marker.is_file():
+        return ""
+    try:
+        return str(json.loads(marker.read_text(encoding="utf-8")).get("key", ""))
+    except (OSError, ValueError):
+        return ""
+
+
+def discard(directory: Path) -> None:
+    shutil.rmtree(directory, ignore_errors=True)
+    marker_path(directory).unlink(missing_ok=True)
+
+
+def sweep(key: str, keep: Path | None = None) -> list[Path]:
+    """Remove what a previous run of *this* base left behind, and nothing else."""
+    removed = []
+    for kind in ("export", "probe", "import", "backup"):
+        for candidate in Path(tempfile.gettempdir()).glob(f"{PREFIX}{kind}-*"):
+            if candidate.name.endswith(MARKER):
+                continue
+            if not candidate.is_dir() or (keep is not None and candidate == keep):
+                continue
+            if owner_of(candidate) == key:
+                discard(candidate)
+                removed.append(candidate)
+    return removed
+
+
+def acquire_lock(state: Path) -> Path:
+    """One conversion per base at a time.
+
+    Ownership is a session, not a process: the CLI exits between the export and
+    the return, so a lock tied to a live pid would be free the moment it was
+    taken. It is released explicitly, or it expires — checking liveness by pid
+    is not portable, and on Windows the usual trick terminates the process it
+    was asked about.
+    """
+    state.mkdir(parents=True, exist_ok=True)
+    lock = state / LOCK_NAME
+    try:
+        handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+    except FileExistsError:
+        # A lock we cannot read is a lock nobody can release by hand either:
+        # treat it as expired rather than blocking the base forever.
+        try:
+            stored = json.loads(lock.read_text(encoding="utf-8"))
+            taken = float(stored["at"]) if isinstance(stored, dict) else 0.0
+        except (OSError, ValueError, TypeError, KeyError):
+            taken = 0.0
+        age = time.time() - taken
+        if age < LOCK_TTL_SECONDS:
+            raise SourceError(
+                f"Another conversion of this base holds {lock} "
+                f"(taken {int(age)}s ago); finish it or release it"
+            ) from None
+        lock.unlink(missing_ok=True)
+        try:
+            handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        except FileExistsError:
+            raise SourceError(f"Another conversion took {lock} first") from None
+    with os.fdopen(handle, "w", encoding="utf-8") as stream:
+        stream.write(json.dumps({"at": time.time(), "pid": os.getpid()}))
+    return lock
+
+
+def export(root: Path, base: str, source: Path, source_format: str, convert=None,
+           check_determinism: bool = True) -> dict:
     """Produce the XML the tool needs, or explain why nothing was produced.
 
-    ``convert`` is the seam: the real converter is the CLI shipped with EDT, and
-    a project that does not have it gets a SKIP rather than a failure — the same
-    contract diagnostics use, because a missing tool is not a broken project.
+    ``convert`` is the seam: the real converter is a CLI, and a project that
+    does not have it gets a SKIP rather than a failure — the same contract
+    diagnostics use, because a missing tool is not a broken project.
     """
     if source_format == "designer-xml":
         return {"action": "skip", "reason": "канон уже в XML, конвертация не нужна", "export": None}
     if source_format != "edt":
         raise SourceError(f"Unknown source_format '{source_format}'")
-    if not source.is_dir():
-        raise SourceError(f"Source tree not found: {source}")
+    check_source(root, source)
     if convert is None:
         return {"action": "skip", "reason": "конвертер EDT не найден", "export": None}
 
-    state = state_directory(root)
-    lock = acquire_lock(state)
-    # A directory left by an interrupted run: removing it is the point of
-    # keeping the state directory stable across runs.
-    for stale in Path(tempfile.gettempdir()).glob(f"{TEMP_PREFIX}export-*"):
-        if stale.is_dir() and not (stale / LOCK_NAME).exists():
-            shutil.rmtree(stale, ignore_errors=True)
+    key = state_key(root, base)
+    lock = acquire_lock(state_directory(root, base))
+    sweep(key)
 
-    destination = Path(tempfile.mkdtemp(prefix=f"{TEMP_PREFIX}export-"))
+    destination = make_owned("export", key)
     if not outside(destination, root):
-        shutil.rmtree(destination, ignore_errors=True)
+        discard(destination)
         lock.unlink(missing_ok=True)
         raise SourceError(f"The temporary directory {destination} is inside the repository")
     try:
         convert(source, destination)
         produced = fingerprint(destination)
-        # Determinism is checked, not assumed: without it the diff of the
-        # return step would mix real changes with converter noise.
-        probe = Path(tempfile.mkdtemp(prefix=f"{TEMP_PREFIX}export-"))
-        try:
-            convert(source, probe)
-            if fingerprint(probe) != produced:
-                raise SourceError("The conversion is not deterministic; the same tree produced different bytes")
-        finally:
-            shutil.rmtree(probe, ignore_errors=True)
+        if check_determinism:
+            # A second conversion doubles the time and the disk this costs. It
+            # buys the only thing that makes the diff of the return step
+            # meaningful, so it is on by default and off only on request.
+            probe = make_owned("probe", key)
+            try:
+                convert(source, probe)
+                if fingerprint(probe) != produced:
+                    raise SourceError(
+                        "The conversion is not deterministic; the same tree produced different bytes"
+                    )
+            finally:
+                discard(probe)
     except BaseException:
-        shutil.rmtree(destination, ignore_errors=True)
+        discard(destination)
         lock.unlink(missing_ok=True)
         raise
 
+    state = state_directory(root, base)
     (state / FINGERPRINT_NAME).write_text(fingerprint(source), encoding="utf-8")
     return {
         "action": "export",
-        "reason": "",
+        "reason": "" if check_determinism else "детерминизм не проверялся по явному запросу",
         "export": destination,
         "canon": fingerprint(source),
         "xml": produced,
     }
 
 
-def release(root: Path, destination: Path | None) -> None:
-    """Nothing survives an operation: not the export, not the lock."""
-    if destination is not None:
-        shutil.rmtree(destination, ignore_errors=True)
-    (state_directory(root) / LOCK_NAME).unlink(missing_ok=True)
+def release(root: Path, base: str) -> None:
+    """Nothing survives an operation: no export, no staging, no lock."""
+    sweep(state_key(root, base))
+    state = state_directory(root, base)
+    (state / LOCK_NAME).unlink(missing_ok=True)
+    (state / FINGERPRINT_NAME).unlink(missing_ok=True)
 
 
-def import_back(root: Path, source: Path, export_dir: Path, convert_back=None) -> dict:
+def import_back(root: Path, base: str, source: Path, export_dir: Path, convert_back=None) -> dict:
     """Return to the canon: refuse on a moved canon, never apply silently."""
-    state = state_directory(root)
+    check_source(root, source)
+    state = state_directory(root, base)
     recorded = state / FINGERPRINT_NAME
     if not recorded.is_file():
         raise SourceError("There is no export to return from")
+    if not export_dir.is_dir():
+        # Without this an empty conversion would read as "everything deleted"
+        # and the canon would be wiped by an apply.
+        raise SourceError(f"The export {export_dir} is gone; redo it")
     if recorded.read_text(encoding="utf-8").strip() != fingerprint(source):
         raise SourceError(
             "The canon changed while the export was out; discard the export or redo it — "
@@ -183,21 +264,29 @@ def import_back(root: Path, source: Path, export_dir: Path, convert_back=None) -
     if convert_back is None:
         return {"action": "skip", "reason": "конвертер EDT не найден", "diff": ""}
 
-    staging = Path(tempfile.mkdtemp(prefix=f"{TEMP_PREFIX}import-"))
+    staging = make_owned("import", state_key(root, base))
     try:
         convert_back(export_dir, staging)
         if fingerprint(staging) == fingerprint(source):
+            discard(staging)
             return {"action": "unchanged", "reason": "инструмент не изменил дерево", "diff": ""}
-        # The caller shows this and asks; applying is a separate call, because
-        # a silent round trip is exactly what decision 1.21 forbids.
+        # The caller shows this and asks; applying is a separate step that takes
+        # this very staging directory, so what is accepted is what was shown.
         return {"action": "review", "reason": "", "diff": diff(source, staging), "staging": staging}
     except BaseException:
-        shutil.rmtree(staging, ignore_errors=True)
+        discard(staging)
         raise
 
 
+def readable(path: Path) -> list[str] | None:
+    try:
+        return path.read_bytes().decode("utf-8").splitlines()
+    except (OSError, UnicodeDecodeError):
+        return None
+
+
 def diff(canon: Path, candidate: Path) -> str:
-    """What the round trip would change, by file: added, removed, changed."""
+    """What the round trip would change: the files, and inside them the lines."""
     def listing(tree: Path) -> dict[str, str]:
         return {
             path.relative_to(tree).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
@@ -205,7 +294,8 @@ def diff(canon: Path, candidate: Path) -> str:
         }
 
     before, after = listing(canon), listing(candidate)
-    lines = []
+    lines: list[str] = []
+    details: list[str] = []
     for name in sorted(set(before) | set(after)):
         if name not in before:
             lines.append(f"+ {name}")
@@ -213,34 +303,61 @@ def diff(canon: Path, candidate: Path) -> str:
             lines.append(f"- {name}")
         elif before[name] != after[name]:
             lines.append(f"M {name}")
-    return "\n".join(lines)
+            old, new = readable(canon / name), readable(candidate / name)
+            if old is None or new is None:
+                details.append(f"--- {name}\n(двоичный файл, содержимое не показывается)")
+                continue
+            body = list(difflib.unified_diff(old, new, f"a/{name}", f"b/{name}",
+                                             n=DIFF_CONTEXT_LINES, lineterm=""))
+            details.extend(body)
+    if len(details) > DIFF_MAX_LINES:
+        hidden = len(details) - DIFF_MAX_LINES
+        details = details[:DIFF_MAX_LINES] + [f"… ещё {hidden} строк(и) не показаны"]
+    return "\n".join(lines + ([""] + details if details else []))
 
 
-def accept(source: Path, staging: Path) -> None:
-    """Apply a reviewed round trip: replace the canon with what was shown."""
+def accept(root: Path, source: Path, staging: Path) -> None:
+    """Apply a reviewed round trip by renaming, not by deleting first.
+
+    The canon is the project's work. It is moved aside, the new tree takes its
+    place, and only then is the old one removed — so a failure at any point
+    leaves a complete tree where the canon belongs.
+    """
+    check_source(root, source)
     if not staging.is_dir():
         raise SourceError(f"Nothing to accept: {staging} does not exist")
-    backup = Path(tempfile.mkdtemp(prefix=f"{TEMP_PREFIX}backup-"))
-    kept = backup / "canon"
-    shutil.copytree(source, kept, symlinks=True)
+
+    # Staged next to the canon so the swap is a rename: across filesystems a
+    # rename is not available, and a copy is not atomic.
+    incoming = source.with_name(f".{source.name}.incoming")
+    previous = source.with_name(f".{source.name}.previous")
+    for leftover in (incoming, previous):
+        shutil.rmtree(leftover, ignore_errors=True)
+    shutil.copytree(staging, incoming, symlinks=True)
+
+    os.replace(source, previous)
     try:
-        shutil.rmtree(source)
-        shutil.copytree(staging, source, symlinks=True)
+        os.replace(incoming, source)
     except BaseException:
-        # The canon is the project's work; a failed replacement must not eat it.
-        shutil.rmtree(source, ignore_errors=True)
-        shutil.copytree(kept, source, symlinks=True)
+        os.replace(previous, source)
+        shutil.rmtree(incoming, ignore_errors=True)
         raise
-    finally:
-        shutil.rmtree(backup, ignore_errors=True)
-        shutil.rmtree(staging, ignore_errors=True)
+    shutil.rmtree(previous, ignore_errors=True)
+    discard(staging)
 
 
-def cli_converter(command: list[str]):
-    """The real converter: the CLI shipped with EDT, given absolute paths."""
+def cli_converter(command: list[str], source_option: str, target_option: str):
+    """The real converter: an external CLI, given absolute paths.
+
+    The option names belong to the command, not to us: the EDT CLI is not the
+    only converter a project may have, and guessing its flags would produce a
+    route that looks configured and fails on first use.
+    """
+    import subprocess
+
     def run(source: Path, destination: Path) -> None:
         result = subprocess.run(
-            [*command, "--source", str(source.resolve()), "--target", str(destination.resolve())],
+            [*command, source_option, str(source.resolve()), target_option, str(destination.resolve())],
             capture_output=True, text=True,
         )
         if result.returncode != 0:

@@ -9,6 +9,12 @@ param(
 
     [string]$ConverterBack = "",
 
+    [string]$SourceOption = "--source",
+
+    [string]$TargetOption = "--target",
+
+    [switch]$SkipDeterminismCheck,
+
     [switch]$Import,
     [switch]$Apply,
     [switch]$Release
@@ -32,7 +38,8 @@ if ($null -eq $Python) {
 }
 
 $Exporter = Join-Path $PSScriptRoot "export-1c-source.py"
-$Arguments = @($Exporter, "--root", $Root, "--base", $Base, "--converter", $Converter, "--converter-back", $ConverterBack)
+$Arguments = @($Exporter, "--root", $Root, "--base", $Base, "--converter", $Converter, "--converter-back", $ConverterBack, "--source-option", $SourceOption, "--target-option", $TargetOption)
+if ($SkipDeterminismCheck) { $Arguments += "--skip-determinism-check" }
 if ($Import) { $Arguments += "--import" }
 if ($Apply) { $Arguments += "--apply" }
 if ($Release) { $Arguments += "--release" }

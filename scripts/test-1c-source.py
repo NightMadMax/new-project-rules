@@ -3,11 +3,13 @@
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -56,6 +58,7 @@ def drifting_convert(source: Path, destination: Path) -> None:
     (destination / "stamp").write_bytes(os.urandom(8))
 
 
+BASE = "erp/dev"
 CANON = {"src/Configuration.mdo": "configuration", "src/Catalogs/Товары.mdo": "каталог"}
 
 
@@ -68,15 +71,15 @@ def canon_project(directory: Path) -> tuple[Path, Path]:
 
 
 def cleanup(root: Path) -> None:
-    source_module.release(root, None)
-    shutil.rmtree(source_module.state_directory(root), ignore_errors=True)
+    source_module.release(root, BASE)
+    shutil.rmtree(source_module.state_directory(root, BASE), ignore_errors=True)
 
 
 # --- what an export is and where it lives ------------------------------------
 
 with tempfile.TemporaryDirectory() as raw:
     root, tree = canon_project(Path(raw))
-    result = source_module.export(root, tree, "edt", fake_convert)
+    result = source_module.export(root, BASE, tree, "edt", fake_convert)
     export_dir = result["export"]
     note(result["action"] == "export", f"an EDT tree must be converted: {result}")
     # Never inside the repository: no ignore rule has to be right for the
@@ -87,26 +90,28 @@ with tempfile.TemporaryDirectory() as raw:
 
     # Determinism is the reason the diff of the return step means anything.
     again = source_module.fingerprint(export_dir)
-    source_module.release(root, export_dir)
+    source_module.release(root, BASE)
     note(not export_dir.exists(), "the export must not survive the operation")
-    note(not (source_module.state_directory(root) / source_module.LOCK_NAME).exists(),
+    note(not (source_module.state_directory(root, BASE) / source_module.LOCK_NAME).exists(),
          "the lock must not survive the operation")
 
-    second = source_module.export(root, tree, "edt", fake_convert)
+    second = source_module.export(root, BASE, tree, "edt", fake_convert)
     note(source_module.fingerprint(second["export"]) == again, "the same tree must produce the same bytes")
-    source_module.release(root, second["export"])
+    source_module.release(root, BASE)
     cleanup(root)
 
 with tempfile.TemporaryDirectory() as raw:
     root, tree = canon_project(Path(raw))
     try:
-        source_module.export(root, tree, "edt", drifting_convert)
+        source_module.export(root, BASE, tree, "edt", drifting_convert)
         failures.append("a non-deterministic conversion must stop the operation")
     except source_module.SourceError:
         pass
-    leftovers = list(Path(tempfile.gettempdir()).glob(f"{source_module.TEMP_PREFIX}export-*"))
+    key = source_module.state_key(root, BASE)
+    leftovers = [path for path in Path(tempfile.gettempdir()).glob(f"{source_module.PREFIX}*-*")
+                 if path.is_dir() and source_module.owner_of(path) == key]
     note(not leftovers, f"a failed conversion must leave nothing behind: {leftovers}")
-    note(not (source_module.state_directory(root) / source_module.LOCK_NAME).exists(),
+    note(not (source_module.state_directory(root, BASE) / source_module.LOCK_NAME).exists(),
          "a failed conversion must release the lock")
     cleanup(root)
 
@@ -114,18 +119,18 @@ with tempfile.TemporaryDirectory() as raw:
 
 with tempfile.TemporaryDirectory() as raw:
     root, tree = canon_project(Path(raw))
-    skipped = source_module.export(root, tree, "designer-xml", fake_convert)
+    skipped = source_module.export(root, BASE, tree, "designer-xml", fake_convert)
     note(skipped["action"] == "skip", "an XML canon needs no conversion")
     note(skipped["export"] is None, "a skipped conversion produces no directory")
 
     # A missing converter is a SKIP, like a missing CLI in diagnostics: the
     # project is not broken, this route is merely unavailable.
-    absent = source_module.export(root, tree, "edt", None)
+    absent = source_module.export(root, BASE, tree, "edt", None)
     note(absent["action"] == "skip" and "конвертер" in absent["reason"],
          f"a missing converter must be a SKIP: {absent}")
 
     try:
-        source_module.export(root, tree, "designer", fake_convert)
+        source_module.export(root, BASE, tree, "designer", fake_convert)
         failures.append("an unknown source_format must be refused")
     except source_module.SourceError:
         pass
@@ -135,104 +140,188 @@ with tempfile.TemporaryDirectory() as raw:
 
 with tempfile.TemporaryDirectory() as raw:
     root, tree = canon_project(Path(raw))
-    first = source_module.export(root, tree, "edt", fake_convert)
+    first = source_module.export(root, BASE, tree, "edt", fake_convert)
     try:
-        source_module.export(root, tree, "edt", fake_convert)
+        source_module.export(root, BASE, tree, "edt", fake_convert)
         failures.append("two conversions of one tree must not run at once")
     except source_module.SourceError:
         pass
-    source_module.release(root, first["export"])
+    source_module.release(root, BASE)
 
-    # A lock left by a process that no longer exists must not block the base
-    # until someone deletes a file by hand.
-    state = source_module.state_directory(root)
+    # A lock older than a working session must not block the base until someone
+    # deletes a file by hand; an unreadable one must not either.
+    state = source_module.state_directory(root, BASE)
     state.mkdir(parents=True, exist_ok=True)
-    (state / source_module.LOCK_NAME).write_text("999999999", encoding="utf-8")
-    reclaimed = source_module.export(root, tree, "edt", fake_convert)
-    note(reclaimed["action"] == "export", "a stale lock must be reclaimed")
-    source_module.release(root, reclaimed["export"])
+    stale = time.time() - source_module.LOCK_TTL_SECONDS - 60
+    (state / source_module.LOCK_NAME).write_text(json.dumps({"at": stale}), encoding="utf-8")
+    reclaimed = source_module.export(root, BASE, tree, "edt", fake_convert)
+    note(reclaimed["action"] == "export", "an expired lock must be reclaimed")
+    source_module.release(root, BASE)
+
+    (state / source_module.LOCK_NAME).write_text("не json", encoding="utf-8")
+    unreadable = source_module.export(root, BASE, tree, "edt", fake_convert)
+    note(unreadable["action"] == "export", "an unreadable lock must not block the base forever")
+
+    # A fresh lock does block: that is the point of holding one.
+    (state / source_module.LOCK_NAME).write_text(json.dumps({"at": time.time()}), encoding="utf-8")
+    try:
+        source_module.export(root, BASE, tree, "edt", fake_convert)
+        failures.append("a fresh lock must block a second conversion")
+    except source_module.SourceError:
+        pass
+    source_module.release(root, BASE)
     cleanup(root)
+
+# --- an export belongs to one project and one base ---------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    first_root, first_tree = canon_project(Path(raw) / "one")
+    second_root, second_tree = canon_project(Path(raw) / "two")
+    mine = source_module.export(first_root, BASE, first_tree, "edt", fake_convert)
+    other = source_module.export(second_root, BASE, second_tree, "edt", fake_convert)
+    note(mine["export"].is_dir(), "another project's conversion must not remove this export")
+
+    # Two bases of one project are two conversions, with two states.
+    second_base = source_module.export(first_root, "zup/dev", first_tree, "edt", fake_convert)
+    note(mine["export"].is_dir(), "another base of the same project must not remove this export")
+    note(second_base["export"] != mine["export"], "each base gets its own export")
+
+    source_module.release(first_root, "zup/dev")
+    note(mine["export"].is_dir(), "releasing one base must not touch another")
+    note(other["export"].is_dir(), "releasing one project must not touch another")
+    source_module.release(first_root, BASE)
+    note(not mine["export"].exists(), "releasing must remove this base's export")
+    note(other["export"].is_dir(), "releasing must leave the other project alone")
+    source_module.release(second_root, BASE)
+    note(not other["export"].exists(), "releasing must remove the other project's export too")
+    for path in (first_root, second_root):
+        cleanup(path)
 
 # --- the return to the canon -------------------------------------------------
 
 with tempfile.TemporaryDirectory() as raw:
     root, tree = canon_project(Path(raw))
-    result = source_module.export(root, tree, "edt", fake_convert)
+    result = source_module.export(root, BASE, tree, "edt", fake_convert)
     export_dir = result["export"]
 
-    untouched = source_module.import_back(root, tree, export_dir, fake_convert_back)
+    untouched = source_module.import_back(root, BASE, tree, export_dir, fake_convert_back)
     note(untouched["action"] == "unchanged", f"a tool that changed nothing produces no diff: {untouched}")
 
     # The tool edited the XML: the return has to be shown before it is applied.
     changed = next(export_dir.rglob("*Configuration.mdo.xml"))
     changed.write_bytes(b"<xml>configuration v2</xml>")
     (export_dir / "src/Catalogs/Склады.mdo.xml").write_bytes(b"<xml>new</xml>")
-    review = source_module.import_back(root, tree, export_dir, fake_convert_back)
+    review = source_module.import_back(root, BASE, tree, export_dir, fake_convert_back)
     note(review["action"] == "review", f"a changed tree must be reviewed: {review}")
     note("M src/Configuration.mdo" in review["diff"], f"the diff must name the changed file: {review['diff']}")
     note("+ src/Catalogs/Склады.mdo" in review["diff"], f"the diff must name the added file: {review['diff']}")
+    # Naming a file is not showing a change: the review has to say what moved
+    # inside it, or a person is asked to approve a list of names.
+    note("-configuration" in review["diff"] and "+configuration v2" in review["diff"],
+         f"the diff must show the lines that change: {review['diff']}")
     note((tree / "src/Configuration.mdo").read_bytes() == b"configuration",
          "reviewing must not touch the canon")
 
-    source_module.accept(tree, review["staging"])
+    source_module.accept(root, tree, review["staging"])
     note((tree / "src/Configuration.mdo").read_bytes() == b"configuration v2", "accepting must apply the review")
     note((tree / "src/Catalogs/Склады.mdo").is_file(), "accepting must apply added files")
-    source_module.release(root, export_dir)
+    # The old canon is moved aside during the swap; leaving it there would put
+    # a second copy of the configuration next to the first.
+    aside = list(tree.parent.glob(".*.previous")) + list(tree.parent.glob(".*.incoming"))
+    note(not aside, f"accepting must leave nothing beside the canon: {aside}")
+    note(not review["staging"].exists(), "accepting must consume the staging")
+    source_module.release(root, BASE)
     cleanup(root)
 
 with tempfile.TemporaryDirectory() as raw:
     # The canon moved while the export was out: returning would overwrite work.
     root, tree = canon_project(Path(raw))
-    result = source_module.export(root, tree, "edt", fake_convert)
+    result = source_module.export(root, BASE, tree, "edt", fake_convert)
     (tree / "src/Configuration.mdo").write_bytes(b"edited by hand")
     try:
-        source_module.import_back(root, tree, result["export"], fake_convert_back)
+        source_module.import_back(root, BASE, tree, result["export"], fake_convert_back)
         failures.append("a moved canon must refuse the return")
     except source_module.SourceError:
         pass
     note((tree / "src/Configuration.mdo").read_bytes() == b"edited by hand", "the refusal must keep the canon")
-    source_module.release(root, result["export"])
+    source_module.release(root, BASE)
+    cleanup(root)
+
+with tempfile.TemporaryDirectory() as raw:
+    # An export that disappeared is a mistake, not "everything was deleted": a
+    # forgiving converter would produce an empty staging and an apply would
+    # wipe the canon.
+    root, tree = canon_project(Path(raw))
+    result = source_module.export(root, BASE, tree, "edt", fake_convert)
+    shutil.rmtree(result["export"])
+    try:
+        source_module.import_back(root, BASE, tree, result["export"], fake_convert_back)
+        failures.append("a vanished export must be refused")
+    except source_module.SourceError:
+        pass
+    note((tree / "src/Configuration.mdo").is_file(), "the refusal must keep the canon")
+    source_module.release(root, BASE)
     cleanup(root)
 
 with tempfile.TemporaryDirectory() as raw:
     # Returning without an export is a mistake, not an empty diff.
     root, tree = canon_project(Path(raw))
     try:
-        source_module.import_back(root, tree, Path(raw) / "nothing", fake_convert_back)
+        source_module.import_back(root, BASE, tree, Path(raw) / "nothing", fake_convert_back)
         failures.append("a return without an export must be refused")
     except source_module.SourceError:
         pass
     cleanup(root)
 
 with tempfile.TemporaryDirectory() as raw:
-    # A failed replacement must not eat the project's work.
+    # A failed replacement must not eat the project's work: the canon is moved
+    # aside and only removed once the new tree is in place.
     root, tree = canon_project(Path(raw))
     staging = Path(raw) / "staging"
     make_tree(staging, {"src/Configuration.mdo": "replacement"})
-    original = shutil.copytree
-    # Fail the write into the canon exactly once: copytree recurses into
-    # subdirectories through itself, so counting calls would hit the backup
-    # phase instead and prove nothing.
+    original = os.replace
     failed = {"once": False}
 
-    def failing_copytree(from_path, to_path, *arguments, **keywords):
+    def failing_replace(from_path, to_path, *arguments, **keywords):
         if Path(to_path) == tree and not failed["once"]:
             failed["once"] = True
             raise OSError("injected failure")
         return original(from_path, to_path, *arguments, **keywords)
 
-    shutil.copytree = failing_copytree
+    os.replace = failing_replace
     try:
-        source_module.accept(tree, staging)
+        source_module.accept(root, tree, staging)
         failures.append("a failed replacement must not report success")
     except OSError:
         pass
     finally:
-        shutil.copytree = original
+        os.replace = original
+    note(failed["once"], "the injected failure must have happened")
     note((tree / "src/Configuration.mdo").read_bytes() == b"configuration",
          "a failed replacement must restore the canon")
     note((tree / "src/Catalogs/Товары.mdo").is_file(), "a failed replacement must restore every file")
-    note(failed["once"], "the injected failure must have happened")
+    note(not list(tree.parent.glob(".*.incoming")), "a failed replacement must not leave a staging tree")
+    note(not list(tree.parent.glob(".*.previous")), "a failed replacement must not leave the old canon aside")
+    cleanup(root)
+
+with tempfile.TemporaryDirectory() as raw:
+    # The registry decides which folder is replaced, so a folder that is the
+    # repository itself — or outside it — must be refused before anything moves.
+    root, tree = canon_project(Path(raw))
+    staging = Path(raw) / "staging"
+    make_tree(staging, {"a.mdo": "replacement"})
+    for name, folder in (("the repository itself", root), ("outside the repository", Path(raw) / "elsewhere")):
+        try:
+            source_module.accept(root, folder, staging)
+            failures.append(f"{name} must not be replaced")
+        except source_module.SourceError:
+            pass
+        try:
+            source_module.export(root, BASE, folder, "edt", fake_convert)
+            failures.append(f"{name} must not be exported")
+        except source_module.SourceError:
+            pass
+    note((root / "configurations/erp/src/Configuration.mdo").is_file(), "the refusals must change nothing")
     cleanup(root)
 
 # --- what the fingerprint has to notice --------------------------------------
@@ -289,14 +378,14 @@ with tempfile.TemporaryDirectory() as raw:
         "    out.parent.mkdir(parents=True, exist_ok=True)\n"
         "    out.write_bytes(path.read_bytes())\n".encode("utf-8")
     )
-    result = source_module.export(root, tree, "edt", source_module.cli_converter([sys.executable, str(helper)]))
+    result = source_module.export(root, BASE, tree, "edt", source_module.cli_converter([sys.executable, str(helper)], "--source", "--target"))
     note(result["action"] == "export", f"the CLI converter must produce an export: {result}")
-    source_module.release(root, result["export"])
+    source_module.release(root, BASE)
 
     failing = Path(raw) / "broken.py"
     failing.write_bytes(b"import sys\nsys.exit(3)\n")
     try:
-        source_module.export(root, tree, "edt", source_module.cli_converter([sys.executable, str(failing)]))
+        source_module.export(root, BASE, tree, "edt", source_module.cli_converter([sys.executable, str(failing)], "--source", "--target"))
         failures.append("a converter that fails must stop the operation")
     except source_module.SourceError:
         pass
@@ -368,13 +457,25 @@ with tempfile.TemporaryDirectory() as raw:
     note("M src/Configuration.mdo" in review.stdout.splitlines(), f"the CLI must show the diff: {review.stdout}")
     note((tree / "src/Configuration.mdo").read_bytes() == b"configuration", "showing must not apply")
 
-    applied = run_cli(root, "--import", "--apply", converter=command, back=back)
+    # Applying takes the staging that was shown, not a fresh conversion: between
+    # the two commands the export could have changed, and then the person would
+    # have approved something else.
+    (exported / "src/Configuration.mdo.xml").write_bytes(b"configuration v3")
+    applied = run_cli(root, "--apply", converter=command, back=back)
     note(applied.returncode == 0 and "APPLIED" in applied.stdout, f"--apply must apply: {applied.stdout}")
-    note((tree / "src/Configuration.mdo").read_bytes() == b"configuration v2", "the canon must hold the review")
+    note((tree / "src/Configuration.mdo").read_bytes() == b"configuration v2",
+         "the canon must hold what was shown, not what changed afterwards")
 
     released = run_cli(root, "--release", converter=command)
     note(released.returncode == 0, f"--release must succeed: {released.stderr}")
     note(not exported.exists(), "--release must remove the export")
+    key = source_module.state_key(root, "erp/dev")
+    left = [path for path in Path(tempfile.gettempdir()).glob(f"{source_module.PREFIX}*-*")
+            if path.is_dir() and source_module.owner_of(path) == key]
+    note(not left, f"--release must leave no staging behind: {left}")
+
+    orphan_apply = run_cli(root, "--apply", converter=command, back=back)
+    note(orphan_apply.returncode == 2, "applying without a review must be an error")
     cleanup(root)
 
 with tempfile.TemporaryDirectory() as raw:
@@ -398,6 +499,27 @@ with tempfile.TemporaryDirectory() as raw:
 
     orphan = run_cli(root, "--import", converter=command, back=back)
     note(orphan.returncode == 2, "a return without an export must be an error")
+
+    # The determinism check costs a second conversion: switching it off has to
+    # be asked for and has to be said out loud.
+    counted = run_cli(root, converter=command)
+    note("EXPORT" in counted.stdout and "WARN" not in counted.stdout,
+         f"the default export says nothing unusual: {counted.stdout}")
+    run_cli(root, "--release", converter=command)
+    cheap = run_cli(root, "--skip-determinism-check", converter=command)
+    note("WARN" in cheap.stdout and "детерминизм" in cheap.stdout,
+         f"skipping the check must be stated: {cheap.stdout}")
+    run_cli(root, "--release", converter=command)
+
+    # A path with a space is the usual case on Windows, not an edge case.
+    spaced = Path(raw) / "Program Files"
+    spaced.mkdir()
+    moved = spaced / "converter.py"
+    moved.write_bytes((Path(command.split(" ", 1)[1])).read_bytes())
+    quoted = run_cli(root, converter=f'"{sys.executable}" "{moved}"')
+    note(quoted.returncode == 0 and "EXPORT" in quoted.stdout,
+         f"a converter path with a space must work: {quoted.stdout}{quoted.stderr}")
+    run_cli(root, "--release", converter=command)
     cleanup(root)
 
 if failures:
