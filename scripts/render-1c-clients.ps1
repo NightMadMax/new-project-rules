@@ -1,7 +1,10 @@
 #requires -Version 5.1
 param(
     [string]$Root = ".",
-    [switch]$Write
+    [switch]$Write,
+
+    [ValidateSet("all", "claude", "codex")]
+    [string]$Client = "all"
 )
 
 $ErrorActionPreference = "Stop"
@@ -22,7 +25,7 @@ if ($null -eq $Python) {
 }
 
 $Renderer = Join-Path $PSScriptRoot "render-1c-clients.py"
-$Arguments = @($Renderer, "--root", $Root)
+$Arguments = @($Renderer, "--root", $Root, "--client", $Client)
 if ($Write) { $Arguments += "--write" }
 
 & $Python.Source @Arguments

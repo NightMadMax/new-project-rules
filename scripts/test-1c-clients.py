@@ -161,9 +161,63 @@ with tempfile.TemporaryDirectory() as raw:
     permissions = settings["permissions"]
     note("mcp__onec-toolkit-erp-dev__read_object" in permissions["allow"], "a declared read tool must be allowed")
     note("mcp__onec-toolkit-erp-dev__execute_code" in permissions["ask"], "a declared write tool must ask")
-    # Anything the server did not classify keeps the area's class: a new
-    # upstream tool must not arrive as allowed.
-    note("mcp__onec-toolkit-erp-dev" in permissions["ask"], "the unclassified remainder must ask")
+    # The precision has to take effect, not merely be present: Claude Code
+    # resolves deny, then ask, then allow, so a server-wide "ask" alongside the
+    # tools would shadow every tool the catalog allowed.
+    note(not any(rule == "mcp__onec-toolkit-erp-dev" for rules in permissions.values() for rule in rules),
+         "a server-wide rule must not shadow the declared tools")
+
+# --- one policy, one name per base ------------------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    # Two different identities that collapse into one server name: the survivor
+    # would carry the other base's port.
+    project = make_project(Path(raw), (
+        base_row(project_id="erp-a", environment_id="dev"),
+        base_row(project_id="erp", environment_id="a-dev", server_port="6004"),
+    ))
+    try:
+        clients.plan(project)
+        failures.append("colliding base names must be refused")
+    except clients.ClientError:
+        pass
+
+# --- a late client is activated on its own ----------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    project = make_project(Path(raw), (base_row(),))
+    clients.apply(project, "codex")
+    note((project / clients.CODEX_CONFIG).is_file(), "--client codex must render the Codex projection")
+    note(not (project / clients.MCP_CONFIG).exists(), "--client codex must not touch the Claude projection")
+    clients.apply(project, "claude")
+    note((project / clients.MCP_CONFIG).is_file(), "--client claude must render the Claude projection")
+    try:
+        clients.plan(project, "cursor")
+        failures.append("an unknown client must be refused")
+    except clients.ClientError:
+        pass
+
+# --- half-written projections are worse than none ---------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    project = make_project(Path(raw), (base_row(),))
+    clients.apply(project)
+    before = rendered(project)
+    # A directory where the staging file must go: portable, and it fails at the
+    # same point a full disk or a locked file would.
+    blocked = (project / clients.CODEX_CONFIG).with_name("config.toml.staged")
+    blocked.mkdir()
+    (project / clients.REGISTRY).write_bytes(
+        ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="6005")]) + "\n").encode("utf-8"))
+    try:
+        clients.apply(project)
+        failures.append("a blocked write must not report success")
+    except OSError:
+        pass
+    blocked.rmdir()
+    note(before == rendered(project),
+         "a failed write must leave every projection at its previous content")
+    note(not list(project.glob("**/*.staged")), "staging files must not survive a failure")
 
 # --- bad input is a message, not a traceback --------------------------------
 

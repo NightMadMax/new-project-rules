@@ -31,6 +31,9 @@ OWNED_PREFIX = "onec-"
 BEGIN = "# new-project-rules:1c:begin"
 END = "# new-project-rules:1c:end"
 CLASSES = ("allow", "ask", "deny")
+# Which projection belongs to which client, so a late-installed client can be
+# activated without touching the one that already works (decision 1.11).
+CLIENTS = {"claude": (CLAUDE_SETTINGS, MCP_CONFIG), "codex": (CODEX_CONFIG,)}
 
 # Decision 1.17. The class is a property of the area, and a server inherits the
 # strictest class of the areas it covers unless it says which tool is which.
@@ -122,6 +125,7 @@ def projected_servers(catalog: list[dict], registry: list[dict[str, str]]) -> li
     URL would look installed and fail at the first call.
     """
     projected: list[dict] = []
+    taken: dict[str, str] = {}
     for server in catalog:
         bases = registry if server.get("scope") == "per-base" else [None]
         for base in bases:
@@ -135,11 +139,22 @@ def projected_servers(catalog: list[dict], registry: list[dict[str, str]]) -> li
             }
             if server["role"] == "data":
                 # Denied by policy: it must not be installed by a render.
-                entry["unresolved"] = "роль отключена решением 1.17"
+                entry["unresolved"] = f"роль отключена решением 1.17 — {ROLE_REASONS['data']}"
             elif server.get("endpoint") == "local-port" and base:
                 entry["url"] = f"http://127.0.0.1:{base['server_port']}/mcp"
             else:
                 entry["unresolved"] = f"endpoint из provider manifest ({server['provider_id']})"
+            if base is not None:
+                # "erp-a"/"dev" and "erp"/"a-dev" are different bases with one
+                # name, and the survivor would carry the other one's port —
+                # exactly the "operation reached the wrong infobase" failure.
+                identity = f"{base['project_id']}/{base['environment_id']}"
+                if entry["name"] in taken:
+                    raise ClientError(
+                        f"Bases {taken[entry['name']]} and {identity} both project as "
+                        f"'{entry['name']}'; rename one of them in {REGISTRY}."
+                    )
+                taken[entry["name"]] = identity
             projected.append(entry)
     return projected
 
@@ -157,14 +172,13 @@ def permission_rules(projected: list[dict]) -> dict[str, list[str]]:
         if not tools:
             rules[entry["permission"]].append(f"mcp__{entry['name']}")
             continue
-        covered = "allow"
         for class_name in CLASSES:
             for tool in tools.get(class_name, ()):
                 rules[class_name].append(f"mcp__{entry['name']}__{tool}")
-                covered = strictest(covered, class_name)
-        # Whatever the server did not classify keeps the area's own class, so a
-        # new upstream tool cannot arrive silently as "allowed".
-        rules[strictest(entry["permission"], covered)].append(f"mcp__{entry['name']}")
+        # No server-wide rule here on purpose: Claude Code resolves deny, then
+        # ask, then allow, so a server-wide "ask" would shadow every tool the
+        # catalog allowed and the precision would never take effect. A tool the
+        # catalog did not classify still asks — that is the client default.
     return {name: sorted(set(values)) for name, values in rules.items()}
 
 
@@ -233,8 +247,11 @@ def canonical_json(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
-def plan(root: Path) -> list[dict[str, str]]:
+def plan(root: Path, client: str = "all") -> list[dict[str, str]]:
     """What each client file would become. Reading only; nothing is written."""
+    if client != "all" and client not in CLIENTS:
+        raise ClientError(f"Unknown client '{client}'; expected all, {', or '.join(sorted(CLIENTS))}")
+    wanted = None if client == "all" else CLIENTS[client]
     projected = projected_servers(read_catalog(root), read_registry(root))
     changes: list[dict[str, str]] = []
     for name, content in (
@@ -245,6 +262,8 @@ def plan(root: Path) -> list[dict[str, str]]:
             projected,
         )),
     ):
+        if wanted is not None and name not in wanted:
+            continue
         path = root / name
         current = path.read_bytes().decode("utf-8") if path.is_file() else ""
         changes.append({
@@ -258,11 +277,27 @@ def plan(root: Path) -> list[dict[str, str]]:
     return changes
 
 
-def apply(root: Path) -> list[dict[str, str]]:
-    changes = plan(root)
-    for change in changes:
-        if change["action"] in ("create", "update"):
+def apply(root: Path, client: str = "all") -> list[dict[str, str]]:
+    """Write in two phases: stage everything, then rename.
+
+    Three files describe one policy. A failure halfway through would leave a
+    project whose clients disagree about what is allowed, so the writes that
+    can fail happen before any file is replaced.
+    """
+    changes = plan(root, client)
+    pending = [change for change in changes if change["action"] in ("create", "update")]
+    staged: list[tuple[Path, Path]] = []
+    try:
+        for change in pending:
             path = root / change["path"]
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_bytes(change["content"].encode("utf-8"))
+            staging = path.with_name(path.name + ".staged")
+            staging.write_bytes(change["content"].encode("utf-8"))
+            staged.append((staging, path))
+        for staging, path in staged:
+            staging.replace(path)
+    finally:
+        for staging, _ in staged:
+            if staging.exists():
+                staging.unlink()
     return changes

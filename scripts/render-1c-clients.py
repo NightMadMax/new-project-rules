@@ -16,11 +16,13 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="project root")
     parser.add_argument("--write", action="store_true", help="write the projections")
+    parser.add_argument("--client", default="all", choices=["all", "claude", "codex"],
+                        help="render only the projections of one client")
     arguments = parser.parse_args()
 
     root = Path(arguments.root).resolve()
     try:
-        changes = apply(root) if arguments.write else plan(root)
+        changes = apply(root, arguments.client) if arguments.write else plan(root, arguments.client)
     except ClientError as error:
         print(f"[ERROR] {error}", file=sys.stderr)
         return 2
