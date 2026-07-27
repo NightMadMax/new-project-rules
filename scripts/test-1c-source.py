@@ -583,10 +583,14 @@ def cli_project(directory: Path, source_format: str = "edt") -> tuple[Path, Path
 
 
 def run_cli(root: Path, *arguments: str, converter: str = "", back: str = "") -> subprocess.CompletedProcess:
+    # The child is told the console is cp1252 — the Windows default — and the
+    # tool is expected to write UTF-8 anyway, so the reader decodes UTF-8. With
+    # the platform default here the parent would fail on the tool's own output.
     return subprocess.run(
         [sys.executable, str(CLI), "--root", str(root), "--base", "erp/dev",
          "--converter", converter, "--converter-back", back, *arguments],
-        capture_output=True, text=True, env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"},
     )
 
 
@@ -656,7 +660,7 @@ with tempfile.TemporaryDirectory() as raw:
     root, tree, command, back = cli_project(Path(raw))
     unknown = subprocess.run(
         [sys.executable, str(CLI), "--root", str(root), "--base", "zup/prod", "--converter", command],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
     )
     note(unknown.returncode == 2, "an unknown base must be an error")
     note("zup/prod" in unknown.stderr and "erp/dev" in unknown.stderr,
