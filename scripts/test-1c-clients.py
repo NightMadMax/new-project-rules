@@ -389,7 +389,8 @@ with tempfile.TemporaryDirectory() as raw:
     # UTF-8: the tool must not die on its own output.
     written = subprocess.run(
         [sys.executable, str(SCRIPTS / "render-1c-clients.py"), "--root", str(project), "--write"],
-        capture_output=True, text=True, env={**os.environ, "PYTHONIOENCODING": "cp1252"},
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+        env={**os.environ, "PYTHONIOENCODING": "cp1252"},
     )
     note(written.returncode == 0, f"--write must succeed: {written.stderr[-200:]}")
     note((project / clients.MCP_CONFIG).is_file(), "--write must produce the projection")

@@ -18,3 +18,6 @@ measure-1c-performance	canonical	templates/new-project/capabilities/1c/.agents/s
 work-with-1c-edt	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
 add-1c-base	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
 activate-1c-client	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+export-1c-source	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+deploy-1c-source	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+deploy-and-test-1c	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
