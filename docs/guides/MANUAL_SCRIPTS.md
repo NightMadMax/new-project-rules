@@ -230,6 +230,36 @@ sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c
 и не затирает правку. Файлы, поставленные bootstrap, при первом запуске
 усыновляются (`adopt`), потому что bootstrap ledger не ведёт.
 
+### Клиентские проекции 1С
+
+Открыть агента в папке проекта-правил и попросить: «пересобери клиентские
+проекции 1С для проекта <путь>». Или вручную:
+
+```sh
+sh scripts/render-1c-clients.sh --root ../my-project
+sh scripts/render-1c-clients.sh --root ../my-project --write
+```
+
+```powershell
+.\scripts\render-1c-clients.ps1 -Root ..\my-project
+.\scripts\render-1c-clients.ps1 -Root ..\my-project -Write
+```
+
+Позднее установленный клиент активируется отдельно: `--client claude` или
+`--client codex` (в PowerShell — `-Client claude`). Работающий клиент при этом
+не затрагивается.
+
+Без `--write` команда только показывает план. Проекция владеет MCP-серверами
+`onec-…`, правилами `mcp__onec-…` и блоком между маркерами
+`new-project-rules:1c` в `.codex/config.toml`; сторонние серверы и
+пользовательские настройки сохраняются. Строка `SKIP` означает роль, адрес
+которой знает только provider manifest, либо роль, отключённую политикой.
+
+Первая сборка нормализует форматирование `.claude/settings.json` и `.mcp.json`
+(отступ два пробела, ключи по алфавиту): содержимое сохраняется, но diff шире,
+чем владение capability. Префикс `onec-` зарезервирован — пользовательский
+сервер с таким именем будет снят очередной сборкой.
+
 ### Миграции project / global metadata
 
 Fingerprint-защищённый планировщик и исполнитель миграций

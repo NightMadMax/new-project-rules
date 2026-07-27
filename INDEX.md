@@ -135,6 +135,11 @@
 | `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
 | `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/test-one-c-scaffold.py` | Тесты каркаса 1С-проекта и схемы реестра баз |
+| `scripts/one_c_clients.py` | Контракт клиентских проекций 1С: владение, классы разрешений, транзакционная запись |
+| `scripts/render-1c-clients.py` | Сборка клиентских проекций 1С из каталога ролей и реестра баз |
+| `scripts/render-1c-clients.sh` | POSIX-обёртка сборки клиентских проекций |
+| `scripts/render-1c-clients.ps1` | PowerShell-обёртка сборки клиентских проекций |
+| `scripts/test-1c-clients.py` | Тесты клиентских проекций: владение, идемпотентность, классы разрешений |
 | `scripts/standardize_existing_project.py` | Read-only decision report для стандартизации существующего проекта |
 | `scripts/standardize-existing-project.sh` | Existing-project standardization planner для macOS/Linux |
 | `scripts/standardize-existing-project.ps1` | Existing-project standardization planner для Windows |

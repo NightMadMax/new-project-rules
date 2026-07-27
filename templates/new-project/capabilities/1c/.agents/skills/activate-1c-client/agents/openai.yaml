@@ -1,0 +1,4 @@
+interface:
+  display_name: "Activate 1C Client"
+  short_description: "Render MCP servers and permission rules for the AI clients"
+  default_prompt: "Use $activate-1c-client to rebuild the 1C client projections."

@@ -32,3 +32,19 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confl
 1c	capabilities/1c/USER-RULES.template.md	USER-RULES.md	Постоянные правила проекта, принадлежат команде	-	-	template	seed
 1c	capabilities/1c/memory.template.md	memory.md	Проверенные долговременные факты проекта	-	-	template	seed
 1c	capabilities/1c/LLM-RULES.template.md	LLM-RULES.md	Одобренные пользователем правила поведения агента	-	-	template	seed
+1c	capabilities/1c/.agents/skills/doctor-1c/SKILL.md	.agents/skills/doctor-1c/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/doctor-1c/agents/openai.yaml	.agents/skills/doctor-1c/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/setup-1c-environment/SKILL.md	.agents/skills/setup-1c-environment/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/setup-1c-environment/agents/openai.yaml	.agents/skills/setup-1c-environment/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/select-1c-project/SKILL.md	.agents/skills/select-1c-project/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/select-1c-project/agents/openai.yaml	.agents/skills/select-1c-project/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/query-1c-infobase/SKILL.md	.agents/skills/query-1c-infobase/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/query-1c-infobase/agents/openai.yaml	.agents/skills/query-1c-infobase/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/measure-1c-performance/SKILL.md	.agents/skills/measure-1c-performance/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/measure-1c-performance/agents/openai.yaml	.agents/skills/measure-1c-performance/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/work-with-1c-edt/SKILL.md	.agents/skills/work-with-1c-edt/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/work-with-1c-edt/agents/openai.yaml	.agents/skills/work-with-1c-edt/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/add-1c-base/SKILL.md	.agents/skills/add-1c-base/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/add-1c-base/agents/openai.yaml	.agents/skills/add-1c-base/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/activate-1c-client/SKILL.md	.agents/skills/activate-1c-client/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/activate-1c-client/agents/openai.yaml	.agents/skills/activate-1c-client/agents/openai.yaml	-	-	-	template	managed

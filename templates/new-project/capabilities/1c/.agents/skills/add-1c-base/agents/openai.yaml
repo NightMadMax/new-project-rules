@@ -1,0 +1,4 @@
+interface:
+  display_name: "Register 1C Infobase"
+  short_description: "Add an infobase to the project registry"
+  default_prompt: "Use $add-1c-base to register a new infobase."

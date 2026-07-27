@@ -1,0 +1,4 @@
+interface:
+  display_name: "Query 1C Infobase"
+  short_description: "Read live infobase data and metadata, no writes"
+  default_prompt: "Use $query-1c-infobase to read data from the confirmed infobase."

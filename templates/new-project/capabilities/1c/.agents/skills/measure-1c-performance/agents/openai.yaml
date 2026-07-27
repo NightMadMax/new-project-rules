@@ -1,0 +1,4 @@
+interface:
+  display_name: "Measure 1C Performance"
+  short_description: "Run guarded performance measurements on a non-production base"
+  default_prompt: "Use $measure-1c-performance to measure performance on the confirmed infobase."

@@ -67,4 +67,5 @@ jobs:
           python3 scripts/test-preset-core.py
           python3 scripts/test-release-manifest.py
           python3 scripts/test-one-c-scaffold.py
+          python3 scripts/test-1c-clients.py
           python3 scripts/validate-project.py --root . --kind rules --report-only

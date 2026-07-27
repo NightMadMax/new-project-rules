@@ -38,6 +38,10 @@ MANAGED = (
     "configurations/launch/ordinary-http-debug.launch",
     "docs/operations/EDT_SETUP.md",
 )
+SKILLS = (
+    "doctor-1c", "setup-1c-environment", "select-1c-project", "query-1c-infobase",
+    "measure-1c-performance", "work-with-1c-edt", "add-1c-base", "activate-1c-client",
+)
 SEED = (
     "docs/operations/TOOLCHAIN.md",
     "docs/quality/TEST_MODEL.md",
@@ -106,6 +110,12 @@ with tempfile.TemporaryDirectory() as raw:
             body = (project / relative).read_text(encoding="utf-8")
             note("<PROJECT_NAME>" not in body, f"{relative} was not rendered")
             note("demo" in body, f"{relative} does not name the project")
+
+        # A skill that is not delivered is a rule nobody can follow.
+        for skill in SKILLS:
+            for tail in ("SKILL.md", "agents/openai.yaml"):
+                note((project / f".agents/skills/{skill}/{tail}").is_file(),
+                     f"scaffold is missing the {skill} {tail}")
 
         scoped = (project / "configurations/AGENTS.md").read_text(encoding="utf-8")
         # The rules that must reach a working session, in the words the file uses.

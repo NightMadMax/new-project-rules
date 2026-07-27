@@ -1,0 +1,4 @@
+interface:
+  display_name: "Select 1C Infobase"
+  short_description: "Pick and confirm the infobase for this session"
+  default_prompt: "Use $select-1c-project to choose the infobase for this session."
