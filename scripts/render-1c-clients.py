@@ -13,6 +13,12 @@ from one_c_clients import ClientError, apply, plan  # noqa: E402
 
 
 def main() -> int:
+    # The Windows console is not UTF-8 by default, and a SKIP line explains
+    # itself in Russian: without this the tool dies on its own report.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", default=".", help="project root")
     parser.add_argument("--write", action="store_true", help="write the projections")

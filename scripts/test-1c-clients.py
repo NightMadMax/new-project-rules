@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -384,9 +385,11 @@ with tempfile.TemporaryDirectory() as raw:
     )
     note(report.returncode == 1, "a pending change must be a non-zero exit")
     note(not (project / clients.MCP_CONFIG).exists(), "a report must not write anything")
+    # The report explains a SKIP in Russian, and the Windows console is not
+    # UTF-8: the tool must not die on its own output.
     written = subprocess.run(
         [sys.executable, str(SCRIPTS / "render-1c-clients.py"), "--root", str(project), "--write"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, env={**os.environ, "PYTHONIOENCODING": "cp1252"},
     )
     note(written.returncode == 0, f"--write must succeed: {written.stderr[-200:]}")
     note((project / clients.MCP_CONFIG).is_file(), "--write must produce the projection")
