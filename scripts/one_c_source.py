@@ -66,6 +66,20 @@ def fingerprint(tree: Path) -> str:
     return digest.hexdigest()
 
 
+def check_no_symlinks(tree: Path, label: str) -> None:
+    """A symlink is carried into the canon but cannot be measured or shown.
+
+    The fingerprint and the diff work on file contents, so a symlink whose
+    target changed would look like no change at all — and the return step would
+    apply it without ever showing it. Refusing is the only honest option: a
+    silent carry breaks the promise that nothing lands unseen.
+    """
+    found = [path for path in tree.rglob("*") if path.is_symlink()]
+    if found:
+        shown = ", ".join(path.relative_to(tree).as_posix() for path in found[:3])
+        raise SourceError(f"{label} holds symbolic links ({shown}); the conversion cannot carry them")
+
+
 def state_key(root: Path, base: str) -> str:
     """One state per repository *and* base: a project has several infobases."""
     return hashlib.sha256(f"{root.resolve()}\n{base}".encode("utf-8")).hexdigest()[:16]
@@ -95,6 +109,7 @@ def check_source(root: Path, source: Path) -> None:
         raise SourceError(f"The source tree {source} must be a directory inside {root}")
     if not resolved.is_dir():
         raise SourceError(f"Source tree not found: {source}")
+    check_no_symlinks(resolved, "The canon")
 
 
 def make_owned(kind: str, key: str) -> Path:
@@ -124,8 +139,14 @@ def owner_of(directory: Path) -> str:
 
 
 def discard(directory: Path) -> None:
+    """Remove a temporary directory, and only then forget who owned it.
+
+    Dropping the marker on a directory that refused to go away would make it
+    invisible to every later sweep — gigabytes of export nobody can find.
+    """
     shutil.rmtree(directory, ignore_errors=True)
-    marker_path(directory).unlink(missing_ok=True)
+    if not directory.exists():
+        marker_path(directory).unlink(missing_ok=True)
 
 
 def sweep(key: str, keep: Path | None = None) -> list[Path]:
@@ -134,6 +155,10 @@ def sweep(key: str, keep: Path | None = None) -> list[Path]:
     for kind in ("export", "probe", "import", "backup"):
         for candidate in Path(tempfile.gettempdir()).glob(f"{PREFIX}{kind}-*"):
             if candidate.name.endswith(MARKER):
+                # A marker whose directory is gone: the directory was removed by
+                # a crash or by the system, and nothing else will collect it.
+                if not candidate.with_name(candidate.name[: -len(MARKER)]).exists():
+                    candidate.unlink(missing_ok=True)
                 continue
             if not candidate.is_dir() or (keep is not None and candidate == keep):
                 continue
@@ -154,30 +179,38 @@ def acquire_lock(state: Path) -> Path:
     """
     state.mkdir(parents=True, exist_ok=True)
     lock = state / LOCK_NAME
-    try:
-        handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-    except FileExistsError:
-        # A lock we cannot read is a lock nobody can release by hand either:
-        # treat it as expired rather than blocking the base forever.
-        try:
-            stored = json.loads(lock.read_text(encoding="utf-8"))
-            taken = float(stored["at"]) if isinstance(stored, dict) else 0.0
-        except (OSError, ValueError, TypeError, KeyError):
-            taken = 0.0
-        age = time.time() - taken
-        if age < LOCK_TTL_SECONDS:
-            raise SourceError(
-                f"Another conversion of this base holds {lock} "
-                f"(taken {int(age)}s ago); finish it or release it"
-            ) from None
-        lock.unlink(missing_ok=True)
+    for attempt in (1, 2):
         try:
             handle = os.open(lock, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
         except FileExistsError:
-            raise SourceError(f"Another conversion took {lock} first") from None
-    with os.fdopen(handle, "w", encoding="utf-8") as stream:
-        stream.write(json.dumps({"at": time.time(), "pid": os.getpid()}))
-    return lock
+            if attempt == 2:
+                raise SourceError(f"Another conversion took {lock} first") from None
+            # Age comes from the file itself, not from what is written inside:
+            # between creating the lock and writing its body there is a moment
+            # when it is empty, and an empty file must not read as expired. A
+            # clock that moved cannot make a fresh lock look old either.
+            try:
+                age = time.time() - lock.stat().st_mtime
+            except OSError:
+                age = 0.0
+            if age < LOCK_TTL_SECONDS:
+                raise SourceError(
+                    f"Another conversion of this base holds {lock} "
+                    f"(taken {int(max(age, 0))}s ago); finish it or release it"
+                ) from None
+            # Exactly one process can rename a given file away, so exactly one
+            # reclaims an expired lock; the other finds the winner's lock.
+            expired = lock.with_name(f"{lock.name}.expired-{os.getpid()}")
+            try:
+                os.replace(lock, expired)
+            except OSError:
+                raise SourceError(f"Another conversion took {lock} first") from None
+            expired.unlink(missing_ok=True)
+            continue
+        with os.fdopen(handle, "w", encoding="utf-8") as stream:
+            stream.write(json.dumps({"at": time.time(), "pid": os.getpid()}))
+        return lock
+    raise SourceError(f"Another conversion took {lock} first")
 
 
 def export(root: Path, base: str, source: Path, source_format: str, convert=None,
@@ -238,11 +271,9 @@ def export(root: Path, base: str, source: Path, source_format: str, convert=None
 
 
 def release(root: Path, base: str) -> None:
-    """Nothing survives an operation: no export, no staging, no lock."""
+    """Nothing survives an operation: no export, no staging, no lock, no state."""
     sweep(state_key(root, base))
-    state = state_directory(root, base)
-    (state / LOCK_NAME).unlink(missing_ok=True)
-    (state / FINGERPRINT_NAME).unlink(missing_ok=True)
+    shutil.rmtree(state_directory(root, base), ignore_errors=True)
 
 
 def import_back(root: Path, base: str, source: Path, export_dir: Path, convert_back=None) -> dict:
@@ -279,10 +310,17 @@ def import_back(root: Path, base: str, source: Path, export_dir: Path, convert_b
 
 
 def readable(path: Path) -> list[str] | None:
+    """Text if it is text. A configuration on support is not always UTF-8."""
     try:
-        return path.read_bytes().decode("utf-8").splitlines()
-    except (OSError, UnicodeDecodeError):
+        body = path.read_bytes()
+    except OSError:
         return None
+    for encoding in ("utf-8", "cp1251"):
+        try:
+            return body.decode(encoding).splitlines()
+        except UnicodeDecodeError:
+            continue
+    return None
 
 
 def diff(canon: Path, candidate: Path) -> str:
@@ -310,10 +348,11 @@ def diff(canon: Path, candidate: Path) -> str:
             body = list(difflib.unified_diff(old, new, f"a/{name}", f"b/{name}",
                                              n=DIFF_CONTEXT_LINES, lineterm=""))
             details.extend(body)
-    if len(details) > DIFF_MAX_LINES:
-        hidden = len(details) - DIFF_MAX_LINES
-        details = details[:DIFF_MAX_LINES] + [f"… ещё {hidden} строк(и) не показаны"]
-    return "\n".join(lines + ([""] + details if details else []))
+    body = lines + ([""] + details if details else [])
+    if len(body) > DIFF_MAX_LINES:
+        hidden = len(body) - DIFF_MAX_LINES
+        body = body[:DIFF_MAX_LINES] + [f"… ещё {hidden} строк(и) не показаны"]
+    return "\n".join(body)
 
 
 def accept(root: Path, source: Path, staging: Path) -> None:
@@ -327,13 +366,20 @@ def accept(root: Path, source: Path, staging: Path) -> None:
     if not staging.is_dir():
         raise SourceError(f"Nothing to accept: {staging} does not exist")
 
+    check_no_symlinks(staging, "The staged tree")
     # Staged next to the canon so the swap is a rename: across filesystems a
-    # rename is not available, and a copy is not atomic.
-    incoming = source.with_name(f".{source.name}.incoming")
-    previous = source.with_name(f".{source.name}.previous")
-    for leftover in (incoming, previous):
+    # rename is not available, and a copy is not atomic. The names carry this
+    # run's marker, so nothing a person left in the repository is removed.
+    stamp = f"{os.getpid()}-{int(time.time())}"
+    incoming = source.with_name(f".{source.name}.incoming-{stamp}")
+    previous = source.with_name(f".{source.name}.previous-{stamp}")
+    for leftover in source.parent.glob(f".{source.name}.previous-*"):
+        # A crash between the two renames leaves the old canon aside; it is
+        # ours by name and by pattern, and nothing else will collect it.
         shutil.rmtree(leftover, ignore_errors=True)
-    shutil.copytree(staging, incoming, symlinks=True)
+    for leftover in source.parent.glob(f".{source.name}.incoming-*"):
+        shutil.rmtree(leftover, ignore_errors=True)
+    shutil.copytree(staging, incoming, symlinks=False)
 
     os.replace(source, previous)
     try:
@@ -355,11 +401,19 @@ def cli_converter(command: list[str], source_option: str, target_option: str):
     """
     import subprocess
 
+    if not command:
+        raise SourceError("The converter command is empty")
+
     def run(source: Path, destination: Path) -> None:
-        result = subprocess.run(
-            [*command, source_option, str(source.resolve()), target_option, str(destination.resolve())],
-            capture_output=True, text=True,
-        )
+        try:
+            result = subprocess.run(
+                [*command, source_option, str(source.resolve()), target_option, str(destination.resolve())],
+                capture_output=True, text=True,
+            )
+        except OSError as error:
+            # A command that cannot be started is the most likely case while the
+            # real converter's command line is still unknown (defect 166).
+            raise SourceError(f"The converter '{command[0]}' cannot be started: {error}") from error
         if result.returncode != 0:
             raise SourceError(f"The converter failed: {result.stderr.strip()[:300]}")
     return run

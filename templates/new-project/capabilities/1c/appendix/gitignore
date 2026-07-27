@@ -1,3 +1,5 @@
 .dev.env
 .v8-project.json
 node_modules/
+.*.incoming-*
+.*.previous-*

@@ -149,7 +149,7 @@ with tempfile.TemporaryDirectory() as raw:
         # What git must not track and must not normalise. The template promises
         # .dev.env is ignored, and a normalised EPF is a corrupted EPF.
         ignored = (project / ".gitignore").read_text(encoding="utf-8")
-        for line in (".dev.env", ".v8-project.json"):
+        for line in (".dev.env", ".v8-project.json", ".*.incoming-*", ".*.previous-*"):
             note(line in ignored.splitlines(), f".gitignore must hold {line}")
         attributes = (project / ".gitattributes").read_text(encoding="utf-8").splitlines()
         for line in ("*.epf binary", "*.cf binary", "*.bsl text eol=lf"):
