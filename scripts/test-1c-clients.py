@@ -199,25 +199,162 @@ with tempfile.TemporaryDirectory() as raw:
 
 # --- half-written projections are worse than none ---------------------------
 
-with tempfile.TemporaryDirectory() as raw:
-    project = make_project(Path(raw), (base_row(),))
-    clients.apply(project)
-    before = rendered(project)
-    # A directory where the staging file must go: portable, and it fails at the
-    # same point a full disk or a locked file would.
-    blocked = (project / clients.CODEX_CONFIG).with_name("config.toml.staged")
-    blocked.mkdir()
-    (project / clients.REGISTRY).write_bytes(
-        ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="6005")]) + "\n").encode("utf-8"))
-    try:
+def fails_on_last(function, calls: dict):
+    """Let every call through but the last file's, which raises OSError."""
+    def wrapper(*arguments, **keywords):
+        calls["seen"] += 1
+        if calls["seen"] == calls["fail_at"]:
+            raise OSError("injected failure")
+        return function(*arguments, **keywords)
+    return wrapper
+
+
+for phase, target in (("staging", "mkstemp"), ("rename", "replace")):
+    with tempfile.TemporaryDirectory() as raw:
+        project = make_project(Path(raw), (base_row(),))
         clients.apply(project)
-        failures.append("a blocked write must not report success")
-    except OSError:
+        before = rendered(project)
+        (project / clients.REGISTRY).write_bytes(
+            ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="6005")]) + "\n").encode("utf-8"))
+
+        pending = [change for change in clients.plan(project) if change["action"] in ("create", "update")]
+        note(len(pending) > 1, "the failure case needs more than one file to change")
+        calls = {"seen": 0, "fail_at": len(pending)}
+        if target == "mkstemp":
+            original = clients.tempfile.mkstemp
+            clients.tempfile.mkstemp = fails_on_last(original, calls)
+        else:
+            original = Path.replace
+            Path.replace = fails_on_last(original, calls)
+        try:
+            clients.apply(project)
+            failures.append(f"a failed {phase} must not report success")
+        except OSError:
+            pass
+        finally:
+            if target == "mkstemp":
+                clients.tempfile.mkstemp = original
+            else:
+                Path.replace = original
+
+        note(before == rendered(project),
+             f"a failure during {phase} must leave every projection at its previous content")
+        note(not list(project.glob("**/*.staged")), f"staging files must not survive a {phase} failure")
+
+# --- a broken marker pair must not eat the user's file ----------------------
+
+for case, body in (
+    ("dangling begin", f'keep = 1\n{clients.BEGIN}\n'),
+    ("dangling end", f'keep = 1\n{clients.END}\n'),
+    ("markers reversed", f'{clients.END}\nkeep = 1\n{clients.BEGIN}\n'),
+    ("two blocks", f'{clients.BEGIN}\n{clients.END}\n{clients.BEGIN}\n{clients.END}\n'),
+):
+    with tempfile.TemporaryDirectory() as raw:
+        project = make_project(Path(raw), (base_row(),))
+        (project / ".codex").mkdir()
+        (project / clients.CODEX_CONFIG).write_bytes(body.encode("utf-8"))
+        try:
+            clients.plan(project)
+            failures.append(f"{case}: a broken marker pair must be refused")
+        except clients.ClientError:
+            pass
+
+with tempfile.TemporaryDirectory() as raw:
+    # A marker that is part of a value is not a marker.
+    project = make_project(Path(raw), (base_row(),))
+    (project / ".codex").mkdir()
+    (project / clients.CODEX_CONFIG).write_bytes(
+        f'note = "{clients.BEGIN}"\nkeep = 1\n'.encode("utf-8"))
+    clients.apply(project)
+    codex = (project / clients.CODEX_CONFIG).read_bytes().decode("utf-8")
+    note("keep = 1" in codex, "a marker inside a value must not swallow the next line")
+    note(codex.count(clients.END) == 1, "exactly one block must be written")
+
+# --- the catalog may narrow a class, never widen it -------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    catalog = json.loads(CATALOG_TEMPLATE.read_bytes().decode("utf-8"))
+    for server in catalog["servers"]:
+        if server["role"] in ("data", "edt"):
+            server["tools"] = {"allow": ["read_all"]}
+    project = make_project(Path(raw), (base_row(),), catalog)
+    clients.apply(project)
+    settings, mcp, _ = rendered(project)
+    permissions = settings["permissions"]
+    note("mcp__onec-data" in permissions["deny"], "a tools line must not lift a denied role")
+    note(not any("onec-data" in rule for rule in permissions["allow"]), "a denied role must stay unreachable")
+    note(not any("onec-data" in name for name in mcp["mcpServers"]), "a denied role must stay uninstalled")
+    # EDT reading is allowed by the table, so a declared read tool may be allow.
+    note("mcp__onec-edt__read_all" in permissions["allow"], "the table allows EDT reading")
+
+# The ceiling is an invariant, not a property of today's roles: a class the
+# catalog declares may be narrowed, never widened past what the table allows.
+clamped = clients.permission_rules([{
+    "name": "onec-example", "role": "toolkit", "permission": "ask", "ceiling": "ask",
+    "tools": {"allow": ["read_object"]}, "url": "", "unresolved": "",
+}])
+note("mcp__onec-example__read_object" in clamped["ask"], "a declared class must not exceed the ceiling")
+note(not clamped["allow"], f"nothing may be allowed above the ceiling: {clamped['allow']}")
+
+with tempfile.TemporaryDirectory() as raw:
+    # Two catalog servers of one role collide exactly like two bases do, and the
+    # Codex block would hold the same table twice.
+    catalog = json.loads(CATALOG_TEMPLATE.read_bytes().decode("utf-8"))
+    catalog["servers"].append({"role": "help", "provider_id": "another-docs-mcp",
+                               "scope": "provider-shared", "endpoint": "from-provider-manifest"})
+    project = make_project(Path(raw), (base_row(),), catalog)
+    try:
+        clients.plan(project)
+        failures.append("two catalog servers of one role must be refused")
+    except clients.ClientError:
         pass
-    blocked.rmdir()
-    note(before == rendered(project),
-         "a failed write must leave every projection at its previous content")
-    note(not list(project.glob("**/*.staged")), "staging files must not survive a failure")
+
+with tempfile.TemporaryDirectory() as raw:
+    # A permission class the user left as a string would be walked character by
+    # character and produce rules that match nothing.
+    project = make_project(Path(raw), (base_row(),))
+    (project / ".claude").mkdir()
+    (project / clients.CLAUDE_SETTINGS).write_bytes(
+        json.dumps({"permissions": {"allow": "Bash(ls)"}}).encode("utf-8"))
+    try:
+        clients.plan(project)
+        failures.append("a permission class that is not a list must be refused")
+    except clients.ClientError:
+        pass
+
+for name, payload in (
+    ("tools is not an object", {"role": "toolkit", "provider_id": "x", "tools": ["read"]}),
+    ("tool class is unknown", {"role": "toolkit", "provider_id": "x", "tools": {"maybe": ["read"]}}),
+    ("tool list is a string", {"role": "toolkit", "provider_id": "x", "tools": {"allow": "read"}}),
+):
+    with tempfile.TemporaryDirectory() as raw:
+        project = make_project(Path(raw), (base_row(),), {"schema_version": 1, "servers": [payload]})
+        try:
+            clients.plan(project)
+            failures.append(f"{name}: expected ClientError, got a plan")
+        except clients.ClientError:
+            pass
+
+# --- a hand-edited registry fails with a message ----------------------------
+
+for name, content in (
+    ("not UTF-8", "\t".join(REGISTRY_FIELDS).encode("utf-8") + "\n".encode("utf-8")
+     + base_row(owner="комaнда").encode("cp1251")),
+    ("missing column", b"project_id\tmcp_enabled\nerp\ttrue\n"),
+    ("row longer than the header", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row() + "\textra"]) + "\n").encode("utf-8")),
+    ("exposed without a port", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="")]) + "\n").encode("utf-8")),
+    ("port outside the range", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="9000")]) + "\n").encode("utf-8")),
+):
+    with tempfile.TemporaryDirectory() as raw:
+        project = make_project(Path(raw))
+        (project / clients.REGISTRY).write_bytes(content)
+        try:
+            clients.plan(project)
+            failures.append(f"{name}: expected ClientError, got a plan")
+        except clients.ClientError:
+            pass
+        except Exception as error:  # noqa: BLE001
+            failures.append(f"{name}: expected ClientError, got {type(error).__name__}")
 
 # --- bad input is a message, not a traceback --------------------------------
 

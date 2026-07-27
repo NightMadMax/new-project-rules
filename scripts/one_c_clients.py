@@ -12,14 +12,16 @@ makes re-running the renderer safe.
 
 Two things are deliberately not invented here. An endpoint that the provider
 manifest has to supply is reported as unresolved instead of guessed, and a
-server that does not declare its tools gets the strictest class among its areas
-rather than a plausible split between read and write.
+server that does not declare its tools gets the strictest class of its area
+rather than a plausible split between read and write. What the catalog may then
+declare is bounded from above: it can narrow a class, never widen it.
 """
 
 from __future__ import annotations
 
 import json
-import re
+import os
+import tempfile
 from pathlib import Path
 
 CATALOG = "config/1c-mcp-catalog.json"
@@ -31,23 +33,32 @@ OWNED_PREFIX = "onec-"
 BEGIN = "# new-project-rules:1c:begin"
 END = "# new-project-rules:1c:end"
 CLASSES = ("allow", "ask", "deny")
+# The columns a projection reads; the registry may carry more.
+REGISTRY_COLUMNS = ("project_id", "environment_id", "server_port", "mcp_enabled")
+PORTS = range(6003, 6013)
 # Which projection belongs to which client, so a late-installed client can be
 # activated without touching the one that already works (decision 1.11).
 CLIENTS = {"claude": (CLAUDE_SETTINGS, MCP_CONFIG), "codex": (CODEX_CONFIG,)}
 
-# Decision 1.17. The class is a property of the area, and a server inherits the
-# strictest class of the areas it covers unless it says which tool is which.
-ROLE_CLASSES = {
-    "syntax": "allow",
-    "help": "allow",
-    "ssl": "allow",
-    "templates": "allow",
-    "code-metadata": "allow",
-    "graph-metadata": "allow",
-    "code-check": "allow",
-    "edt": "ask",
-    "toolkit": "ask",
-    "data": "deny",
+# Decision 1.17 with 1.31. Two different numbers, and conflating them is how a
+# policy file becomes a way around the policy:
+#
+# * fallback — what the whole server gets while the catalog does not say which
+#   tool is which. EDT and Toolkit mix reading and writing, so that is `ask`.
+# * ceiling — the most a declared tool may be granted. The table allows Toolkit
+#   and EDT reading, so their ceiling is `allow`; `data` may never be reached
+#   at all, so its ceiling stays `deny` and a `tools` line cannot lift it.
+ROLE_POLICY = {
+    "syntax": ("allow", "allow"),
+    "help": ("allow", "allow"),
+    "ssl": ("allow", "allow"),
+    "templates": ("allow", "allow"),
+    "code-metadata": ("allow", "allow"),
+    "graph-metadata": ("allow", "allow"),
+    "code-check": ("allow", "allow"),
+    "edt": ("ask", "allow"),
+    "toolkit": ("ask", "allow"),
+    "data": ("deny", "deny"),
 }
 ROLE_REASONS = {
     "edt": "чтение проектов allow, жизненный цикл ИБ и обновление конфигурации ask",
@@ -84,9 +95,27 @@ def read_catalog(root: Path) -> list[dict]:
     for server in servers:
         if not isinstance(server, dict) or not server.get("role") or not server.get("provider_id"):
             raise ClientError(f"{CATALOG} has a server without a role or provider_id")
-        if server["role"] not in ROLE_CLASSES:
+        if server["role"] not in ROLE_POLICY:
             raise ClientError(f"{CATALOG} has an unknown role '{server['role']}'")
+        tools = server.get("tools")
+        if tools is not None:
+            if not isinstance(tools, dict):
+                raise ClientError(f"{CATALOG} role '{server['role']}': tools must be an object")
+            for class_name, names in tools.items():
+                if class_name not in CLASSES:
+                    raise ClientError(f"{CATALOG} role '{server['role']}': unknown tool class '{class_name}'")
+                # A bare string would be walked character by character and yield
+                # rules that match nothing.
+                if not isinstance(names, list) or not all(isinstance(name, str) and name for name in names):
+                    raise ClientError(f"{CATALOG} role '{server['role']}': {class_name} must be a list of names")
     return servers
+
+
+def read_utf8(path: Path, name: str) -> str:
+    try:
+        return path.read_bytes().decode("utf-8-sig")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ClientError(f"Cannot read {name}: {exc}") from exc
 
 
 def read_registry(root: Path) -> list[dict[str, str]]:
@@ -94,19 +123,30 @@ def read_registry(root: Path) -> list[dict[str, str]]:
     path = root / REGISTRY
     if not path.is_file():
         return []
-    lines = path.read_bytes().decode("utf-8-sig").splitlines()
+    lines = read_utf8(path, REGISTRY).splitlines()
     if not lines:
         return []
     header = lines[0].split("\t")
+    missing = [column for column in REGISTRY_COLUMNS if column not in header]
+    if missing:
+        raise ClientError(f"{REGISTRY} has no column(s): {', '.join(missing)}")
     rows = []
-    for line in lines[1:]:
+    for number, line in enumerate(lines[1:], start=2):
         if not line.strip():
             continue
         values = line.split("\t")
-        if len(values) < len(header):
-            raise ClientError(f"{REGISTRY} has a row that does not match the header")
+        if len(values) != len(header):
+            raise ClientError(f"{REGISTRY}:{number} has {len(values)} fields against {len(header)} in the header")
         row = dict(zip(header, values))
-        if row.get("mcp_enabled") == "true":
+        if row["mcp_enabled"] == "true":
+            port = row["server_port"]
+            # A base that says it exposes MCP but names no usable port would
+            # produce an endpoint that looks installed and fails on first call.
+            if not (port.isascii() and port.isdigit()) or int(port) not in PORTS:
+                raise ClientError(
+                    f"{REGISTRY}:{number} exposes MCP with port '{port}'; "
+                    f"expected {PORTS.start}-{PORTS.stop - 1}."
+                )
             rows.append(row)
     return rows
 
@@ -132,7 +172,8 @@ def projected_servers(catalog: list[dict], registry: list[dict[str, str]]) -> li
             entry = {
                 "name": server_name(server, base),
                 "role": server["role"],
-                "permission": ROLE_CLASSES[server["role"]],
+                "permission": ROLE_POLICY[server["role"]][0],
+                "ceiling": ROLE_POLICY[server["role"]][1],
                 "tools": server.get("tools") if isinstance(server.get("tools"), dict) else None,
                 "url": "",
                 "unresolved": "",
@@ -144,17 +185,18 @@ def projected_servers(catalog: list[dict], registry: list[dict[str, str]]) -> li
                 entry["url"] = f"http://127.0.0.1:{base['server_port']}/mcp"
             else:
                 entry["unresolved"] = f"endpoint из provider manifest ({server['provider_id']})"
-            if base is not None:
-                # "erp-a"/"dev" and "erp"/"a-dev" are different bases with one
-                # name, and the survivor would carry the other one's port —
-                # exactly the "operation reached the wrong infobase" failure.
-                identity = f"{base['project_id']}/{base['environment_id']}"
-                if entry["name"] in taken:
-                    raise ClientError(
-                        f"Bases {taken[entry['name']]} and {identity} both project as "
-                        f"'{entry['name']}'; rename one of them in {REGISTRY}."
-                    )
-                taken[entry["name"]] = identity
+            # "erp-a"/"dev" and "erp"/"a-dev" are different bases with one name,
+            # and the survivor would carry the other one's port — exactly the
+            # "operation reached the wrong infobase" failure. Two catalog
+            # servers of one role collide the same way and produce invalid TOML.
+            identity = (f"{base['project_id']}/{base['environment_id']}" if base
+                        else f"{CATALOG} role {server['role']}")
+            if entry["name"] in taken:
+                raise ClientError(
+                    f"{taken[entry['name']]} and {identity} both project as "
+                    f"'{entry['name']}'; one of them must be renamed."
+                )
+            taken[entry["name"]] = identity
             projected.append(entry)
     return projected
 
@@ -168,13 +210,18 @@ def permission_rules(projected: list[dict]) -> dict[str, list[str]]:
     """
     rules: dict[str, list[str]] = {name: [] for name in CLASSES}
     for entry in projected:
-        tools = entry["tools"]
+        # A denied role gets one rule for the whole server: naming its tools
+        # would only create ways to reach it.
+        tools = None if entry["ceiling"] == "deny" else entry["tools"]
         if not tools:
             rules[entry["permission"]].append(f"mcp__{entry['name']}")
             continue
         for class_name in CLASSES:
             for tool in tools.get(class_name, ()):
-                rules[class_name].append(f"mcp__{entry['name']}__{tool}")
+                # The catalog may narrow a class, never widen it past the
+                # ceiling: it is a file in the project, and a "tools" line must
+                # not be able to lift a denied role into allow.
+                rules[strictest(entry["ceiling"], class_name)].append(f"mcp__{entry['name']}__{tool}")
         # No server-wide rule here on purpose: Claude Code resolves deny, then
         # ask, then allow, so a server-wide "ask" would shadow every tool the
         # catalog allowed and the precision would never take effect. A tool the
@@ -193,7 +240,10 @@ def render_claude_settings(existing: dict, projected: list[dict]) -> dict:
         permissions = {}
     rules = permission_rules(projected)
     for class_name in CLASSES:
-        kept = [value for value in permissions.get(class_name, []) if not owned_rule(value)]
+        existing_rules = permissions.get(class_name, [])
+        if not isinstance(existing_rules, list):
+            raise ClientError(f"{CLAUDE_SETTINGS}: permissions.{class_name} must be a list")
+        kept = [value for value in existing_rules if not owned_rule(value)]
         merged = kept + [rule for rule in rules[class_name] if rule not in kept]
         if merged:
             permissions[class_name] = merged
@@ -234,10 +284,23 @@ def render_codex_config(existing: str, projected: list[dict]) -> str:
     lines.append(END)
     block = "\n".join(lines) + "\n"
 
-    if BEGIN in existing and END in existing:
-        start = existing.index(BEGIN)
-        finish = existing.index(END) + len(END) + 1
-        return existing[:start] + block + existing[finish:]
+    # Markers are matched as whole lines, and there must be exactly one pair in
+    # the right order. A dangling marker — from an interrupted write, a hand
+    # edit or a merge conflict — would otherwise make the next render swallow
+    # everything between it and the marker of the block we just wrote.
+    lines_in = existing.splitlines()
+    starts = [number for number, line in enumerate(lines_in) if line.strip() == BEGIN]
+    ends = [number for number, line in enumerate(lines_in) if line.strip() == END]
+    if len(starts) > 1 or len(ends) > 1:
+        raise ClientError(f"{CODEX_CONFIG} holds more than one 1c block; leave exactly one pair of markers")
+    if bool(starts) != bool(ends):
+        marker = BEGIN if starts else END
+        raise ClientError(f"{CODEX_CONFIG}:{(starts or ends)[0] + 1} has '{marker}' without its pair")
+    if starts and starts[0] > ends[0]:
+        raise ClientError(f"{CODEX_CONFIG} has the 1c markers in the wrong order")
+    if starts:
+        kept = lines_in[:starts[0]] + block.splitlines() + lines_in[ends[0] + 1:]
+        return "\n".join(kept) + "\n"
     if existing and not existing.endswith("\n"):
         existing += "\n"
     return f"{existing}\n{block}" if existing else block
@@ -258,14 +321,14 @@ def plan(root: Path, client: str = "all") -> list[dict[str, str]]:
         (CLAUDE_SETTINGS, canonical_json(render_claude_settings(read_json(root / CLAUDE_SETTINGS), projected))),
         (MCP_CONFIG, canonical_json(render_mcp_config(read_json(root / MCP_CONFIG), projected))),
         (CODEX_CONFIG, render_codex_config(
-            (root / CODEX_CONFIG).read_bytes().decode("utf-8") if (root / CODEX_CONFIG).is_file() else "",
+            read_utf8(root / CODEX_CONFIG, CODEX_CONFIG) if (root / CODEX_CONFIG).is_file() else "",
             projected,
         )),
     ):
         if wanted is not None and name not in wanted:
             continue
         path = root / name
-        current = path.read_bytes().decode("utf-8") if path.is_file() else ""
+        current = read_utf8(path, name) if path.is_file() else ""
         changes.append({
             "path": name,
             "action": "unchanged" if current == content else ("update" if current else "create"),
@@ -287,15 +350,30 @@ def apply(root: Path, client: str = "all") -> list[dict[str, str]]:
     changes = plan(root, client)
     pending = [change for change in changes if change["action"] in ("create", "update")]
     staged: list[tuple[Path, Path]] = []
+    replaced: list[tuple[Path, bytes | None]] = []
     try:
         for change in pending:
             path = root / change["path"]
             path.parent.mkdir(parents=True, exist_ok=True)
-            staging = path.with_name(path.name + ".staged")
+            # A unique staging name: a second render running at the same time
+            # must not delete this one's file, and a user file must not be hit.
+            handle, staging_name = tempfile.mkstemp(dir=str(path.parent), prefix=path.name + ".", suffix=".staged")
+            os.close(handle)
+            staging = Path(staging_name)
             staging.write_bytes(change["content"].encode("utf-8"))
             staged.append((staging, path))
         for staging, path in staged:
+            # Renaming can fail too — on Windows a file held open by another
+            # process — so the previous content is kept to undo what landed.
+            replaced.append((path, path.read_bytes() if path.is_file() else None))
             staging.replace(path)
+    except BaseException:
+        for path, previous in reversed(replaced):
+            if previous is None:
+                path.unlink(missing_ok=True)
+            else:
+                path.write_bytes(previous)
+        raise
     finally:
         for staging, _ in staged:
             if staging.exists():
