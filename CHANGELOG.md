@@ -6,6 +6,13 @@
 
 ### Добавлено
 
+- Этап Э9: конвертация EDT ↔ XML — `scripts/one_c_source.py` и CLI
+  `export-1c-source` с парой shell/PowerShell, skills `export-1c-source`,
+  `deploy-1c-source`, `deploy-and-test-1c`. Выгрузка создаётся вне репозитория и
+  удаляется после операции, включая аварийную; конвертация проверяется на
+  детерминизм; возврат в канон показывает изменения по файлам и отклоняется,
+  если канон сдвинулся; одновременные конвертации одного дерева запрещены,
+  блокировка мёртвого процесса снимается.
 - Этап Э8 (частично): восемь capability-native skills 1С — `doctor-1c`,
   `setup-1c-environment`, `select-1c-project`, `query-1c-infobase`,
   `measure-1c-performance`, `work-with-1c-edt`, `add-1c-base`,

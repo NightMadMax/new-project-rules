@@ -135,6 +135,11 @@
 | `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
 | `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/test-one-c-scaffold.py` | Тесты каркаса 1С-проекта и схемы реестра баз |
+| `scripts/one_c_source.py` | Контракт конвертации EDT ↔ XML: временный каталог, детерминизм, возврат в канон |
+| `scripts/export-1c-source.py` | Выгрузка канона в XML и возврат изменений |
+| `scripts/export-1c-source.sh` | POSIX-обёртка выгрузки исходников |
+| `scripts/export-1c-source.ps1` | PowerShell-обёртка выгрузки исходников |
+| `scripts/test-1c-source.py` | Тесты конвертации: расположение выгрузки, детерминизм, блокировка, возврат |
 | `scripts/one_c_clients.py` | Контракт клиентских проекций 1С: владение, классы разрешений, транзакционная запись |
 | `scripts/render-1c-clients.py` | Сборка клиентских проекций 1С из каталога ролей и реестра баз |
 | `scripts/render-1c-clients.sh` | POSIX-обёртка сборки клиентских проекций |

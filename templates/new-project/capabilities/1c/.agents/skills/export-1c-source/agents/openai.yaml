@@ -1,0 +1,4 @@
+interface:
+  display_name: "Export 1C Source to XML"
+  short_description: "Convert the EDT canon to XML outside the repository and back"
+  default_prompt: "Use $export-1c-source when a tool needs the configurator XML export."

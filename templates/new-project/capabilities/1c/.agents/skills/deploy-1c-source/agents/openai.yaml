@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy 1C Source"
+  short_description: "Load configuration sources into a non-production infobase"
+  default_prompt: "Use $deploy-1c-source to deploy the current branch to a test infobase."

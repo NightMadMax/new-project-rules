@@ -48,3 +48,9 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confl
 1c	capabilities/1c/.agents/skills/add-1c-base/agents/openai.yaml	.agents/skills/add-1c-base/agents/openai.yaml	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/activate-1c-client/SKILL.md	.agents/skills/activate-1c-client/SKILL.md	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/activate-1c-client/agents/openai.yaml	.agents/skills/activate-1c-client/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/export-1c-source/SKILL.md	.agents/skills/export-1c-source/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/export-1c-source/agents/openai.yaml	.agents/skills/export-1c-source/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/deploy-1c-source/SKILL.md	.agents/skills/deploy-1c-source/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/deploy-1c-source/agents/openai.yaml	.agents/skills/deploy-1c-source/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/deploy-and-test-1c/SKILL.md	.agents/skills/deploy-and-test-1c/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/deploy-and-test-1c/agents/openai.yaml	.agents/skills/deploy-and-test-1c/agents/openai.yaml	-	-	-	template	managed

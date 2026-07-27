@@ -1,0 +1,4 @@
+interface:
+  display_name: "Deploy and Test 1C"
+  short_description: "Deploy to a non-production base and run the test levels"
+  default_prompt: "Use $deploy-and-test-1c to deploy and run the checks for this branch."

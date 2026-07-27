@@ -41,6 +41,7 @@ MANAGED = (
 SKILLS = (
     "doctor-1c", "setup-1c-environment", "select-1c-project", "query-1c-infobase",
     "measure-1c-performance", "work-with-1c-edt", "add-1c-base", "activate-1c-client",
+    "export-1c-source", "deploy-1c-source", "deploy-and-test-1c",
 )
 SEED = (
     "docs/operations/TOOLCHAIN.md",

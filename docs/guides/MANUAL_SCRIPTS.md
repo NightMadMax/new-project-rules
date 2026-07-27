@@ -230,6 +230,28 @@ sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c
 и не затирает правку. Файлы, поставленные bootstrap, при первом запуске
 усыновляются (`adopt`), потому что bootstrap ledger не ведёт.
 
+### Выгрузка исходников 1С в XML
+
+Открыть агента в папке проекта-правил и попросить: «подготовь XML-выгрузку базы
+<id> проекта <путь>». Или вручную:
+
+```sh
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --converter "<CLI EDT>"
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --converter-back "<CLI EDT>" --import
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --release
+```
+
+```powershell
+.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -Converter "<CLI EDT>"
+.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -ConverterBack "<CLI EDT>" -Import
+.\scripts\export-1c-source.ps1 -Root ..\my-project -Base erp/dev -Release
+```
+
+Выгрузка создаётся в системном временном каталоге, вне репозитория. `--import`
+показывает изменения по файлам и завершается кодом 1, пока их не применили
+`--apply`. Без конвертера команда даёт `SKIP`: маршрут недоступен, проект не
+сломан. Для базы с `source_format = designer-xml` конвертация пропускается.
+
 ### Клиентские проекции 1С
 
 Открыть агента в папке проекта-правил и попросить: «пересобери клиентские
