@@ -129,7 +129,7 @@ class ValidatorTests(unittest.TestCase):
         readme = project / "README.md"
         readme.write_text(
             "# Unsafe\n<PROJECT_NAME>\n[[MISSING_NOTE]]\n"
-            r"C:\Users\alice\private\file.txt" + "\n" + "gh" + "p_" + "A" * 24 + "\n",
+            r"C:\Users\alice\private\file.txt" + "\n" + "gh" + "p_" + "A" * 24 + "\n",  # noscan
             encoding="utf-8",
         )
         (project / ".codex" / "memories").mkdir(parents=True)
@@ -284,7 +284,7 @@ class ValidatorTests(unittest.TestCase):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(
             "# Dependency readme\n[[unresolved target]]\n"
-            r"C:\Users\alice\private\file.txt" + "\n" + "gh" + "p_" + "A" * 24 + "\n",
+            r"C:\Users\alice\private\file.txt" + "\n" + "gh" + "p_" + "A" * 24 + "\n",  # noscan
             encoding="utf-8",
         )
 

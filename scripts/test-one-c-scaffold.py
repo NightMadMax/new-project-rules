@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -170,22 +171,40 @@ with tempfile.TemporaryDirectory() as raw:
         # loading files and the rules that did not fit simply do not apply. The
         # chain is followed through its imports rather than listed, or a file
         # added tomorrow would not be counted and the check would stay green.
+        import_pattern = re.compile(r"@([\w./~-]+\.md)")
+
         def chain_size(entry: str, seen: set[str]) -> int:
+            # Normalised before it is remembered: "configurations/../AGENTS.md"
+            # and "AGENTS.md" are one file, and counting it twice would inflate
+            # both the budget and the guard that the chain was followed at all.
+            entry = os.path.normpath(entry).replace(os.sep, "/")
             if entry in seen or not (project / entry).is_file():
                 return 0
             seen.add(entry)
             body = (project / entry).read_text(encoding="utf-8")
             total = len(body.encode("utf-8"))
+            fenced = False
             for line in body.splitlines():
-                if line.startswith("@"):
-                    imported = line[1:].strip()
-                    base = str(Path(entry).parent) if Path(entry).parent != Path(".") else ""
-                    total += chain_size(f"{base}/{imported}".lstrip("/"), seen)
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    continue
+                if fenced:
+                    continue
+                # An import is an import wherever it sits on the line: a rule
+                # that only sees column zero would under-count and stay green.
+                for imported in import_pattern.findall(line):
+                    parent = str(Path(entry).parent)
+                    base = "" if parent == "." else parent + "/"
+                    total += chain_size(base + imported, seen)
             return total
 
         loaded: set[str] = set()
         chain = chain_size("AGENTS.md", loaded) + chain_size("configurations/AGENTS.md", loaded)
-        note(len(loaded) >= 5, f"the chain should reach the companion files through imports: {sorted(loaded)}")
+        # Named, not counted: a parser that stopped following imports would
+        # still reach five files and the guard would say nothing.
+        for reached in ("AGENTS.md", "configurations/AGENTS.md", "USER-RULES.md",
+                        "LLM-RULES.md", "memory.md"):
+            note(reached in loaded, f"the chain must reach {reached} through its imports: {sorted(loaded)}")
         note(chain < 32 * 1024, f"the instruction chain is {chain} bytes, over the 32 KiB budget")
 
 

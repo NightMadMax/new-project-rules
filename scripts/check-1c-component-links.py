@@ -13,7 +13,7 @@ import argparse
 import re
 import sys
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 CATALOG = "docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN.md"
@@ -29,13 +29,36 @@ def links(root: Path, catalog: str = CATALOG) -> list[str]:
     return sorted({link.rstrip(".,;:") for link in found})
 
 
+def fetch(url: str, method: str, opener) -> tuple[str, str]:
+    with opener(Request(url, method=method, headers={"User-Agent": "new-project-rules"}),
+                timeout=TIMEOUT_SECONDS) as response:
+        code = getattr(response, "status", 0) or 0
+        return ("OK", str(code)) if code < 400 else ("MOVED", str(code))
+
+
 def probe(url: str, opener=urlopen) -> tuple[str, str]:
-    """(status, detail). Every failure is a status, never an exception."""
+    """(status, detail). Every failure is a status, never an exception.
+
+    "The source moved" is the whole reason this report exists, so it has to be
+    distinguishable from "there is no network". A 404 arrives as an exception,
+    not as a response, and HTTPError is a URLError — catching the general case
+    first would file every moved page under "unreachable".
+    """
     try:
-        with opener(Request(url, method="HEAD", headers={"User-Agent": "new-project-rules"}),
-                    timeout=TIMEOUT_SECONDS) as response:
-            code = getattr(response, "status", 0) or 0
-            return ("OK", str(code)) if code < 400 else ("MOVED", str(code))
+        return fetch(url, "HEAD", opener)
+    except HTTPError as error:
+        # Vendor portals often refuse HEAD outright; that says nothing about
+        # whether the page is there.
+        if error.code in (403, 405, 501):
+            try:
+                return fetch(url, "GET", opener)
+            except HTTPError as retry:
+                return "MOVED", f"{retry.code} {retry.reason}"[:80]
+            except URLError as retry:
+                return "UNREACHABLE", str(retry.reason)[:80]
+            except Exception as retry:  # noqa: BLE001 - a report must survive anything
+                return "UNREACHABLE", f"{type(retry).__name__}: {retry}"[:80]
+        return "MOVED", f"{error.code} {error.reason}"[:80]
     except URLError as error:
         return "UNREACHABLE", str(error.reason)[:80]
     except Exception as error:  # noqa: BLE001 - a report must survive anything

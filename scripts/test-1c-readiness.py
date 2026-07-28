@@ -12,6 +12,7 @@ from __future__ import annotations
 import importlib.util
 import re
 import sys
+from urllib.error import HTTPError
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -26,6 +27,10 @@ CI = ROOT / ".github/workflows/ci.yml"
 CONDITIONAL = ("Node.js", "Pillow", "OpenSpec", "v8unpack", "YAxUnit", "BSL Language Server")
 OUT_OF_SCOPE = ("CI/CD", "хранилищ", "SonarQube", "АПК", "cfu")
 
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
 failures: list[str] = []
 
 
@@ -38,18 +43,31 @@ def read(path: Path) -> str:
     return path.read_bytes().decode("utf-8")
 
 
+def section(text: str, heading: str, where: str) -> str:
+    """The block under a heading, or a message naming the heading that moved."""
+    if heading not in text:
+        failures.append(f"{where}: no section '{heading}'")
+        return ""
+    block = text[text.index(heading):]
+    tail = block.index("\n## ", len(heading)) if "\n## " in block[len(heading):] else len(block)
+    return block[:tail]
+
+
 def plan_criteria() -> list[str]:
-    text = read(PLAN)
-    block = text[text.index("## Критерии готовности"):]
-    block = block[: block.index("\n## ", 10)] if "\n## " in block[10:] else block
+    block = section(read(PLAN), "## Критерии готовности", "the plan")
     criteria, current = [], []
     for line in block.splitlines()[1:]:
+        stripped = line.strip()
         if line.startswith("- "):
             if current:
                 criteria.append(" ".join(current))
             current = [line[2:].strip()]
+        elif stripped.startswith("- ") and line.startswith(" "):
+            # A nested bullet is a criterion the matrix would never see: the
+            # count would still match while a requirement quietly disappeared.
+            failures.append(f"the plan holds a nested criterion, which the matrix cannot mirror: {stripped[:60]}")
         elif current and line.startswith("  "):
-            current.append(line.strip())
+            current.append(stripped)
     if current:
         criteria.append(" ".join(current))
     return criteria
@@ -57,27 +75,58 @@ def plan_criteria() -> list[str]:
 
 def matrix_rows() -> list[dict[str, str]]:
     rows = []
-    for line in read(MATRIX).splitlines():
+    for raw in read(MATRIX).splitlines():
+        # A wikilink alias is written as [[note\|name]]; the matrix legend uses
+        # one, so the style of the document invites it into a cell too.
+        line = raw.replace("\\|", "\x00")
         match = re.match(r"^\|\s*(\d+)\s*\|(.+?)\|\s*(.+?)\s*\|\s*(.+?)\s*\|$", line)
         if match:
             rows.append({
                 "number": int(match.group(1)),
-                "criterion": match.group(2).strip(),
-                "status": match.group(3).strip(),
-                "evidence": match.group(4).strip(),
+                "criterion": match.group(2).replace("\x00", "|").strip(),
+                "status": match.group(3).replace("\x00", "|").strip(),
+                "evidence": match.group(4).replace("\x00", "|").strip(),
             })
     return rows
 
 
 def open_defects() -> set[str]:
     """Only the open ones: a criterion cannot lean on a defect already closed."""
-    defects = read(DEFECTS)
-    return set(re.findall(r"^\|\s*(\d+)\s*\|", defects[defects.index("## Open"): defects.index("## Fixed")], re.M))
+    return set(re.findall(r"^\|\s*(\d+)\s*\|", section(read(DEFECTS), "## Open", "DEFECTS.md"), re.M))
 
 
-def words(text: str) -> list[str]:
-    """Comparable form: the words, without markup and case."""
-    return re.sub(r"[^\w\s]", " ", text.lower()).split()
+# Words that flip the meaning of a sentence without changing many others.
+POLARITY = {"не", "нет", "только", "без", "невозможно", "запрещено", "обязателен", "обязательно"}
+
+
+def words(text: str) -> set[str]:
+    """Comparable form: the words, without markup and case.
+
+    A hyphen stays inside a word: "не-Windows" is one word, and splitting it
+    would hand the polarity check a "не" that means nothing.
+    """
+    return set(re.sub(r"[^\w\s-]", " ", text.lower()).split())
+
+
+def same_subject(planned: str, stated: str) -> tuple[bool, str]:
+    """Is the row still about this criterion?
+
+    Overlap alone cannot see an inversion: adding "не" to a sentence increases
+    the shared words. So polarity words have to agree, and the rest is judged by
+    the share of the union rather than by a count that stop words can reach.
+    """
+    left, right = words(planned), words(stated)
+    # The row is a shortened criterion, so it may drop words the plan has. What
+    # it may never do is introduce one that flips the meaning: "не работают"
+    # against "работают" shares more words, not fewer.
+    introduced = (right & POLARITY) - (left & POLARITY)
+    if introduced:
+        return False, f"the row adds a word that flips the meaning: {', '.join(sorted(introduced))}"
+    union = left | right
+    if not union:
+        return False, "empty criterion"
+    overlap = len(left & right) / len(right or union)
+    return overlap >= 0.5, f"only {overlap:.0%} of the row's words are in the plan's wording"
 
 
 def check_test(where: str, name: str) -> None:
@@ -109,7 +158,8 @@ for row in rows:
     note(row["status"] in STATUSES, f"{where}: unknown status '{row['status']}'")
     evidence = [part.strip() for part in row["evidence"].split(",")]
     if row["status"] == "тест":
-        check_test(where, evidence[0])
+        for name in evidence:
+            check_test(where, name)
     elif row["status"] == "частично":
         # Partly checked means two claims, and both have to be backed.
         note(len(evidence) == 2, f"{where}: 'частично' needs a test and a defect, got '{row['evidence']}'")
@@ -120,56 +170,51 @@ for row in rows:
     elif row["status"] == "не выполнено":
         note(evidence[0].lstrip("№") in open_defects(),
              f"{where}: names defect {evidence[0]}, which is not open in DEFECTS.md")
-    else:
+    elif row["status"] == "Windows":
         note("веха" in row["evidence"].lower(),
              f"{where}: a Windows criterion must point at the milestone, not '{row['evidence']}'")
 
     # The row must still be about the criterion it claims to be about: a
     # reformulation in the plan has to reach the matrix, not sit unnoticed.
     if row["number"] <= len(criteria):
-        planned, stated = set(words(criteria[row["number"] - 1])), set(words(row["criterion"]))
-        shared = len(planned & stated)
-        note(shared >= 3 or shared >= len(stated) // 2,
-             f"{where}: the row no longer matches the plan's wording: '{row['criterion']}'")
+        matches, reason = same_subject(criteria[row["number"] - 1], row["criterion"])
+        note(matches, f"{where}: {reason}: '{row['criterion']}'")
 
 # The count in the summary is the one number a reader takes away, so it is
 # derived from the table rather than typed beside it.
-summary = read(MATRIX)
-summary = summary[summary.index("## Итог"):]
+summary = section(read(MATRIX), "## Итог", "the matrix")
 counts = {name: sum(1 for row in rows if row["status"] == name) for name in STATUSES}
-for name, expected in counts.items():
-    note(re.search(rf"{re.escape(name)}`?\D{{0,4}}{expected}\b", summary) is not None,
-         f"the summary must say {expected} for '{name}': {counts}")
+stated = re.search(
+    r"Из (\d+) критери\w+: `тест` — (\d+), `частично` — (\d+), `Windows` — (\d+), `не выполнено` — (\d+)",
+    summary)
+if stated is None:
+    failures.append("the summary must state the counts in one parsable line")
+else:
+    total, by_status = int(stated.group(1)), [int(stated.group(index)) for index in (2, 3, 4, 5)]
+    note(total == len(rows), f"the summary says {total} criteria against {len(rows)} rows")
+    note(by_status == [counts[name] for name in STATUSES],
+         f"the summary says {by_status} against {[counts[name] for name in STATUSES]}")
 
 # A defect may be open or fixed, never both: the section a row lives in is its
 # status, so two rows mean two contradictory statuses.
 defects = read(DEFECTS)
-open_block = defects[defects.index("## Open"): defects.index("## Fixed")]
-fixed_block = defects[defects.index("## Fixed"):]
+open_block = section(defects, "## Open", "DEFECTS.md")
+fixed_block = defects[defects.index("## Fixed"):] if "## Fixed" in defects else ""
 both = set(re.findall(r"^\|\s*(\d+)\s*\|", open_block, re.M)) & set(re.findall(r"^\|\s*(\d+)\s*\|", fixed_block, re.M))
 note(not both, f"defects listed as both open and fixed: {sorted(both)}")
 
 # --- what the criteria demand of the documentation ---------------------------
 
-tools = read(TOOLS)
-if "## Условные компоненты 1С" not in tools:
-    failures.append("TOOLS.md must hold the section on conditional components")
-else:
-    section = tools[tools.index("## Условные компоненты 1С"):]
-    section = section[: section.index("\n## ", 10)]
-    for component in CONDITIONAL:
-        note(component in section, f"the conditional components section must name {component}")
+components = section(read(TOOLS), "## Условные компоненты 1С", "TOOLS.md")
+for component in CONDITIONAL:
+    note(component in components, f"the conditional components section must name {component}")
 
 # In the section that states the boundaries, not anywhere in the guides: the
 # same words appear in unrelated documents and would prove nothing.
-guide = read(ROOT / "docs/guides/USE_THIS_PROJECT.md")
-if "## Проекты 1С: чего в первой версии нет" not in guide:
-    failures.append("the user guide must hold the section on what v1 does not do")
-else:
-    section = guide[guide.index("## Проекты 1С: чего в первой версии нет"):]
-    section = section[: section.index("\n## ", 10)]
-    for refusal in OUT_OF_SCOPE:
-        note(refusal in section, f"the section on v1 boundaries must name '{refusal}'")
+boundaries = section(read(ROOT / "docs/guides/USE_THIS_PROJECT.md"),
+                     "## Проекты 1С: чего в первой версии нет", "the user guide")
+for refusal in OUT_OF_SCOPE:
+    note(refusal in boundaries, f"the section on v1 boundaries must name '{refusal}'")
 
 # --- the link checker reports and does not fail ------------------------------
 
@@ -188,16 +233,38 @@ class Unreachable:
 
 
 class Moved:
+    """A page that is gone arrives as an exception, which is how urlopen works."""
+
+    def __init__(self, code: int = 404):
+        self.code = code
+        self.calls = 0
+
+    def __call__(self, request, *arguments, **keywords):
+        self.calls += 1
+        raise HTTPError(request.full_url, self.code, "Not Found", {}, None)
+
+
+class RefusesHead:
+    """A vendor portal that answers HEAD with 405 and GET with 200."""
+
+    def __init__(self):
+        self.methods = []
+
+    def __call__(self, request, *arguments, **keywords):
+        self.methods.append(request.get_method())
+        if request.get_method() == "HEAD":
+            raise HTTPError(request.full_url, 405, "Method Not Allowed", {}, None)
+        return Response()
+
+
+class Response:
+    status = 200
+
     def __enter__(self):
         return self
 
     def __exit__(self, *arguments):
         return False
-
-    status = 404
-
-    def __call__(self, *arguments, **keywords):
-        return self
 
 
 report = links.report(ROOT, opener=Unreachable())
@@ -205,7 +272,14 @@ note(all(status == "UNREACHABLE" for _, status, _ in report), "an unreachable so
 note(len(report) == len(found), "every link must appear in the report")
 
 report = links.report(ROOT, opener=Moved())
-note(all(status == "MOVED" for _, status, _ in report), "a moved source must be a status")
+note(all(status == "MOVED" for _, status, _ in report),
+     "a moved source must be a status, not a network failure")
+
+# A portal that refuses HEAD is not a portal that moved.
+refuses = RefusesHead()
+report = links.report(ROOT, opener=refuses)
+note(all(status == "OK" for _, status, _ in report), "a refused HEAD must be retried with GET")
+note("GET" in refuses.methods, "the retry must actually use GET")
 
 offline = links.report(ROOT, network=False)
 note(all(status == "SKIP" for _, status, _ in offline), "without --network every link is a SKIP")

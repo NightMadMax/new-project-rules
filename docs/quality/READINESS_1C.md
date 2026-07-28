@@ -47,16 +47,16 @@ related:
 | 4 | Базы не ограничены портами; до десяти на `6003`–`6012` | частично | `scripts/test-one-c-scaffold.py`, №178 |
 | 5 | Каждый tracked-файл upstream имеет строку ledger | не выполнено | №172 |
 | 6 | Release и миграция доставляют managed, сохраняют seed, ловят drift | тест | `scripts/test-capability-artifacts.py` |
-| 7 | `analysis` на `ordinary` и `managed` ведут себя по-разному | Windows | веха W |
+| 7 | Режим `analysis`: read-only сборка на `ordinary`, подтверждённый переключатель записи на `managed` | Windows | веха W |
 | 8 | Live-base skill отказывается без session lock | не выполнено | №173 |
 | 9 | Fixture write без базы и подтверждения отказывает | не выполнено | №173 |
 | 10 | Required/conditional/optional разделены и названы в документации | частично | `scripts/test-1c-readiness.py`, №173 |
 | 11 | `setup-1c-environment` предлагает компоненты и не ломает репозиторий | не выполнено | №173 |
 | 12 | Prompt каталога компонентов содержит обязательные поля | не выполнено | №173 |
-| 13 | Отчёт `doctor-1c` объясняет каждый недостающий компонент | не выполнено | №173 |
+| 13 | Отчёт `doctor-1c` содержит назначение, последствия отказа и источник недостающего компонента | не выполнено | №173 |
 | 14 | `doctor-1c` читает только allowlist и маскирует значения | не выполнено | №173 |
 | 15 | Docker provider обнаруживается как внешний deployment | Windows | веха W |
-| 16 | В репозитории нет секретов, машинных путей и имён рабочих баз | частично | `scripts/test-no-secrets.py`, №179 |
+| 16 | Templates, scripts и docs не содержат токенов, ключей, строк соединения, машинных путей и названий рабочих баз | частично | `scripts/test-no-secrets.py`, №179 |
 | 17 | Плагин и server-vs-client guard требуются только для `ordinary` | не выполнено | №173 |
 | 18 | На не-Windows работают bootstrap, Git, документация и валидаторы | частично | `scripts/test-one-c-scaffold.py`, №180 |
 | 19 | `doctor-1c` возвращает версии EDT, патчей и профилей | Windows | веха W |
@@ -68,7 +68,7 @@ related:
 | 25 | OpenSpec поставлен с четырьмя workflow | не выполнено | №172 |
 | 26 | Цепочка инструкций измеряется и укладывается в 32 КиБ | тест | `scripts/test-one-c-scaffold.py` |
 | 27 | Внешние ссылки каталога проверяются report-only и по расписанию | тест | `scripts/test-1c-readiness.py` |
-| 28 | Release блокируется без принятой практики в `practices/1c` | не выполнено | №174 |
+| 28 | Release блокируется, пока в `practices/1c` нет практики `accepted` с evidence | не выполнено | №174 |
 | 29 | Реестр несёт `support_mode` и `source_format`; версия БСП записана | частично | `scripts/test-one-c-scaffold.py`, №175 |
 | 30 | `deploy-and-test-1c` возвращает отчёт YAxUnit | не выполнено | №165 |
 | 31 | Отказы «вне scope v1» названы в пользовательской документации | тест | `scripts/test-1c-readiness.py` |
