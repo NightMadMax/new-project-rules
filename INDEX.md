@@ -68,6 +68,7 @@
 | [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|NPR_BP_CLOSEOUT_REVIEW_2026-07-08.md]] | Финальный live-аудит и закрытие программы NPR ↔ Best Practices |
 | [[docs/reviews/archive/README|Review archive]] | Промежуточные review завершённых фаз NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
+| [[docs/quality/READINESS_1C\|docs/quality/READINESS_1C.md]] | Матрица готовности capability `1c`: критерий, статус, доказательство |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
@@ -135,6 +136,9 @@
 | `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
 | `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/test-one-c-scaffold.py` | Тесты каркаса 1С-проекта и схемы реестра баз |
+| `scripts/test-1c-readiness.py` | Сверка матрицы готовности с планом и проверка её доказательств |
+| `scripts/test-no-secrets.py` | Сканер: секреты, машинные пути и имена рабочих баз |
+| `scripts/check-1c-component-links.py` | Report-only проверка внешних ссылок каталога компонентов |
 | `scripts/one_c_source.py` | Контракт конвертации EDT ↔ XML: временный каталог, детерминизм, возврат в канон |
 | `scripts/export-1c-source.py` | Выгрузка канона в XML и возврат изменений |
 | `scripts/export-1c-source.sh` | POSIX-обёртка выгрузки исходников |

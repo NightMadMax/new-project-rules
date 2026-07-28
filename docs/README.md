@@ -61,6 +61,7 @@ related:
 ## Качество и ревью
 
 - [[docs/quality/TESTING|Проверка скриптов]]
+- [[docs/quality/READINESS_1C|Готовность 1С]]
 - [[docs/quality/DEFECTS|Реестр дефектов]]
 - [[docs/quality/DEFECTS_ARCHIVE|Архив дефектов]]
 - [[docs/quality/PLAYBOOK|Реестр проверенных удачных паттернов]]

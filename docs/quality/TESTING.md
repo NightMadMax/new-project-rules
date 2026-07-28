@@ -47,6 +47,8 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-release-manifest.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-one-c-scaffold.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-clients.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-source.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-readiness.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-no-secrets.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-supply-chain.py
@@ -82,6 +84,8 @@ python .\scripts\test-release-manifest.py
 python .\scripts\test-one-c-scaffold.py
 python .\scripts\test-1c-clients.py
 python .\scripts\test-1c-source.py
+python .\scripts\test-1c-readiness.py
+python .\scripts\test-no-secrets.py
 python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-compress-project.py
 python .\scripts\test-supply-chain.py

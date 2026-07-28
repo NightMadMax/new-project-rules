@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -167,9 +168,43 @@ with tempfile.TemporaryDirectory() as raw:
         note(len(headings) == len(set(headings)), f"the docs index repeats a section: {headings}")
 
         # The instruction chain has a hard budget: past 32 KiB an agent stops
-        # loading files and the rules that did not fit simply do not apply.
-        chain = sum((project / relative).stat().st_size for relative in
-                    ("AGENTS.md", "configurations/AGENTS.md", "USER-RULES.md", "LLM-RULES.md", "memory.md"))
+        # loading files and the rules that did not fit simply do not apply. The
+        # chain is followed through its imports rather than listed, or a file
+        # added tomorrow would not be counted and the check would stay green.
+        import_pattern = re.compile(r"@([\w./~-]+\.md)")
+
+        def chain_size(entry: str, seen: set[str]) -> int:
+            # Normalised before it is remembered: "configurations/../AGENTS.md"
+            # and "AGENTS.md" are one file, and counting it twice would inflate
+            # both the budget and the guard that the chain was followed at all.
+            entry = os.path.normpath(entry).replace(os.sep, "/")
+            if entry in seen or not (project / entry).is_file():
+                return 0
+            seen.add(entry)
+            body = (project / entry).read_text(encoding="utf-8")
+            total = len(body.encode("utf-8"))
+            fenced = False
+            for line in body.splitlines():
+                if line.lstrip().startswith("```"):
+                    fenced = not fenced
+                    continue
+                if fenced:
+                    continue
+                # An import is an import wherever it sits on the line: a rule
+                # that only sees column zero would under-count and stay green.
+                for imported in import_pattern.findall(line):
+                    parent = str(Path(entry).parent)
+                    base = "" if parent == "." else parent + "/"
+                    total += chain_size(base + imported, seen)
+            return total
+
+        loaded: set[str] = set()
+        chain = chain_size("AGENTS.md", loaded) + chain_size("configurations/AGENTS.md", loaded)
+        # Named, not counted: a parser that stopped following imports would
+        # still reach five files and the guard would say nothing.
+        for reached in ("AGENTS.md", "configurations/AGENTS.md", "USER-RULES.md",
+                        "LLM-RULES.md", "memory.md"):
+            note(reached in loaded, f"the chain must reach {reached} through its imports: {sorted(loaded)}")
         note(chain < 32 * 1024, f"the instruction chain is {chain} bytes, over the 32 KiB budget")
 
 
@@ -214,8 +249,8 @@ registry_case(
 # A path check that depends on the host would let each platform through the
 # other's mistake: the repository is prepared on macOS and used on Windows.
 for case, value in (
-    ("posix machine path", "/Users/someone/workspace"),
-    ("windows machine path", "C:\\Users\\someone\\workspace"),
+    ("posix machine path", "/Users/someone/workspace"),  # noscan
+    ("windows machine path", "C:\\Users\\someone\\workspace"),  # noscan
     ("windows share", "\\\\server\\share\\workspace"),
     ("home path", "~/workspace"),
     ("path out of the project", "../../elsewhere"),

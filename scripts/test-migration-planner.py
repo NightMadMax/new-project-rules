@@ -415,7 +415,7 @@ class MigrationPlannerTests(unittest.TestCase):
         home = self.base / "conflict-home"
         active = home / ".codex" / "AGENTS.md"
         active.parent.mkdir(parents=True)
-        secret = "github_pat_" + "S" * 30
+        secret = "github_pat_" + "S" * 30  # noscan
         active.write_text(secret + "\n", encoding="utf-8")
         before = active.read_bytes()
         plan = planner.global_plan(home, self.contract, self.migrations, self.version)

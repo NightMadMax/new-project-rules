@@ -23,3 +23,10 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: python3 scripts/check-upstream-sources.py --report-only >> "$GITHUB_STEP_SUMMARY"
+      - name: Probe the 1C component sources
+        # Report only, and deliberately not a gate: a vendor page that moved
+        # says nothing about this repository, and a red build here would teach
+        # people to ignore it (decision 1.24).
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 scripts/check-1c-component-links.py --root . --network >> "$GITHUB_STEP_SUMMARY"
