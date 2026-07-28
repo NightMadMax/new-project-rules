@@ -167,9 +167,25 @@ with tempfile.TemporaryDirectory() as raw:
         note(len(headings) == len(set(headings)), f"the docs index repeats a section: {headings}")
 
         # The instruction chain has a hard budget: past 32 KiB an agent stops
-        # loading files and the rules that did not fit simply do not apply.
-        chain = sum((project / relative).stat().st_size for relative in
-                    ("AGENTS.md", "configurations/AGENTS.md", "USER-RULES.md", "LLM-RULES.md", "memory.md"))
+        # loading files and the rules that did not fit simply do not apply. The
+        # chain is followed through its imports rather than listed, or a file
+        # added tomorrow would not be counted and the check would stay green.
+        def chain_size(entry: str, seen: set[str]) -> int:
+            if entry in seen or not (project / entry).is_file():
+                return 0
+            seen.add(entry)
+            body = (project / entry).read_text(encoding="utf-8")
+            total = len(body.encode("utf-8"))
+            for line in body.splitlines():
+                if line.startswith("@"):
+                    imported = line[1:].strip()
+                    base = str(Path(entry).parent) if Path(entry).parent != Path(".") else ""
+                    total += chain_size(f"{base}/{imported}".lstrip("/"), seen)
+            return total
+
+        loaded: set[str] = set()
+        chain = chain_size("AGENTS.md", loaded) + chain_size("configurations/AGENTS.md", loaded)
+        note(len(loaded) >= 5, f"the chain should reach the companion files through imports: {sorted(loaded)}")
         note(chain < 32 * 1024, f"the instruction chain is {chain} bytes, over the 32 KiB budget")
 
 

@@ -20,7 +20,9 @@ PLAN = ROOT / "docs/architecture/ONE_C_CAPABILITY_PLAN.md"
 MATRIX = ROOT / "docs/quality/READINESS_1C.md"
 DEFECTS = ROOT / "docs/quality/DEFECTS.md"
 TOOLS = ROOT / "TOOLS.md"
-STATUSES = ("тест", "Windows", "не выполнено")
+STATUSES = ("тест", "частично", "Windows", "не выполнено")
+TESTING = ROOT / "docs/quality/TESTING.md"
+CI = ROOT / ".github/workflows/ci.yml"
 CONDITIONAL = ("Node.js", "Pillow", "OpenSpec", "v8unpack", "YAxUnit", "BSL Language Server")
 OUT_OF_SCOPE = ("CI/CD", "хранилищ", "SonarQube", "АПК", "cfu")
 
@@ -67,8 +69,29 @@ def matrix_rows() -> list[dict[str, str]]:
     return rows
 
 
-def recorded_defects() -> set[str]:
-    return set(re.findall(r"^\|\s*(\d+)\s*\|", read(DEFECTS), re.M))
+def open_defects() -> set[str]:
+    """Only the open ones: a criterion cannot lean on a defect already closed."""
+    defects = read(DEFECTS)
+    return set(re.findall(r"^\|\s*(\d+)\s*\|", defects[defects.index("## Open"): defects.index("## Fixed")], re.M))
+
+
+def words(text: str) -> list[str]:
+    """Comparable form: the words, without markup and case."""
+    return re.sub(r"[^\w\s]", " ", text.lower()).split()
+
+
+def check_test(where: str, name: str) -> None:
+    name = name.strip().strip("`")
+    if not (ROOT / name).is_file():
+        failures.append(f"{where}: names a test that does not exist: {name}")
+        return
+    # A proof that nobody runs is not a proof: the named test must be in the
+    # documented set and in the pipeline.
+    base = Path(name).name
+    if base not in read(TESTING):
+        failures.append(f"{where}: {base} is not in TESTING.md")
+    if base not in read(CI):
+        failures.append(f"{where}: {base} does not run in ci.yml")
 
 
 # --- the matrix against the plan ---------------------------------------------
@@ -84,17 +107,39 @@ note([row["number"] for row in rows] == list(range(1, len(rows) + 1)),
 for row in rows:
     where = f"criterion {row['number']}"
     note(row["status"] in STATUSES, f"{where}: unknown status '{row['status']}'")
+    evidence = [part.strip() for part in row["evidence"].split(",")]
     if row["status"] == "тест":
-        # A named test that does not exist is the way this table goes stale.
-        name = row["evidence"].strip("`")
-        note((ROOT / name).is_file(), f"{where}: names a test that does not exist: {name}")
+        check_test(where, evidence[0])
+    elif row["status"] == "частично":
+        # Partly checked means two claims, and both have to be backed.
+        note(len(evidence) == 2, f"{where}: 'частично' needs a test and a defect, got '{row['evidence']}'")
+        if len(evidence) == 2:
+            check_test(where, evidence[0])
+            note(evidence[1].lstrip("№") in open_defects(),
+                 f"{where}: names defect {evidence[1]}, which is not open in DEFECTS.md")
     elif row["status"] == "не выполнено":
-        number = row["evidence"].lstrip("№")
-        note(number in recorded_defects(),
-             f"{where}: names defect {row['evidence']}, which is not in DEFECTS.md")
+        note(evidence[0].lstrip("№") in open_defects(),
+             f"{where}: names defect {evidence[0]}, which is not open in DEFECTS.md")
     else:
         note("веха" in row["evidence"].lower(),
              f"{where}: a Windows criterion must point at the milestone, not '{row['evidence']}'")
+
+    # The row must still be about the criterion it claims to be about: a
+    # reformulation in the plan has to reach the matrix, not sit unnoticed.
+    if row["number"] <= len(criteria):
+        planned, stated = set(words(criteria[row["number"] - 1])), set(words(row["criterion"]))
+        shared = len(planned & stated)
+        note(shared >= 3 or shared >= len(stated) // 2,
+             f"{where}: the row no longer matches the plan's wording: '{row['criterion']}'")
+
+# The count in the summary is the one number a reader takes away, so it is
+# derived from the table rather than typed beside it.
+summary = read(MATRIX)
+summary = summary[summary.index("## Итог"):]
+counts = {name: sum(1 for row in rows if row["status"] == name) for name in STATUSES}
+for name, expected in counts.items():
+    note(re.search(rf"{re.escape(name)}`?\D{{0,4}}{expected}\b", summary) is not None,
+         f"the summary must say {expected} for '{name}': {counts}")
 
 # A defect may be open or fixed, never both: the section a row lives in is its
 # status, so two rows mean two contradictory statuses.
@@ -107,12 +152,24 @@ note(not both, f"defects listed as both open and fixed: {sorted(both)}")
 # --- what the criteria demand of the documentation ---------------------------
 
 tools = read(TOOLS)
-for component in CONDITIONAL:
-    note(component in tools, f"TOOLS.md must name the conditional component {component}")
+if "## Условные компоненты 1С" not in tools:
+    failures.append("TOOLS.md must hold the section on conditional components")
+else:
+    section = tools[tools.index("## Условные компоненты 1С"):]
+    section = section[: section.index("\n## ", 10)]
+    for component in CONDITIONAL:
+        note(component in section, f"the conditional components section must name {component}")
 
-guides = "\n".join(read(path) for path in (ROOT / "docs/guides").glob("*.md"))
-for refusal in OUT_OF_SCOPE:
-    note(refusal in guides, f"the user documentation must name the v1 refusal '{refusal}'")
+# In the section that states the boundaries, not anywhere in the guides: the
+# same words appear in unrelated documents and would prove nothing.
+guide = read(ROOT / "docs/guides/USE_THIS_PROJECT.md")
+if "## Проекты 1С: чего в первой версии нет" not in guide:
+    failures.append("the user guide must hold the section on what v1 does not do")
+else:
+    section = guide[guide.index("## Проекты 1С: чего в первой версии нет"):]
+    section = section[: section.index("\n## ", 10)]
+    for refusal in OUT_OF_SCOPE:
+        note(refusal in section, f"the section on v1 boundaries must name '{refusal}'")
 
 # --- the link checker reports and does not fail ------------------------------
 

@@ -9,17 +9,20 @@ works for the person who wrote it.
 
 from __future__ import annotations
 
+import argparse
 import re
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent.parent
-SCANNED = ("templates", "scripts", "docs", "config", ".agents", ".claude", ".github")
+DEFAULT_ROOT = Path(__file__).resolve().parent.parent
+# The whole working tree, not a list of directories somebody remembered to add.
+# Git history is out of scope on purpose: a leak there needs a rewrite, not a
+# fix, and that is a different job from keeping the tree clean.
+SKIP_DIRECTORIES = {".git", "__pycache__", "node_modules", ".obsidian", ".trash"}
 TEXT_SUFFIXES = {
     ".md", ".py", ".sh", ".ps1", ".json", ".tsv", ".yaml", ".yml", ".toml", ".txt",
     ".env", ".template", ".launch", ".cfg", ".ini",
 }
-SKIP_PARTS = {"__pycache__", ".git", "node_modules"}
 SKIP_NAMES = {".DS_Store", "Thumbs.db"}
 # A test of this scanner has to contain what the scanner forbids. The exemption
 # is a word on the line, so it is explicit, greppable, and impossible to grant
@@ -40,34 +43,35 @@ FINDINGS = (
         r"\s*[:=]\s*(?:[\"'][^\"'\n]{6,}[\"']|[A-Za-z0-9_/+-]{6,}\s*$)"),
      "a credential with a value"),
     ("secret.private-key", re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----"), "a private key"),
+    # A secret does not need a name beside it to be a secret: these shapes are
+    # issued tokens, and finding one is enough on its own.
+    ("secret.token", re.compile(
+        r"(gh[pousr]_[A-Za-z0-9]{30,}|github_pat_[A-Za-z0-9_]{30,}|xox[baprs]-[A-Za-z0-9-]{10,}"
+        r"|AKIA[0-9A-Z]{16}|sk-[A-Za-z0-9]{20,}|eyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.)"),
+     "a token in a form somebody issues"),
     ("secret.connection", re.compile(
         r"(?i)(srvr\s*=\s*[\"']?[^\s\"';]+[\"']?\s*;\s*ref\s*=|(postgres|mysql|mongodb|mssql)://[^\s\"']*:[^\s\"'@]+@)"),
      "a connection string with a host or a password"),
     ("path.home", re.compile(r"(/Users/|/home/|[A-Za-z]:\\\\Users\\\\)(?!<)[A-Za-z0-9._-]+"),
      "an absolute path to somebody's home directory"),
 )
-# Placeholders are the point of a template, and a rule needs an example of what
-# it forbids. Both are text about the pattern, not an instance of it.
-ALLOWED = re.compile(
-    r"(<[A-Z_]+>|\bexample\b|\bEXAMPLE\b|\bpath/to\b|/path/|\bуказыва|\bплейсхолдер|"
-    r"\bпример\b|\bнапример\b|placeholder|dummy|xxxx|\.\.\.)")
+# Placeholders are the point of a template. This is matched against the piece
+# that fired, never against the whole line: a whitelist that reads the line
+# would let any comment — "# пример", "# example" — switch every check off.
+ALLOWED = re.compile(r"(<[A-Za-z_]+>|\{[a-z_]+\}|path/to|/path/|\$\{[A-Za-z_]+\}|%[A-Za-z_]+%)")
 
 failures: list[str] = []
 
 
-def scanned_files() -> list[Path]:
+def scanned_files(root: Path) -> list[Path]:
     files = []
-    for name in SCANNED:
-        base = ROOT / name
-        if not base.is_dir():
+    for path in root.rglob("*"):
+        if not path.is_file() or path.is_symlink():
             continue
-        for path in base.rglob("*"):
-            if not path.is_file() or path.is_symlink():
-                continue
-            if SKIP_PARTS & set(path.parts) or path.name in SKIP_NAMES:
-                continue
-            if path.suffix.lower() in TEXT_SUFFIXES or not path.suffix:
-                files.append(path)
+        if SKIP_DIRECTORIES & set(path.parts) or path.name in SKIP_NAMES:
+            continue
+        if path.suffix.lower() in TEXT_SUFFIXES or not path.suffix:
+            files.append(path)
     return files
 
 
@@ -75,10 +79,12 @@ def scan(text: str) -> list[tuple[str, str, int, str]]:
     """(code, description, line number, the line) for every real finding."""
     found = []
     for number, line in enumerate(text.splitlines(), start=1):
-        if MARKER in line or ALLOWED.search(line):
+        if MARKER in line:
             continue
         for code, pattern, description in FINDINGS:
-            if pattern.search(line):
+            match = pattern.search(line)
+            # The exemption applies to what matched, not to the line around it.
+            if match and not ALLOWED.search(match.group(0)):
                 found.append((code, description, number, line.strip()[:120]))
     return found
 
@@ -88,7 +94,13 @@ if __name__ == "__main__":
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
 
-    for path in scanned_files():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--root", default=str(DEFAULT_ROOT),
+                        help="tree to scan; a project created from the templates is scanned the same way")
+    arguments = parser.parse_args()
+    ROOT = Path(arguments.root).resolve()
+
+    for path in scanned_files(ROOT):
         try:
             text = path.read_bytes().decode("utf-8")
         except UnicodeDecodeError:
@@ -115,7 +127,18 @@ if __name__ == "__main__":
         if expected not in codes:
             failures.append(f"the scanner misses '{line}': expected {expected}, got {codes or 'nothing'}")
 
-    for line in ("PASSWORD=<PASSWORD>", "DEFAULT_PASSWORD=", "путь вида /Users/<user>/project — пример",
+    # A comment on the line must not switch the checks off.
+    for line, expected in (
+        ('ONEC_API_TOKEN = "ghp_realSecretValue1234567890abcd"  # example of a token', "secret.token"),  # noscan
+        ('password: "S3cretRealValue"  # пример', "secret.assigned"),  # noscan
+        ("ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789", "secret.token"),  # noscan
+        ("AKIAIOSFODNN7EXAMPLE", "secret.token"),  # noscan
+    ):
+        codes = {code for code, _, _, _ in scan(line)}
+        if not codes:
+            failures.append(f"a comment must not silence the scanner: '{line}' gave nothing")
+
+    for line in ("PASSWORD=<PASSWORD>", "DEFAULT_PASSWORD=", "путь вида /Users/<user>/project",
                  "tokens = [token[1:-1] for token in split(command)]",
                  "token_option = arguments.token_option"):
         if scan(line):
@@ -127,4 +150,4 @@ if __name__ == "__main__":
         print(f"{len(failures)} secret scan finding(s).", file=sys.stderr)
         raise SystemExit(1)
 
-    print("No secrets, machine paths or real base names found.")
+    print(f"No secrets or machine paths found in {ROOT}.")

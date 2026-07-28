@@ -68,6 +68,7 @@
 | [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|NPR_BP_CLOSEOUT_REVIEW_2026-07-08.md]] | Финальный live-аудит и закрытие программы NPR ↔ Best Practices |
 | [[docs/reviews/archive/README|Review archive]] | Промежуточные review завершённых фаз NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
+| [[docs/quality/READINESS_1C\|docs/quality/READINESS_1C.md]] | Матрица готовности capability `1c`: критерий, статус, доказательство |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
