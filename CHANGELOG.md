@@ -6,6 +6,14 @@
 
 ### Добавлено
 
+- Этап Э10: матрица готовности `docs/quality/READINESS_1C.md` — строка на каждый из
+  31 критерия со статусом и доказательством, и `scripts/test-1c-readiness.py`,
+  который сверяет её с мастер-планом и падает, если критерий остался без строки,
+  тест не существует или дефект не записан. Добавлены сканер секретов и машинных
+  путей `scripts/test-no-secrets.py` и report-only проверка внешних ссылок
+  каталога компонентов `scripts/check-1c-component-links.py`. В `TOOLS.md`
+  перечислены условные компоненты, в пользовательской документации — границы
+  первой версии.
 - Этап Э9: конвертация EDT ↔ XML — `scripts/one_c_source.py` и CLI
   `export-1c-source` с парой shell/PowerShell, skills `export-1c-source`,
   `deploy-1c-source`, `deploy-and-test-1c`. Выгрузка создаётся вне репозитория и

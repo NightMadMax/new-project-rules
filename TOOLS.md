@@ -48,6 +48,28 @@
 - On Windows, set `$env:PYTHONUTF8='1'` for these helpers because their
   `Path.read_text()` calls otherwise use the active legacy code page.
 
+## Условные компоненты 1С
+
+Эти компоненты не нужны, чтобы завести проект и вести его в Git. Каждый
+включает конкретную возможность, и без него она недоступна — но проект остаётся
+рабочим, а диагностика показывает `SKIP`, а не ошибку.
+
+| Компонент | Что включает | Без него |
+|---|---|---|
+| Node.js и пакет `docx` | Генерация `.docx` из документации проекта | Документы отдаются в Markdown |
+| Pillow | Обработка изображений в отчётах и разборах | Изображения не преобразуются |
+| OpenSpec CLI | Четыре workflow спецификаций изменений | Спецификации ведутся вручную |
+| `v8unpack` | Разбор бинарных поставок конфигурации | Содержимое `cf`/`cfe` не читается |
+| YAxUnit | Модульные тесты BSL | Доступны только syntax и smoke |
+| Standalone BSL Language Server | Валидация BSL вне EDT | Валидация только внутри EDT |
+| CLI конвертации формата EDT | XML-маршрут для инструментов, не читающих EDT | `export-1c-source` даёт `SKIP` |
+
+Обязательные компоненты, их версии и порядок установки — в
+[[docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN|подплане среды]]. Список
+внешних источников проверяется отчётом:
+`python3 scripts/check-1c-component-links.py --root . --network`. Отчёт никогда
+не ломает сборку: недоступный сайт вендора ничего не говорит о репозитории.
+
 ## PowerShell
 
 - Purpose: parse and runtime verification of the portable `.ps1` bootstrap,

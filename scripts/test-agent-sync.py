@@ -55,7 +55,7 @@ class AgentSyncTests(unittest.TestCase):
         self.assertIn("wrap", sync.secret_safe_diff(state))
 
     def test_unmanaged_conflict_redacts_content(self):
-        secret = "github_pat_SUPER_SECRET_VALUE_123456789"
+        secret = "github_pat_SUPER_SECRET_VALUE_123456789"  # noscan
         self.write_active(f"# Local\n{secret}\n")
         state = self.inspect()
         report = sync.secret_safe_diff(state)

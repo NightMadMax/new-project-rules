@@ -135,6 +135,9 @@
 | `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
 | `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/test-one-c-scaffold.py` | Тесты каркаса 1С-проекта и схемы реестра баз |
+| `scripts/test-1c-readiness.py` | Сверка матрицы готовности с планом и проверка её доказательств |
+| `scripts/test-no-secrets.py` | Сканер: секреты, машинные пути и имена рабочих баз |
+| `scripts/check-1c-component-links.py` | Report-only проверка внешних ссылок каталога компонентов |
 | `scripts/one_c_source.py` | Контракт конвертации EDT ↔ XML: временный каталог, детерминизм, возврат в канон |
 | `scripts/export-1c-source.py` | Выгрузка канона в XML и возврат изменений |
 | `scripts/export-1c-source.sh` | POSIX-обёртка выгрузки исходников |

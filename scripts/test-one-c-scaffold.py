@@ -214,8 +214,8 @@ registry_case(
 # A path check that depends on the host would let each platform through the
 # other's mistake: the repository is prepared on macOS and used on Windows.
 for case, value in (
-    ("posix machine path", "/Users/someone/workspace"),
-    ("windows machine path", "C:\\Users\\someone\\workspace"),
+    ("posix machine path", "/Users/someone/workspace"),  # noscan
+    ("windows machine path", "C:\\Users\\someone\\workspace"),  # noscan
     ("windows share", "\\\\server\\share\\workspace"),
     ("home path", "~/workspace"),
     ("path out of the project", "../../elsewhere"),
