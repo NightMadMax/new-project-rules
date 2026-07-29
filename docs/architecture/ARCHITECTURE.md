@@ -99,7 +99,7 @@ atomic-written unstaged metadata file, а global target — побайтовый
 backup и atomic replace с сохранением внешнего пользовательского текста.
 
 CI является отдельной trust boundary. Все external Actions pinned по full
-commit SHA, checkout не сохраняет credentials, workflow token read-only, а
+commit SHA, workflow token read-only, а
 `scripts/check-action-pins.py` проверяет policy до основных тестов. Dependabot
 предлагает обновления SHA через PR. Ubuntu/Windows дают основной regression
 gate; macOS smoke запускается вручную и при изменениях core paths. Угрозы и

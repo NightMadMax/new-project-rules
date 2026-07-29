@@ -72,7 +72,6 @@
 - Use `ACTIONS.md` only for consequential actions outside git.
 - Keep user docs current, not one-shot: when you add or change a script or skill, update `docs/guides/USE_THIS_PROJECT.md` or `MANUAL_SCRIPTS.md` in the same task.
 - Treat machine-readable API specifications, lock files, generated SBOM files, and `.github/CODEOWNERS` as authoritative.
-- Never commit secrets, tokens, private keys, passwords, or real credentials.
 - When a reusable convention changes, update only its affected canonical
   sources, generated templates, migrations, documentation, skills, and active
   managed copies. Do not touch unrelated policy surfaces merely for parity.
@@ -92,7 +91,7 @@
 - Share a reusable engineering practice (how to build well for a stack, tool, or prompt) as a candidate to the sibling Best Practices base via pull request, not into this standard. Record the source and evidence; remove secrets, personal data, private identifiers, and machine-specific paths.
 - The shared `new-project-rules` standard is maintainer-authored and read-only for users; changing it is a maintainer-only act that hardens an accepted Best Practices practice into a rule, template, test, validator, script, or skill.
 - A defect in the standard's own tooling is an ordinary issue or pull request, not a knowledge promotion.
-- For a cross-cutting engineering rule (secrets out of the repository, portable scripts, tool choice), keep the imperative here and its rationale in Best Practices; do not copy the rationale.
+- For a cross-cutting engineering rule (portable scripts, tool choice), keep the imperative here and its rationale in Best Practices; do not copy the rationale.
 
 ## Pattern Playbook
 

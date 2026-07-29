@@ -114,7 +114,6 @@ remains safe before a new computer has completed global setup.
 - Do not create empty documents without a current purpose.
 - Treat API specifications, lock files, generated SBOM files, and
   `.github/CODEOWNERS` as authoritative.
-- Never commit secrets or real credentials.
 
 ## Best Practices
 
@@ -145,8 +144,8 @@ remains safe before a new computer has completed global setup.
   Practices practice into a rule, template, test, validator, script, or skill.
 - A defect in the standard's own tooling is an ordinary issue or pull request,
   not a knowledge promotion.
-- For a cross-cutting engineering rule (secrets out of the repository, portable
-  scripts, tool choice), keep the imperative here and its rationale in Best
+- For a cross-cutting engineering rule (portable scripts, tool choice), keep
+  the imperative here and its rationale in Best
   Practices; do not copy the rationale.
 
 ## Defect Tracking

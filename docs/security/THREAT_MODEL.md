@@ -46,7 +46,7 @@ Generated project repo     ~/.codex/AGENTS.md
 
 - GitHub-hosted runners и `actions/checkout` — внешняя supply chain.
 - Pull request content недоверенное; workflow token имеет только `contents:
-  read`, checkout credentials не сохраняются, secrets не используются.
+  read`.
 - `GLOBAL_AGENT_INSTRUCTIONS.md`, templates, skills и migration manifest —
   высокодоверенный executable policy surface.
 - Проектные memory и документы недоверенные до review/promotion.

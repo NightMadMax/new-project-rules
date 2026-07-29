@@ -27,9 +27,7 @@ related:
 3. Codex и Claude Code.
 4. Системная командная среда: Zsh/Bash на macOS, PowerShell или Git Bash на
    Windows.
-5. Безопасное хранилище учётных данных ОС; токены нельзя хранить в файлах
-   проекта или в plaintext credential store.
-6. Проверенный способ установки и обновления инструментов: Homebrew на macOS и
+5. Проверенный способ установки и обновления инструментов: Homebrew на macOS и
    WinGet на Windows являются предпочтительными, но не проектными зависимостями.
 
 **В каждом репозитории обязательны:** Git-репозиторий с GitHub remote,
@@ -176,7 +174,7 @@ Desktop. Git LFS решает только задачу крупных бина�
 | GitHub CLI (`gh`) | Обязательно на компьютере | Проверять `gh auth status`; использовать для создания repo и GitHub-операций |
 | Codex | Обязательно на компьютере | Глобальные правила в `~/.codex/AGENTS.md` |
 | Claude Code | Обязательно на компьютере | `~/.claude/CLAUDE.md` импортирует общие правила |
-| Безопасный credential helper | Обязательно на компьютере | Keychain/GCM; запрещать plaintext token files и `credential-store` |
+| Credential helper | Обязательно на компьютере | Keychain/GCM |
 | Shell ОС | Обязательно на компьютере | Zsh/Bash на macOS; PowerShell или Git Bash на Windows |
 | Homebrew / WinGet | Рекомендуется | Стандартный канал установки и обновления; допускается официальный installer |
 | Python 3 | Рекомендуется | Общая сложная автоматизация на stdlib; не использовать без проверки availability |

@@ -611,8 +611,8 @@
 - [[docs/guides/AI_KNOWLEDGE_PORTABILITY|Политика переноса знаний]] подкреплена
   официальной позицией OpenAI о локальности memories/sessions и предпочтении
   skills вместо deprecated custom prompts.
-- Workflow token остаётся read-only, checkout credentials не сохраняются, а
-  CI отклоняет mutable `uses:` references до запуска project tests.
+- Workflow token остаётся read-only, а CI отклоняет mutable `uses:` references
+  до запуска project tests.
 - Shell и PowerShell bootstrap теперь получают profile composition и index
   relationships напрямую из `config/profiles.tsv`; hardcoded списки артефактов
   удалены без изменения существующих profile outputs.

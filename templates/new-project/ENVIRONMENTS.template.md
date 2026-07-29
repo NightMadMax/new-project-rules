@@ -1,7 +1,5 @@
 # Environments
 
-Не храните здесь секреты и реальные credentials.
-
 ## Environment
 
 - Название:

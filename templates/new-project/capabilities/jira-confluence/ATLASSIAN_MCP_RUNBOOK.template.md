@@ -2,7 +2,7 @@
 
 ## Configuration
 
-Configure the user-level Codex MCP server `mcp-atlassian`; do not commit tokens or machine paths.
+Configure the user-level Codex MCP server `mcp-atlassian`; do not commit machine paths.
 
 Required environment variables are `JIRA_URL` and `JIRA_PERSONAL_TOKEN`; add `CONFLUENCE_URL` and `CONFLUENCE_PERSONAL_TOKEN` when Confluence is used. Keep `--read-only` by default.
 

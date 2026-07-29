@@ -25,7 +25,7 @@
 ## Git and User Changes
 
 - Inspect the worktree before editing and preserve unrelated user changes.
-- Do not commit, push, open pull requests, create releases or issues, change remotes, or rewrite history unless the user explicitly requests it or project-local instructions require that repository workflow.
+- Do not publish passwords or secrets unless the user explicitly requests it. Before the first such publication, ask the user for confirmation.
 - Never run two agents concurrently in one git working copy; use separate worktrees for parallel agents.
 
 ## Tool and Dependency Selection
@@ -33,7 +33,6 @@
 - Read the nearest project instructions and use the project's existing language, package manager, and toolchain first.
 - Prefer the smallest standard tool that preserves correctness and portability.
 - Do not install third-party dependencies without approval. Explain what is needed, why, and the installation scope first.
-- Never store secrets, tokens, passwords, private keys, or real credentials in repositories, documentation, scripts, or committed shell history.
 
 ## Instruction Hierarchy
 

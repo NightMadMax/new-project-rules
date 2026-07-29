@@ -31,11 +31,11 @@
     "scripts/migrate_consumer_manifest.py": "4f6c3308d2ae43dead92e6aad294fd696a8223fd6dc4141bd762f61e7f5c856f",
     "scripts/practice_report.py": "9a42c8457a1c5acdbb1557f7b1ba113097083b61f543f738a512a5f86f0540f2",
     "scripts/validate.py": "f18b72f1b72be2684e563f2840f4d47476961cf8fab2ef823b1ec0738e1fae72",
-    "practices/common/PC-2026-001-keep-credentials-out-of-repository.md": "74a7d7c763f36108cda098a3a2a7e4873d6823df2587fcd5ea258524d375e44f"
+    "practices/tools/PC-2026-850607ffdb29-pinned-cross-repo-contract.md": "bdc2a821f9646cbd702dcfbf6566fefd2b5319a9474223380ce660abcb8b7450"
   },
   "promotion_source": {
-    "id": "PC-2026-001",
-    "path": "practices/common/PC-2026-001-keep-credentials-out-of-repository.md",
+    "id": "PC-2026-850607ffdb29",
+    "path": "practices/tools/PC-2026-850607ffdb29-pinned-cross-repo-contract.md",
     "required_status": "accepted"
   }
 }
