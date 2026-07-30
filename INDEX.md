@@ -99,6 +99,10 @@
 | `scripts/check-cli.sh` | POSIX-обёртка поиска CLI |
 | `scripts/check-cli.ps1` | PowerShell-обёртка поиска CLI |
 | `scripts/test-cli-discovery.py` | Тесты обнаружения: заглушка не запускается, рабочий бинарник за ней находится |
+| `config/1c-routing.tsv` | Маршрут каждой группы файлов upstream `ai_rules_1c` со ссылкой на решение плана |
+| `config/1c-upstream-inventory.txt` | Список tracked-файлов upstream на закреплённом commit — контрольная сумма приёмки маршрутизации |
+| `scripts/import_1c_upstream.py` | Разворачивает маршруты в строки ledger по локальному чекауту upstream |
+| `scripts/test-1c-upstream-routing.py` | Проверяет покрытие 241 файла маршрутами и саму развёртку |
 | `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |
 | `scripts/test-contract.sh` | Parity contract и bootstrap outputs (macOS/Linux) |
