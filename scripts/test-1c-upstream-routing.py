@@ -25,6 +25,12 @@ importer = importlib.util.module_from_spec(spec)
 sys.modules["import_1c_upstream"] = importer
 spec.loader.exec_module(importer)
 
+agents_spec = importlib.util.spec_from_file_location("one_c_agents", SCRIPTS / "one_c_agents.py")
+assert agents_spec and agents_spec.loader
+agents_module = importlib.util.module_from_spec(agents_spec)
+sys.modules["one_c_agents"] = agents_module
+agents_spec.loader.exec_module(agents_module)
+
 INVENTORY = ROOT / "config/1c-upstream-inventory.txt"
 EXPECTED_FILES = 241
 
@@ -77,14 +83,58 @@ for route in routes:
 
 # --- the expansion over a real checkout -------------------------------------
 
+ADAPTER_CODEX = """tool: codex
+schemaVersion: 1
+
+agents:
+  copyTo: ".codex/agents/{name}.toml"
+  mode: rebuild-toml
+  template: |
+    name = "{name}"
+    description = "{description}"
+    model = "{modelHint}"
+    developer_instructions = \"\"\"
+    {body}
+    \"\"\"
+"""
+
+ADAPTER_CLAUDE = """tool: claude-code
+schemaVersion: 1
+
+agents:
+  copyTo: ".claude/agents/{name}.md"
+  frontmatter:
+    keep: [name, description, tools, modelHint]
+    rename:
+      modelHint: model
+    drop: [reasoningEffort]
+"""
+
+AGENT = """---
+name: 1c-developer
+description: "Writes code."
+modelTier: build
+tools: ["Read", "Write"]
+reasoningEffort: high
+---
+
+# Developer
+
+Body.
+"""
+
 with tempfile.TemporaryDirectory() as raw:
     staging = Path(raw)
     files = {
+        # The adapters are the compilation spec: without them a staging cannot
+        # produce an agent projection at all.
+        "adapters/codex.yaml": ADAPTER_CODEX,
+        "adapters/claude-code.yaml": ADAPTER_CLAUDE,
         "USER-RULES.md": "seed\n",
         "content/skills/caveman/SKILL.md": "caveman\n",
         "content/skills/img-grid-analysis/SKILL.md": "grid\n",
         "content/skills/img-grid-analysis/scripts/overlay-grid.py": "print(1)\n",
-        "content/agents/developer.md": "agent\n",
+        "content/agents/developer.md": AGENT,
         "content/skills/transcribe/SKILL.md": "not ours\n",
     }
     for name, body in files.items():
@@ -124,6 +174,40 @@ with tempfile.TemporaryDirectory() as raw:
     note({row["target_path"] for row in agent}
          == {".codex/agents/developer.toml", ".claude/agents/developer.md"},
          f"unexpected agent targets: {[row['target_path'] for row in agent]}")
+    # A compiled row carries the hash of what will actually be written, or the
+    # ledger records a promise instead of a file.
+    note(all(row["target_sha256"] != "-" for row in agent),
+         f"an agent projection must carry its output hash: {[row['target_sha256'] for row in agent]}")
+    note(len({row["target_sha256"] for row in agent}) == 2,
+         "the two projections differ, so their hashes must differ")
+
+    # The output is a function of the two upstream files and nothing else.
+    again, _ = importer.expand(ROOT, staging)
+    note({(row["source_path"], row["source_selector"], row["target_sha256"]) for row in again}
+         == {(row["source_path"], row["source_selector"], row["target_sha256"]) for row in rows},
+         "the same input must compile to the same bytes")
+
+    # What the projections actually contain, not merely that they were produced.
+    adapter_claude = (staging / "adapters/claude-code.yaml").read_text(encoding="utf-8")
+    adapter_codex = (staging / "adapters/codex.yaml").read_text(encoding="utf-8")
+    body = (staging / "content/agents/developer.md").read_text(encoding="utf-8")
+    claude_text = agents_module.compile_agent(body, adapter_claude, "claude")
+    note("model: build" not in claude_text, "modelTier is not kept: it is not in the adapter's keep list")
+    note("reasoningEffort" not in claude_text, "a dropped field must not survive the projection")
+    note("tools: [\"Read\", \"Write\"]" in claude_text, f"a kept field must survive verbatim: {claude_text[:200]}")
+    codex_text = agents_module.compile_agent(body, adapter_codex, "codex")
+    note('name = "1c-developer"' in codex_text, f"the template must be filled: {codex_text[:120]}")
+    note('description = ""' not in codex_text, "the template supplies the quoting, the value must go in bare")
+    note("model = " not in codex_text,
+         "a line referencing a value this agent does not declare is dropped, not emitted empty")
+
+    # The rename only shows itself on an agent that declares the renamed field.
+    tiered = body.replace("modelTier: build\n", "modelTier: build\nmodelHint: sonnet\n")
+    tiered_claude = agents_module.compile_agent(tiered, adapter_claude, "claude")
+    note("model: sonnet" in tiered_claude, f"the adapter's rename must be applied: {tiered_claude[:200]}")
+    note("modelHint:" not in tiered_claude, "the source name must not survive the rename")
+    note('model = "sonnet"' in agents_module.compile_agent(tiered, adapter_codex, "codex"),
+         "a declared value must fill its template line")
 
     # Routed away, not dropped: transcribe belongs to another plan entirely.
     transcribe = by_path["content/skills/transcribe/SKILL.md"][0]
