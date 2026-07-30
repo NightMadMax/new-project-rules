@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import os
+import shutil
 import stat
 import sys
 import tempfile
@@ -131,8 +132,9 @@ with tempfile.TemporaryDirectory() as raw:
     # --- installed but not on PATH: found through the declared fallback -------
     # The other half of defect 61: `codex` is absent from PATH on the machine
     # where a working binary sits in the user profile.
-    installed = Path.home() / ".npr-discovery-fixture"
-    installed.mkdir(exist_ok=True)
+    # A fresh directory, never a fixed name: adopting one that already exists
+    # would mean deleting somebody's files on the way out.
+    installed = Path(tempfile.mkdtemp(prefix=".npr-discovery-", dir=Path.home()))
     try:
         binary = working_tool(installed, "tool-offpath", "offpath 7.8.9")
         tool = discovery.Tool(name="tool-offpath", fallbacks=(f"~/{installed.name}/{binary.name}",))
@@ -140,9 +142,7 @@ with tempfile.TemporaryDirectory() as raw:
         note(result.status == "ok", f"a binary outside PATH must be found by fallback: {result.diagnostics}")
         note(result.path == str(binary), f"the fallback path must be reported, got '{result.path}'")
     finally:
-        for leftover in installed.glob("*"):
-            leftover.unlink()
-        installed.rmdir()
+        shutil.rmtree(installed, ignore_errors=True)
 
     # --- PATH is enumerated fully, not by first match ------------------------
     note(len(discovery.path_candidates("tool-shadowed", environ(shadow, real))) == 2,

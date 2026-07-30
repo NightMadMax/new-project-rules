@@ -758,7 +758,6 @@ with tempfile.TemporaryDirectory() as raw:
         "    out.write_bytes(path.read_bytes())\n".encode("utf-8")
     )
     run_cli(root, converter=command)
-    export_line = run_cli(root, converter=command).stdout
     asymmetric_back = f"{sys.executable} {asymmetric}"
     returned = subprocess.run(
         [sys.executable, str(CLI), "--root", str(root), "--base", "erp/dev",
@@ -784,13 +783,15 @@ for path in TEMP.glob("new-project-rules-1c-*"):
     else:
         path.unlink(missing_ok=True)
 
+# Before the exit, not after it: what was skipped is exactly what a reader needs
+# to interpret a failure.
+for message in skips:
+    print(f"SKIP: {message}")
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)
     print(f"{len(failures)} source format check(s) failed.", file=sys.stderr)
     raise SystemExit(1)
-
-for message in skips:
-    print(f"SKIP: {message}")
 
 print("All 1C source format checks passed.")

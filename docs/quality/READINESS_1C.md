@@ -2,7 +2,7 @@
 type: quality-report
 status: active
 owner: project
-last_verified: 2026-07-28
+last_verified: 2026-07-30
 source_of_truth: repository
 related:
   - "[[docs/architecture/ONE_C_CAPABILITY_PLAN]]"

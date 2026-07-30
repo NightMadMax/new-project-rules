@@ -69,9 +69,12 @@ description: Настраивает новый macOS- или Windows-компь�
    managed-block contract; `legacy_exact` подтверждает правильное содержимое,
    но оставляет marker migration отдельным следующим шагом. Убедиться, что
    `~/.claude/CLAUDE.md` содержит только `@~/.codex/AGENTS.md`.
-3. После изменения instruction-файлов запустить новый процесс Codex с
-   `codex --ask-for-approval never exec "Summarize the current instructions."`; для
-   scoped rules использовать `codex --cd <directory> ... exec ...` и проверить приоритет
+3. После изменения instruction-файлов запустить новый процесс Codex. Путь к CLI
+   брать из `sh scripts/check-cli.sh codex` (в PowerShell —
+   `.\scripts\check-cli.ps1 codex`): на новой машине имя в `PATH` — ещё не
+   программа, и вызов по имени даёт ложный ответ в обе стороны. Затем
+   `<путь>/codex --ask-for-approval never exec "Summarize the current instructions."`;
+   для scoped rules — `codex --cd <directory> ... exec ...` и проверка приоритета
    ближайшего источника. Для Claude Code открыть новую сессию и проверить
    `/memory`.
 4. Проверить `gh auth status`, Git identity, credential helper, remote и чистоту

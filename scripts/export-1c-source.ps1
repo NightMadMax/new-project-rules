@@ -45,7 +45,22 @@ if ($null -eq $Python) {
 }
 
 $Exporter = Join-Path $PSScriptRoot "export-1c-source.py"
-$Arguments = @($Exporter, "--root", $Root, "--base", $Base, "--converter", $Converter, "--converter-back", $ConverterBack, "--source-option", $SourceOption, "--target-option", $TargetOption, "--back-source-option", $BackSourceOption, "--back-target-option", $BackTargetOption)
+# Written as "--option=value", and empty values are not passed at all. Two
+# reasons, both of which made this wrapper unusable before: Windows PowerShell
+# 5.1 drops empty strings from a native command's arguments, so the flag arrived
+# without its value; and every option name here starts with a dash, which
+# argparse reads as the next flag rather than as a value.
+$Arguments = @($Exporter, "--root", $Root, "--base", $Base)
+foreach ($Pair in @(
+    @("--converter", $Converter),
+    @("--converter-back", $ConverterBack),
+    @("--source-option", $SourceOption),
+    @("--target-option", $TargetOption),
+    @("--back-source-option", $BackSourceOption),
+    @("--back-target-option", $BackTargetOption)
+)) {
+    if (-not [string]::IsNullOrEmpty($Pair[1])) { $Arguments += "$($Pair[0])=$($Pair[1])" }
+}
 if ($SkipDeterminismCheck) { $Arguments += "--skip-determinism-check" }
 if ($Import) { $Arguments += "--import" }
 if ($Apply) { $Arguments += "--apply" }

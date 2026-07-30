@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import locale
 import os
 import re
 import subprocess
@@ -47,6 +48,10 @@ class Tool:
     fallbacks: tuple[str, ...] = ()
     timeout: int = DEFAULT_TIMEOUT_SECONDS
     note: str = ""
+    # Only where the install path really carries the version. Applied to every
+    # tool it would report the version of whatever runtime happens to sit in the
+    # path — "python3.12" in a directory name is not the tool's version.
+    version_in_path: bool = False
 
 
 TOOLS: dict[str, Tool] = {
@@ -85,6 +90,9 @@ TOOLS: dict[str, Tool] = {
         ),
         timeout=90,
         note="CLI 1C:EDT для конвертации формата исходников",
+        # `-help` prints usage without a version; the component directory is
+        # named after the EDT release it belongs to.
+        version_in_path=True,
     ),
     "docker": Tool(name="docker", note="внешний MCP provider"),
     "git": Tool(name="git", note="версионирование"),
@@ -182,13 +190,31 @@ def rejected_before_start(candidate: Path) -> str:
     return ""
 
 
+def decode_output(raw: bytes) -> str:
+    """What the tool said, in whatever encoding it chose to say it.
+
+    Console tools on Windows do not agree on one: 1cedtcli answers `-help` in
+    UTF-16LE, and decoding that as UTF-8 yields NUL-laced garbage in the report —
+    garbage that can also contain digits and a dot, which would be reported as a
+    version.
+    """
+    if not raw:
+        return ""
+    if raw[:2] in (b"\xff\xfe", b"\xfe\xff") or b"\x00" in raw[:64]:
+        encoding = "utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-16-le"
+        return raw.decode(encoding, errors="replace")
+    try:
+        return raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return raw.decode(locale.getpreferredencoding(False), errors="replace")
+
+
 def start(candidate: Path, tool: Tool) -> tuple[bool, str]:
     """(started, detail). Every failure is a detail, never an exception."""
     try:
         result = subprocess.run(
             [str(candidate), *tool.probe],
-            capture_output=True, text=True, encoding="utf-8", errors="replace",
-            timeout=tool.timeout, check=False,
+            capture_output=True, timeout=tool.timeout, check=False,
         )
     except subprocess.TimeoutExpired:
         return False, f"не ответил за {tool.timeout} с"
@@ -196,7 +222,7 @@ def start(candidate: Path, tool: Tool) -> tuple[bool, str]:
         # This is the shape of defect 61: the file exists, resolves, and the
         # operating system still refuses to run it.
         return False, f"не запускается: {error.strerror or error}"
-    output = " ".join((result.stdout or "").split()) or " ".join((result.stderr or "").split())
+    output = " ".join(decode_output(result.stdout).split()) or " ".join(decode_output(result.stderr).split())
     if result.returncode != 0:
         return False, f"код возврата {result.returncode}: {output[:120]}" if output else \
             f"код возврата {result.returncode}"
@@ -215,10 +241,12 @@ def discover(tool: Tool | str, environ: dict[str, str] | None = None) -> Result:
         if not started:
             result.diagnostics.append(f"{candidate}: {detail}")
             continue
-        # A tool that does not print a version still has one: EDT carries it in
-        # the component directory it was installed into, and reporting nothing
-        # would make the version look unknowable rather than unprinted.
-        version = VERSION_RE.search(detail) or VERSION_RE.search(candidate.parent.name)
+        # A tool that does not print a version may still carry one: EDT names
+        # the component directory after its release. Only where declared —
+        # elsewhere the path would supply somebody else's version number.
+        version = VERSION_RE.search(detail)
+        if version is None and tool.version_in_path:
+            version = VERSION_RE.search(candidate.parent.name)
         return Result(tool=tool.name, status="ok", path=str(candidate),
                       version=version.group(0) if version else "",
                       detail=detail, diagnostics=result.diagnostics)
