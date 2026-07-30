@@ -1,0 +1,124 @@
+{
+  "binaries": [],
+  "capability": "1c",
+  "dependencies": [
+    {
+      "class": "conditional",
+      "name": "Node.js",
+      "reason": "md-to-docx"
+    },
+    {
+      "class": "conditional",
+      "name": "docx",
+      "reason": "md-to-docx"
+    },
+    {
+      "class": "conditional",
+      "name": "Pillow",
+      "reason": "img-grid-analysis"
+    },
+    {
+      "class": "conditional",
+      "name": "OpenSpec CLI",
+      "reason": "четыре workflow спецификаций"
+    },
+    {
+      "class": "conditional",
+      "name": "v8unpack",
+      "reason": "v8unpack-cf"
+    },
+    {
+      "class": "conditional",
+      "name": "YAxUnit",
+      "reason": "модульные тесты BSL"
+    },
+    {
+      "class": "conditional",
+      "name": "BSL Language Server",
+      "reason": "валидация BSL вне EDT"
+    },
+    {
+      "class": "conditional",
+      "name": "1cedtcli",
+      "reason": "XML-маршрут export-1c-source"
+    },
+    {
+      "class": "required",
+      "name": "1C:EDT",
+      "reason": "разработка и EDT-MCP"
+    },
+    {
+      "class": "required",
+      "name": "Docker",
+      "reason": "внешний MCP provider"
+    }
+  ],
+  "inventory_count": 254,
+  "mcp_roles": [
+    {
+      "provider_id": "onec-edt",
+      "role": "edt",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "1c-syntax-checker-mcp",
+      "role": "syntax",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "1C-docs-mcp",
+      "role": "help",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "1c-ssl-mcp",
+      "role": "ssl",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "1c-templates-mcp",
+      "role": "templates",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "1c-code-check-mcp",
+      "role": "code-check",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "onec-toolkit",
+      "role": "toolkit",
+      "tier": "initial"
+    },
+    {
+      "provider_id": "1c-code-metadata-mcp",
+      "role": "code-metadata",
+      "tier": "optional"
+    },
+    {
+      "provider_id": "1c-graph-metadata-mcp",
+      "role": "graph-metadata",
+      "tier": "optional"
+    },
+    {
+      "provider_id": "1c-data-mcp",
+      "role": "data",
+      "tier": "optional-disabled"
+    }
+  ],
+  "release_id": "7b29baf3bb46a955399b00ca735cbcee9f9dfb000a5a0d3f26f4f1b068716bfc",
+  "schema_version": 1,
+  "sources": [
+    {
+      "commit": "1b6e2ed089d45740672619e27548ee8ed88347c3",
+      "name": "ai_rules_1c",
+      "repository": "comol/ai_rules_1c"
+    },
+    {
+      "commit": "247597bd9bd18b21d55eddf38bd0ed846d063b74",
+      "name": "best-practices",
+      "repository": "NightMadMax/best-practices"
+    }
+  ],
+  "version": "0.1.0"
+}

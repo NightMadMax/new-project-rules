@@ -171,7 +171,8 @@ with tempfile.TemporaryDirectory() as raw:
 
     # The specific route sits above the group route, and the specific one wins.
     grid = by_path["content/skills/img-grid-analysis/scripts/overlay-grid.py"][0]
-    note(grid["action"] == "adapt:grid-guards", f"the specific route must win: {grid['action']}")
+    note((grid["action"], grid["action_id"]) == ("adapt", "grid-guards"),
+         f"the specific route must win: {grid['action']}:{grid['action_id']}")
     plain = by_path["content/skills/img-grid-analysis/SKILL.md"][0]
     note(plain["action"] == "copy", f"the group route must still apply: {plain['action']}")
     note(plain["target_sha256"] == plain["source_sha256"], "a copy must not change the bytes")
@@ -224,7 +225,7 @@ with tempfile.TemporaryDirectory() as raw:
 
     # Routed away, not dropped: transcribe belongs to another plan entirely.
     transcribe = by_path["content/skills/transcribe/SKILL.md"][0]
-    note(transcribe["action"].startswith("route:") and transcribe["ownership"] == "provider-only",
+    note(transcribe["action"] == "route" and transcribe["ownership"] == "provider-only",
          f"transcribe must be routed to its own plan: {transcribe}")
 
     note(any("matches nothing" in problem for problem in problems),

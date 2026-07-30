@@ -149,7 +149,9 @@ def expand(contract_root: Path, staging: Path) -> tuple[list[dict[str, str]], li
                 "source_path": path,
                 "source_selector": route["selector"],
                 "source_sha256": digest,
-                "action": route["action"] if route["action"] == "copy" else f"{route['action']}:{route['action_id']}",
+                # The bare action; the identifier lives in its own column, which
+                # is what the ledger schema reads.
+                "action": route["action"],
                 "action_id": route["action_id"],
                 "ownership": route["ownership"],
                 "target_path": target_path,
@@ -165,15 +167,15 @@ def expand(contract_root: Path, staging: Path) -> tuple[list[dict[str, str]], li
 def report(rows: list[dict[str, str]], files_count: int) -> None:
     by_action: dict[str, int] = {}
     for row in rows:
-        by_action[row["action"].split(":")[0]] = by_action.get(row["action"].split(":")[0], 0) + 1
+        by_action[row["action"]] = by_action.get(row["action"], 0) + 1
     sources = {row["source_path"] for row in rows}
     print(f"Upstream files: {files_count}; routed: {len(sources)}; ledger rows: {len(rows)}")
     for action in sorted(by_action):
         print(f"  {action:8} {by_action[action]}")
-    pending = [row for row in rows if row["action"].startswith(("compile", "adapt")) and row["target_sha256"] == "-"]
+    pending = [row for row in rows if row["action"] in ("compile", "adapt") and row["target_sha256"] == "-"]
     if pending:
         print(f"Rows still without an output hash: {len(pending)} "
-              f"({', '.join(sorted({row['action'] for row in pending}))})")
+              f"({', '.join(sorted({row['action_id'] for row in pending}))})")
         print("The ledger is not written while a declared output does not exist.")
 
 
@@ -185,6 +187,8 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--contract-root", default=str(SCRIPTS.parent))
     parser.add_argument("--staging", required=True, help="checkout of the pinned upstream commit")
+    parser.add_argument("--write", action="store_true",
+                        help="write the ledger; refused while a declared output does not exist")
     arguments = parser.parse_args(argv)
 
     try:
@@ -196,12 +200,25 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Routing is not usable: {error}", file=sys.stderr)
         return 2
 
+    contract = Path(arguments.contract_root).resolve()
     report(rows, len({row["source_path"] for row in rows}) + len([p for p in problems if "no route" in p]))
     for problem in problems:
         print(f"BLOCKED  {problem}", file=sys.stderr)
     if problems:
         print(f"{len(problems)} routing problem(s).", file=sys.stderr)
         return 1
+
+    if arguments.write:
+        # A route has no output by definition; anything else with no hash is a
+        # declared file that does not exist.
+        pending = [row for row in rows if row["target_sha256"] == "-" and row["action"] != "route"]
+        if pending:
+            print(f"Refusing to write: {len(pending)} row(s) declare an output that does not exist.",
+                  file=sys.stderr)
+            return 1
+        (contract / release.ARTIFACTS_NAME).write_bytes(release.artifacts_text(rows).encode("utf-8"))
+        print(f"Wrote {release.ARTIFACTS_NAME}: {len(rows)} rows. "
+              "The release_id is stamped by build-capability-release.py --write.")
     return 0
 
 
