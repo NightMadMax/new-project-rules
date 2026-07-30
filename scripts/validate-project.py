@@ -566,7 +566,17 @@ def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> li
             if match:
                 fields[match.group(1)] = match.group(2).strip().strip('"\'')
         rel = relative(path, root)
-        skill_frontmatter = "/.agents/skills/" in f"/{rel}" or "/.claude/skills/" in f"/{rel}"
+        skill_frontmatter = any(
+            marker in f"/{rel}" for marker in ("/.agents/skills/", "/.claude/skills/", "/.codex/skills/"))
+        # A client-owned definition is not one of our documents: an agent or a
+        # slash command is delivered byte for byte from upstream and carries the
+        # frontmatter its client reads. Demanding `type`/`status` there would
+        # require editing vendored payload the release records by hash.
+        client_owned = any(
+            marker in f"/{rel}"
+            for marker in ("/.claude/agents/", "/.codex/agents/", "/.claude/commands/", "/.codex/commands/"))
+        if client_owned:
+            continue
         required_fields = ("name", "description") if skill_frontmatter else ("type", "status")
         for required in required_fields:
             if not fields.get(required):
