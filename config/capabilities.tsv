@@ -202,10 +202,10 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confl
 1c	capabilities/1c/upstream/.codex/skills/openspec-explore/SKILL.md	.codex/skills/openspec-explore/SKILL.md	-	-	-	verbatim	managed
 1c	capabilities/1c/upstream/.codex/skills/openspec-propose/SKILL.md	.codex/skills/openspec-propose/SKILL.md	-	-	-	verbatim	managed
 1c	capabilities/1c/upstream/.dev.env.example	.dev.env.example	-	-	-	verbatim	managed
-1c	capabilities/1c/upstream/LLM-RULES.md	LLM-RULES.md	-	-	-	verbatim	seed
+1c	capabilities/1c/upstream/LLM-RULES.md	LLM-RULES.md	-	-	-	template	seed
 1c	capabilities/1c/upstream/References.md	References.md	-	-	-	verbatim	managed
-1c	capabilities/1c/upstream/USER-RULES.md	USER-RULES.md	-	-	-	verbatim	seed
-1c	capabilities/1c/upstream/memory.md	memory.md	-	-	-	verbatim	seed
+1c	capabilities/1c/upstream/USER-RULES.md	USER-RULES.md	-	-	-	template	seed
+1c	capabilities/1c/upstream/memory.md	memory.md	-	-	-	template	seed
 1c	capabilities/1c/upstream/openspec/README.md	openspec/README.md	-	-	-	verbatim	seed
 1c	capabilities/1c/upstream/openspec/changes/README.md	openspec/changes/README.md	-	-	-	verbatim	seed
 1c	capabilities/1c/upstream/openspec/config.yaml	openspec/config.yaml	-	-	-	verbatim	seed

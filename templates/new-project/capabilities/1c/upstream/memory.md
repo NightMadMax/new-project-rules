@@ -1,20 +1,19 @@
-# Memory
+# Память проекта <PROJECT_NAME>
 
-This file is the working project memory for AI agents.
+Проверенные долговременные факты обо всём проекте. Не журнал работы и не копия
+поискового индекса.
 
-Eligibility, routing between this file and `1c-templates-mcp` (`remember` / `recall`),
-fallback when the MCP server is unavailable — see `AGENTS.md → Project memory`.
-There are no permanent entries yet.
+Запись допустима, только если факт одновременно: относится ко всему проекту,
+критичен, стабилен, не выводится из правил и документации и не имеет более
+точного владельца. Иначе он идёт туда, где ему место: правила — в
+`USER-RULES.md`, дефекты — в `DEFECTS.md`, проверенные решения — в
+`PLAYBOOK.md`, параметры базы — в её карточку.
 
-Entry format (one entry = one self-contained rule). Use English for narrative,
-preserve original 1C identifiers (objects, modules, attributes) as-is:
+Запрещены: временные заметки, TODO, метрики одного запуска, снимки данных живой
+базы, credentials и персональные данные.
 
-<!--
-## YYYY-MM-DD — <short rule title>
+Формат записи: дата, область, факт, следствие, источник.
 
-- **Scope:** module / subsystem / object where the rule applies (e.g. `Документ.РеализацияТоваровУслуг`).
-- **Rule:** what must / must not be done.
-- **Why:** consequence of violation (production breakage / data loss / regulatory / data leak).
-- **Source:** user request, incident, or external document that established the rule.
--->
+## Факты
 
+- 

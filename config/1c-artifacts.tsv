@@ -3,10 +3,10 @@ ai_rules_1c	.dev.env.example	-	16d9ac4f7bfda604cd906522973fe27d01ca5f2bcacd5b57b
 ai_rules_1c	.gitignore	-	4f436e800b36a6f5346ea29ac9d5f9ceabedea7a749ac45452ce1ad0b279d144	route	project-ignore	provider-only	-	-
 ai_rules_1c	AGENT-INSTALL.md	-	0c25bc5e1bfb0a7453dfd396615978c6a0bdeb4207ec9c95c132d9573623fe11	route	provider-reference	provider-only	-	-
 ai_rules_1c	AGENTS.md	-	d28885f3ecbd144ec8ac1ba12cb4d7e758b0bfe01aba75ca947b82ddd0a29a5a	route	develop-1c	provider-only	-	-
-ai_rules_1c	LLM-RULES.md	-	1305ac8477c1699ef14c94db778a1c98b6dfd09524fdf25a83bb109590286ec2	copy	-	project-seed	LLM-RULES.md	1305ac8477c1699ef14c94db778a1c98b6dfd09524fdf25a83bb109590286ec2
+ai_rules_1c	LLM-RULES.md	-	1305ac8477c1699ef14c94db778a1c98b6dfd09524fdf25a83bb109590286ec2	adapt	project-llm-rules	project-seed	LLM-RULES.md	39004386f91939afe3eec2e32e7d5180d422a6521765dc96fc0b3279f4787400
 ai_rules_1c	README.md	-	a6c04c52cf3bde57b35bed288ae9aeaa9327bf68c77b750d009ea15f1d83ec25	route	user-guide	provider-only	-	-
 ai_rules_1c	References.md	-	b0e64e4125fb0d2c4206a606e0d60ecc7a833ae678888ab5d98d2953ff7666b5	copy	-	project-managed	References.md	b0e64e4125fb0d2c4206a606e0d60ecc7a833ae678888ab5d98d2953ff7666b5
-ai_rules_1c	USER-RULES.md	-	0ad234f88d65f2a0fefaf3110768fb85d626699a28f7472ea7ac9f6ee6ec9623	copy	-	project-seed	USER-RULES.md	0ad234f88d65f2a0fefaf3110768fb85d626699a28f7472ea7ac9f6ee6ec9623
+ai_rules_1c	USER-RULES.md	-	0ad234f88d65f2a0fefaf3110768fb85d626699a28f7472ea7ac9f6ee6ec9623	adapt	project-user-rules	project-seed	USER-RULES.md	5a3061c5790e1e2471adb781e175a38037f813e7ea2aa7817e1f2e8a9f257a98
 ai_rules_1c	adapters/claude-code.yaml	-	935425e5d18389caddfe3cf3c6e43bdb202f77d1d58a9bf403120a8a14743a0c	route	agent-projection	provider-only	-	-
 ai_rules_1c	adapters/cline.yaml	-	8bd22021df1e22ae1039fc051ad63ab1e9358c3ecbe4feff4ea9b3ef1bb5d556	route	provider-only-adapter	provider-only	-	-
 ai_rules_1c	adapters/codex.yaml	-	dd6e85b4a40566c2c4f115ad8330bb6d3d5c51e8dd1b017488eea5527bdcfb1b	route	agent-projection	provider-only	-	-
@@ -246,7 +246,7 @@ ai_rules_1c	content/skills/transcribe/SKILL.md	-	17f55ec19a083ce6311970d63b72f1d
 ai_rules_1c	content/skills/transcribe/scripts/transcribe.py	-	a0c15784ce4c2a4e6461834db5a390a5b8d9c8d180229b15a791eacf6a576a71	route	general-transcribe-plan	provider-only	-	-
 ai_rules_1c	content/skills/v8unpack-cf/SKILL.md	-	c3ac6cb7f318379cd4e55348783fb28e78f25b1293a5ff461e7b9af49fc39432	copy	-	project-managed	.agents/skills/v8unpack-cf/SKILL.md	c3ac6cb7f318379cd4e55348783fb28e78f25b1293a5ff461e7b9af49fc39432
 ai_rules_1c	install.ps1	-	2e58837404fc3e33f3ce622e9cafd7bc141cfb31f2e549d6236022f09b3fe2df	route	provider-reference	provider-only	-	-
-ai_rules_1c	memory.md	-	97bc96480a547c75a9bb045bd78379921ccb4cf7f4924b36d4390839541f84ce	copy	-	project-seed	memory.md	97bc96480a547c75a9bb045bd78379921ccb4cf7f4924b36d4390839541f84ce
+ai_rules_1c	memory.md	-	97bc96480a547c75a9bb045bd78379921ccb4cf7f4924b36d4390839541f84ce	adapt	project-memory	project-seed	memory.md	62e4a3b8702cfb81c04ba758fe38d519df5e4c44c704d22615d6ed0bee4594a9
 ai_rules_1c	openspec/README.md	-	beb45211a8837ef80e976038c74d9c786c3d7ebedebb7c636742295d7d7a28bf	copy	-	project-seed	openspec/README.md	beb45211a8837ef80e976038c74d9c786c3d7ebedebb7c636742295d7d7a28bf
 ai_rules_1c	openspec/changes/README.md	-	ebd6cfd66f6ced521728de8b9657f003703af57e462cfd8d6c69f55a8c16cbce	copy	-	project-seed	openspec/changes/README.md	ebd6cfd66f6ced521728de8b9657f003703af57e462cfd8d6c69f55a8c16cbce
 ai_rules_1c	openspec/config.yaml	-	01eda590a2da717a20252426b086307a33a76889f9463da8ce035c66d38ccf56	copy	-	project-seed	openspec/config.yaml	01eda590a2da717a20252426b086307a33a76889f9463da8ce035c66d38ccf56

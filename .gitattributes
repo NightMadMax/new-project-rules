@@ -6,3 +6,8 @@
 *.tsv text eol=lf
 *.py text eol=lf
 STANDARD_VERSION text eol=lf
+
+# Vendored payload is delivered byte for byte and the release records a hash of
+# those bytes, so git must not touch its line endings. The rules above would
+# check out the ~60 upstream .ps1 files as CRLF and every hash would miss.
+templates/new-project/capabilities/1c/upstream/** -text

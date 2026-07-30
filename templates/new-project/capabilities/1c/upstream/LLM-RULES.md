@@ -1,8 +1,17 @@
-# LLM Rules
+# Выведенные правила поведения агента
 
-Agent-maintained behavior rules for this project, written **only** by the `/evolve` command with per-entry user approval. Contract, precedence, capture discipline and entry format — `AGENTS.md → Rules self-improvement` and the `/evolve` command.
+Правила, которые агент вывел из повторяющейся практики, а пользователь явно
+одобрил. Обычные задачи этот файл не меняют: единственный, кто сюда пишет, —
+команда `evolve-1c-rules`, и она никогда не запускается сама.
 
-Last /evolve run: never
+Приоритет: системные и repository-ограничения → `USER-RULES.md` → этот файл →
+обычные правила 1С. Локальное правило не может ослабить проверки безопасности,
+гейты записи и production, защиту секретов или правила Git — такое предложение
+становится изменением стандарта, а не записью здесь.
+
+## Pending signals
+
+Замеченные, но ещё не одобренные сигналы.
 
 ## Active rules
 

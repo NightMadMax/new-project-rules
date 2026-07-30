@@ -197,6 +197,27 @@ def output_bytes(contract_root: Path, staging: Path, row: dict[str, str]) -> byt
     return agents.compile_agent(body, adapter, row["source_selector"]).encode("utf-8")
 
 
+def payload_class(row: dict[str, str]) -> str:
+    """How a delivered file may be installed, derived from who wrote its bytes.
+
+    `copy` and `compile` produce content this repository did not author — upstream
+    text, or a client definition rendered from it — and a substitution pass over
+    it would change bytes the ledger recorded a hash for; a literal `<YYYY-MM-DD>`
+    in an upstream README is an example, not a placeholder. An `adapt` output is
+    our own text under a declared adaptation, so it may carry our placeholders:
+    the ledger records the hash of the template as delivered, and substitution
+    happens when bootstrap copies it into a project, which never touches the
+    payload artifact.
+
+    Only a seed earns that. A managed target is compared against its desired hash
+    on every apply, and a rendered placeholder would read as drift on the first
+    run — which is why Э4 gave placeholder templates to bootstrap alone.
+    """
+    if row["action"] == "adapt" and row["ownership"] == "project-seed":
+        return "template"
+    return "verbatim"
+
+
 def materialize(contract_root: Path, staging: Path, rows: list[dict[str, str]]) -> dict[str, object]:
     """Write the payload and the delivery rows a created project is built from.
 
@@ -227,9 +248,7 @@ def materialize(contract_root: Path, staging: Path, rows: list[dict[str, str]]) 
         "source": f"capabilities/1c/upstream/{row['target_path']}",
         "destination": row["target_path"],
         "root_purpose": "-", "docs_section": "-", "docs_label": "-",
-        # Byte-exact: a substitution pass over vendored payload would change
-        # bytes the ledger recorded a hash for.
-        "payload_class": "verbatim",
+        "payload_class": payload_class(row),
         "policy": "managed" if row["ownership"] == "project-managed" else "seed",
     } for row in installed]
     return {"delivery": delivery, "written": written, "manifests": manifests}

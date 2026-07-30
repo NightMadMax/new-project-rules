@@ -1,0 +1,11 @@
+{
+  "source_path": "LLM-RULES.md",
+  "decision": "S.5.3",
+  "reason": "Upstream states the contract in one line and tracks a 'Last /evolve run' field. S.5.3 needs the precedence written out — protected system, repository and safety rules, then USER-RULES.md, then this file, then ordinary 1C rules — together with the floor a local rule may not lower, because a rule that weakens a security or write gate is a change to the standard rather than an entry here. The run field is deliberately not carried over: its writer is evolve-1c-rules (S.8), which does not exist yet, and a field nobody updates reads as 'never' forever. The anchor is the whole upstream file.",
+  "replacements": [
+    {
+      "find": "# LLM Rules\n\nAgent-maintained behavior rules for this project, written **only** by the `/evolve` command with per-entry user approval. Contract, precedence, capture discipline and entry format — `AGENTS.md → Rules self-improvement` and the `/evolve` command.\n\nLast /evolve run: never\n\n## Active rules\n\n## Superseded\n",
+      "replace": "# Выведенные правила поведения агента\n\nПравила, которые агент вывел из повторяющейся практики, а пользователь явно\nодобрил. Обычные задачи этот файл не меняют: единственный, кто сюда пишет, —\nкоманда `evolve-1c-rules`, и она никогда не запускается сама.\n\nПриоритет: системные и repository-ограничения → `USER-RULES.md` → этот файл →\nобычные правила 1С. Локальное правило не может ослабить проверки безопасности,\nгейты записи и production, защиту секретов или правила Git — такое предложение\nстановится изменением стандарта, а не записью здесь.\n\n## Pending signals\n\nЗамеченные, но ещё не одобренные сигналы.\n\n## Active rules\n\n## Superseded\n"
+    }
+  ]
+}
