@@ -106,7 +106,7 @@
       "tier": "optional-disabled"
     }
   ],
-  "release_id": "9f304996a809ba0700fc9b7d94e5d54f93c6a9777cf2a85f888baf5ee9471892",
+  "release_id": "3d3439abfb86a023bc2c96aab55cc967298ee7da2ac4fecff0a9c1a76fb53d3f",
   "schema_version": 1,
   "sources": [
     {
@@ -120,5 +120,5 @@
       "repository": "NightMadMax/best-practices"
     }
   ],
-  "version": "0.2.0"
+  "version": "0.3.0"
 }
