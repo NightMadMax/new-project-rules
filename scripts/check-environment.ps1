@@ -11,15 +11,49 @@ param(
 $ErrorActionPreference = "Stop"
 $script:Missing = 0
 
+function Test-Starts {
+    # Whether this exact file starts and answers. Every way it can fail is an
+    # answer about one candidate, never a reason to stop the check:
+    # under $ErrorActionPreference = "Stop" a native command that merely writes
+    # to stderr becomes a terminating error, and a file the OS refuses to run
+    # throws outright. A stale $LASTEXITCODE would otherwise speak for a call
+    # that never happened.
+    param([string]$Path)
+    $Previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $global:LASTEXITCODE = $null
+    try { & $Path --version *> $null }
+    catch { return $false }
+    finally { $ErrorActionPreference = $Previous }
+    return $LASTEXITCODE -eq 0
+}
+
+function Get-Launchable {
+    # A name on PATH is not a tool. An App Execution Alias is a zero-byte file
+    # that resolves like an executable and then refuses to run, and the working
+    # binary is often further along the same PATH - so every hit is tried, the
+    # zero-length ones without being started (starting one opens the Store).
+    # Canonical implementation and the known install locations outside PATH:
+    # scripts/cli_discovery.py, which needs Python this script cannot assume.
+    param([string]$Name)
+    foreach ($Command in @(Get-Command $Name -All -ErrorAction SilentlyContinue)) {
+        if ($Command.CommandType -ne "Application") { continue }
+        $Item = Get-Item $Command.Source -ErrorAction SilentlyContinue
+        if ($null -eq $Item -or $Item.Length -eq 0) { continue }
+        if (Test-Starts $Command.Source) { return $Command.Source }
+    }
+    $null
+}
+
 function Test-Has {
     param([string]$Name)
-    $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+    $null -ne (Get-Launchable $Name)
 }
 
 function Test-Required {
     param([string]$Name, [string]$Note)
     if (Test-Has $Name) { Write-Host "  [ ok ] $Name" }
-    else { Write-Host "  [MISS] $Name - $Note"; $script:Missing++ }
+    else { Write-Host "  [MISS] $Name - $Note (no launchable binary found)"; $script:Missing++ }
 }
 
 function Test-Recommended {
@@ -32,10 +66,10 @@ Write-Host "Required on this machine (agent mode: $AgentMode):"
 Test-Required "git" "version control"
 Test-Required "gh" "GitHub CLI for repos, pull requests, releases"
 if ($AgentMode -in @("codex", "both")) {
-    Test-Required "codex" "OpenAI Codex agent"
+    Test-Required "codex" "OpenAI Codex agent; outside PATH it is found by scripts/check-cli.ps1"
 }
 if ($AgentMode -in @("claude", "both")) {
-    Test-Required "claude" "Anthropic Claude Code agent"
+    Test-Required "claude" "Anthropic Claude Code agent; outside PATH it is found by scripts/check-cli.ps1"
 }
 $hasGit = Test-Has "git"
 

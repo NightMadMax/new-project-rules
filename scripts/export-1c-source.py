@@ -59,6 +59,15 @@ def main() -> int:
                         help="command converting XML back; the two directions are different commands")
     parser.add_argument("--source-option", default="--source", help="how the converter names its input")
     parser.add_argument("--target-option", default="--target", help="how the converter names its output")
+    # The real converter names the same directory differently depending on which
+    # way it is going: 1cedtcli exports with --project into --configuration-files
+    # and imports with --configuration-files into --project. One pair of names
+    # for both directions cannot express that, and the return would silently be
+    # given the export's flags (defect 166).
+    parser.add_argument("--back-source-option", default="",
+                        help="how the return names its input; defaults to --source-option")
+    parser.add_argument("--back-target-option", default="",
+                        help="how the return names its output; defaults to --target-option")
     parser.add_argument("--skip-determinism-check", action="store_true",
                         help="do not convert twice; halves the cost and drops the guarantee")
     parser.add_argument("--import", dest="do_import", action="store_true", help="return to the canon")
@@ -112,7 +121,9 @@ def main() -> int:
                 raise SourceError("There is no export to return from")
             result = import_back(
                 root, arguments.base, source, Path(stored["export"]),
-                converter(arguments.converter_back, arguments.source_option, arguments.target_option),
+                converter(arguments.converter_back,
+                          arguments.back_source_option or arguments.source_option,
+                          arguments.back_target_option or arguments.target_option),
             )
             print(f"[{result['action'].upper():9}] {result['reason'] or arguments.base}")
             if result["action"] != "review":

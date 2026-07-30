@@ -69,6 +69,7 @@
 | [[docs/reviews/archive/README|Review archive]] | Промежуточные review завершённых фаз NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/READINESS_1C\|docs/quality/READINESS_1C.md]] | Матрица готовности capability `1c`: критерий, статус, доказательство |
+| [[docs/quality/RUNTIME_SMOKE_1C\|docs/quality/RUNTIME_SMOKE_1C.md]] | Протокол runtime smoke 1С на Windows (веха W) |
 | [[docs/quality/DEFECTS|DEFECTS.md]] | Реестр обнаруженных и исправленных дефектов |
 | [[docs/quality/DEFECTS_ARCHIVE|DEFECTS_ARCHIVE.md]] | Архив консолидированных Fixed-записей журнала дефектов |
 | [[docs/quality/PLAYBOOK|PLAYBOOK.md]] | Реестр проверенных удачных паттернов и повторяемых good practices |
@@ -94,6 +95,10 @@
 | `scripts/add-agent-scope.ps1` | Правила для подкаталога (Windows) |
 | `scripts/check-environment.sh` | Проверка обязательной базы инструментов (macOS/Linux) |
 | `scripts/check-environment.ps1` | Проверка обязательной базы инструментов (Windows) |
+| `scripts/cli_discovery.py` | Поиск CLI по запускаемости: все совпадения `PATH`, места установки вне его, `skipped` с причиной |
+| `scripts/check-cli.sh` | POSIX-обёртка поиска CLI |
+| `scripts/check-cli.ps1` | PowerShell-обёртка поиска CLI |
+| `scripts/test-cli-discovery.py` | Тесты обнаружения: заглушка не запускается, рабочий бинарник за ней находится |
 | `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |
 | `scripts/test-contract.sh` | Parity contract и bootstrap outputs (macOS/Linux) |
