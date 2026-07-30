@@ -123,11 +123,17 @@ with tempfile.TemporaryDirectory() as raw:
             note("<PROJECT_NAME>" not in body, f"{relative} was not rendered")
             note("demo" in body, f"{relative} does not name the project")
 
-        # A skill that is not delivered is a rule nobody can follow.
+        # A skill that is not delivered is a rule nobody can follow, and a skill
+        # only Codex can see is a rule half the clients cannot follow (№154).
         for skill in SKILLS:
             for tail in ("SKILL.md", "agents/openai.yaml"):
                 note((project / f".agents/skills/{skill}/{tail}").is_file(),
                      f"scaffold is missing the {skill} {tail}")
+            bridge = project / f".claude/skills/{skill}/SKILL.md"
+            note(bridge.is_file(), f"scaffold is missing the Claude bridge for {skill}")
+            if bridge.is_file():
+                note(f"../../../.agents/skills/{skill}/SKILL.md" in bridge.read_text(encoding="utf-8"),
+                     f"the Claude bridge for {skill} does not point at the canonical skill")
 
         # Criterion 22: a role is only delivered when both clients can read it,
         # so the projection is checked per client rather than per role.
