@@ -626,7 +626,8 @@ def check_wikilinks(root: Path, files: Sequence[Path]) -> list[Finding]:
     return findings
 
 
-def check_content(root: Path, files: Sequence[Path], rules_repo: bool) -> list[Finding]:
+def check_content(root: Path, files: Sequence[Path], rules_repo: bool,
+                  byte_exact: frozenset[str] = frozenset()) -> list[Finding]:
     findings: list[Finding] = []
     for memory_path in RAW_MEMORY_PATHS:
         candidate = root.joinpath(*memory_path)
@@ -642,7 +643,11 @@ def check_content(root: Path, files: Sequence[Path], rules_repo: bool) -> list[F
         if text is None:
             continue
         in_template = rules_repo and rel.startswith("templates/new-project/")
-        if path.suffix.lower() == ".md" and not in_template:
+        # A byte-exact artifact is delivered as it was written upstream, and the
+        # release records its hash: a placeholder-looking token there is their
+        # text, not our unsubstituted template, and editing it would break the
+        # hash the delivery is verified by.
+        if path.suffix.lower() == ".md" and not in_template and rel not in byte_exact:
             for placeholder in PLACEHOLDERS:
                 if placeholder in text:
                     findings.append(Finding("ERROR", "placeholder.remaining", f"Template placeholder remains: {placeholder}.", rel))
@@ -936,7 +941,9 @@ def validate(
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))
     findings.extend(check_wikilinks(root, files))
-    findings.extend(check_content(root, files, kind == "rules"))
+    byte_exact = frozenset(row.destination for row in capability_rows
+                           if row.payload_class in ("verbatim", "binary"))
+    findings.extend(check_content(root, files, kind == "rules", byte_exact))
     if doctor:
         findings.extend(check_doctor_context(root, contract_root))
     return kind, profile, findings
