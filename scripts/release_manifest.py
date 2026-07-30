@@ -32,6 +32,11 @@ ARTIFACT_FIELDS = (
 ACTIONS = ("copy", "adapt", "compile", "route")
 DEPENDENCY_CLASSES = ("required", "conditional", "optional")
 OWNERSHIPS = ("project-managed", "project-seed", "provider-only", "pinned-external")
+BLOCKED, REVIEW = "blocked", "review"
+SEVERITIES = (BLOCKED, REVIEW)
+# The mandatory core stack of the capability, inside a Best Practices checkout.
+BEST_PRACTICES_SOURCE = "best-practices"
+PRACTICE_DIRECTORY = "practices/1c"
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 SHA_RE = re.compile(r"^[0-9a-f]{64}$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -48,6 +53,82 @@ def unsafe_path(value: str) -> bool:
 
 class ReleaseError(Exception):
     """The release passport or the artifact ledger is invalid."""
+
+
+class Finding(str):
+    """A finding that carries how badly it lands.
+
+    A flat list of sentences cannot say whether a release is unpublishable or
+    merely needs a human to look at it, so "требует semantic review" was
+    indistinguishable from "всё хорошо" and from "блокировано". The finding
+    stays a string — every caller that prints or greps one keeps working — and
+    gains the one thing that was missing.
+    """
+
+    severity: str
+
+    def __new__(cls, severity: str, message: str) -> "Finding":
+        if severity not in SEVERITIES:
+            raise ValueError(f"unknown severity: {severity}")
+        finding = super().__new__(cls, message)
+        finding.severity = severity
+        return finding
+
+
+def release_status(findings: Iterable[str]) -> str:
+    """`blocked`, `review-required` or `ready`.
+
+    A finding without a severity counts as blocking: an unclassified problem is
+    not a problem somebody decided was safe.
+    """
+    severities = {getattr(finding, "severity", BLOCKED) for finding in findings}
+    if BLOCKED in severities:
+        return "blocked"
+    if REVIEW in severities:
+        return "review-required"
+    return "ready"
+
+
+def practice_gate(best_practices_root: Path) -> list[Finding]:
+    """The mandatory core stack must contain a practice, not a promise.
+
+    Every 1C project created from the standard is wired to the Best Practices
+    stack `1c` and cannot drop it. Publishing a release while that index is
+    empty ships a mandatory element with nothing inside it (decision 1.29).
+    """
+    directory = best_practices_root / PRACTICE_DIRECTORY
+    if not directory.is_dir():
+        return [Finding(BLOCKED, f"{PRACTICE_DIRECTORY} does not exist in the Best Practices checkout")]
+
+    seen: list[str] = []
+    for path in sorted(directory.glob("*.md")):
+        if path.name == "README.md":
+            continue
+        fields = frontmatter(path)
+        status, evidence = fields.get("status", ""), fields.get("evidence", "")
+        seen.append(f"{path.name}: status={status or '—'}")
+        if status == "accepted" and evidence:
+            return []
+    if not seen:
+        return [Finding(BLOCKED, f"{PRACTICE_DIRECTORY} holds no practice; decision 1.29 blocks the first release")]
+    return [Finding(
+        BLOCKED,
+        f"{PRACTICE_DIRECTORY} has no accepted practice with evidence: {'; '.join(seen)}",
+    )]
+
+
+def frontmatter(path: Path) -> dict[str, str]:
+    lines = path.read_bytes().decode("utf-8").splitlines()
+    if not lines or lines[0] != "---":
+        return {}
+    fields: dict[str, str] = {}
+    for line in lines[1:]:
+        if line == "---":
+            break
+        if ":" in line and not line[:1].isspace():
+            key, value = line.split(":", 1)
+            fields[key.strip()] = value.strip().strip('"')
+    return fields
 
 
 def canonical_json(data: dict) -> str:
@@ -231,21 +312,33 @@ def compute_release_id(passport: dict, rows: Iterable[dict[str, str]]) -> str:
     return digest.hexdigest()
 
 
-def check_release(contract_root: Path) -> list[str]:
+def check_release(contract_root: Path) -> list[Finding]:
     """Everything the build must be able to answer before publishing."""
-    findings: list[str] = []
+    findings: list[Finding] = []
     try:
         passport = read_release(contract_root)
         rows = read_artifacts(contract_root, {source["name"] for source in passport["sources"]})
     except ReleaseError as error:
-        return [str(error)]
+        return [Finding(BLOCKED, str(error))]
 
     if len(rows) != passport["inventory_count"]:
-        findings.append(
+        findings.append(Finding(
+            BLOCKED,
             f"inventory is incomplete: {len(rows)} rows against inventory_count "
-            f"{passport['inventory_count']}"
-        )
+            f"{passport['inventory_count']}",
+        ))
     expected_id = compute_release_id(passport, rows)
     if passport["release_id"] != expected_id:
-        findings.append(f"release_id does not match the content: expected {expected_id}")
+        findings.append(Finding(BLOCKED, f"release_id does not match the content: expected {expected_id}"))
+
+    # Without this the practice gate is optional in practice: a passport that
+    # simply does not mention Best Practices never gets its checkout, so the
+    # gate never runs and the release looks clean. The mandatory core stack has
+    # to be a pinned source like any other.
+    if BEST_PRACTICES_SOURCE not in {source["name"] for source in passport["sources"]}:
+        findings.append(Finding(
+            BLOCKED,
+            f"sources must pin '{BEST_PRACTICES_SOURCE}': it carries the mandatory core stack "
+            f"{PRACTICE_DIRECTORY} (decision 1.29)",
+        ))
     return findings

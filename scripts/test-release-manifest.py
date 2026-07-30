@@ -58,7 +58,10 @@ def passport(**overrides) -> dict:
         "version": "0.1.0",
         "release_id": "0" * 64,
         "inventory_count": 1,
-        "sources": [{"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": "1" * 40}],
+        "sources": [
+            {"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": "1" * 40},
+            {"name": "best-practices", "repository": "NightMadMax/best-practices", "commit": "2" * 40},
+        ],
         "dependencies": [{"name": "Node.js", "class": "conditional", "reason": "md-to-docx"}],
         "mcp_roles": [{"role": "syntax", "provider_id": "1c-syntax-checker-mcp", "tier": "initial"}],
         "binaries": [{"name": "toolkit-read-only.epf", "sha256": "b" * 64, "application_kind": "ordinary"}],
@@ -247,7 +250,10 @@ with tempfile.TemporaryDirectory() as raw:
     ).stdout.strip()
 
     rows = [row()]
-    pinned = passport(sources=[{"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": head}])
+    pinned = passport(sources=[
+        {"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": head},
+        {"name": "best-practices", "repository": "NightMadMax/best-practices", "commit": "2" * 40},
+    ])
     write_release(root, pinned, rows)
 
     check = subprocess.run(
@@ -285,6 +291,60 @@ with tempfile.TemporaryDirectory() as raw:
     )
     note(check.returncode != 0, "a changed source must fail the build")
     note("source changed" in check.stderr, f"the changed file must be named: {check.stderr[-200:]}")
+
+# --- the gate runs on the checkout the build is given ----------------------
+
+
+def git_staging(path: Path, files: dict[str, str]) -> str:
+    for name, body in files.items():
+        target = path / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(body.encode("utf-8"))
+    subprocess.run(["git", "-C", str(path), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(path), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(path), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "staging"], check=True, capture_output=True,
+    )
+    return subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"],
+                          capture_output=True, text=True, check=True).stdout.strip()
+
+
+ACCEPTED = ("---\nid: PC-2026-000000000000\nstatus: accepted\n"
+            "evidence: \"два подтверждения\"\n---\n\n# Практика\n")
+EMPTY_INDEX = "# Индекс\n\nПринятых практик пока нет.\n"
+
+for case, files, expect_zero in (
+    ("an empty stack blocks the build", {"practices/1c/README.md": EMPTY_INDEX}, False),
+    ("an accepted practice lets it through",
+     {"practices/1c/README.md": EMPTY_INDEX, "practices/1c/PC-2026-000000000000-x.md": ACCEPTED}, True),
+):
+    with tempfile.TemporaryDirectory() as raw:
+        root = Path(raw) / "rules"
+        upstream = Path(raw) / "upstream"
+        (upstream / "content").mkdir(parents=True)
+        upstream_head = git_staging(upstream, {"content/a.md": "one\n"})
+        practices = Path(raw) / "best-practices"
+        practices.mkdir()
+        practices_head = git_staging(practices, files)
+
+        write_release(root, passport(sources=[
+            {"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": upstream_head},
+            {"name": "best-practices", "repository": "NightMadMax/best-practices", "commit": practices_head},
+        ]), [row()])
+
+        check = subprocess.run(
+            [sys.executable, str(SCRIPTS / "build-capability-release.py"),
+             "--contract-root", str(root),
+             "--staging", f"ai_rules_1c={upstream}", "--staging", f"best-practices={practices}"],
+            capture_output=True, text=True, encoding="utf-8", errors="replace",
+        )
+        note((check.returncode == 0) == expect_zero,
+             f"{case}: exit {check.returncode}, {check.stderr[-300:]}")
+        if not expect_zero:
+            note("practices/1c" in check.stderr, f"{case}: the stack must be named: {check.stderr[-200:]}")
+            note("blocked" in check.stdout, f"{case}: the status must be printed: {check.stdout[-200:]}")
+
 
 # --- writing a release is guarded -----------------------------------------
 
@@ -401,6 +461,79 @@ with tempfile.TemporaryDirectory() as raw:
 
     note((root / release.RELEASE_NAME).read_bytes() == before, "the upstream check must not modify the release")
 
+
+# --- the mandatory core stack must hold a practice (decision 1.29) ----------
+
+
+def practice(status: str, evidence: str = "две проверки") -> str:
+    return (
+        "---\n"
+        "id: PC-2026-000000000000\n"
+        f"status: {status}\n"
+        f"evidence: \"{evidence}\"\n"
+        "---\n\n# Практика\n"
+    )
+
+
+with tempfile.TemporaryDirectory() as raw:
+    checkout = Path(raw)
+    stack = checkout / release.PRACTICE_DIRECTORY
+
+    # The directory does not exist at all: the checkout is not a Best Practices
+    # base, and saying "no practice" would describe the wrong problem.
+    note(release.release_status(release.practice_gate(checkout)) == "blocked",
+         "a missing practices directory must block the release")
+    note(any("does not exist" in finding for finding in release.practice_gate(checkout)),
+         "the finding must name the missing directory")
+
+    stack.mkdir(parents=True)
+    (stack / "README.md").write_bytes("# Индекс\n".encode("utf-8"))
+    note(any("holds no practice" in finding for finding in release.practice_gate(checkout)),
+         "an index without practices must block: the README is not a practice")
+
+    # A trial practice is a promise, not a delivery: E1 is one confirmation.
+    (stack / "PC-2026-000000000000-trial.md").write_bytes(practice("trial").encode("utf-8"))
+    findings = release.practice_gate(checkout)
+    note(release.release_status(findings) == "blocked", "a trial practice must not open the gate")
+    note(any("status=trial" in finding for finding in findings),
+         f"the finding must name what was found instead: {findings}")
+
+    # Accepted with an empty evidence field is a status somebody typed, not a
+    # confirmation somebody has.
+    (stack / "PC-2026-000000000000-trial.md").unlink()
+    (stack / "PC-2026-000000000001-empty.md").write_bytes(practice("accepted", "").encode("utf-8"))
+    note(release.release_status(release.practice_gate(checkout)) == "blocked",
+         "an accepted practice without evidence must not open the gate")
+
+    (stack / "PC-2026-000000000002-real.md").write_bytes(practice("accepted").encode("utf-8"))
+    note(release.practice_gate(checkout) == [], "an accepted practice with evidence opens the gate")
+
+# --- the gate cannot be skipped by not mentioning it ------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw)
+    unpinned = passport(sources=[{"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": "1" * 40}])
+    write_release(root, unpinned, [row()])
+    findings = release.check_release(root)
+    note(any("mandatory core stack" in finding for finding in findings),
+         f"a passport that does not pin Best Practices must be blocked: {findings}")
+    note(release.release_status(findings) == "blocked", "the unpinned core stack must block, not warn")
+
+
+# --- three outcomes, not one list ------------------------------------------
+
+note(release.release_status([]) == "ready", "no findings means ready")
+note(release.release_status([release.Finding(release.REVIEW, "content changed")]) == "review-required",
+     "a review finding alone must not read as blocked")
+note(release.release_status([
+    release.Finding(release.REVIEW, "content changed"),
+    release.Finding(release.BLOCKED, "inventory is incomplete"),
+]) == "blocked", "one blocking finding decides the outcome")
+# An unclassified finding is not a finding somebody decided was safe.
+note(release.release_status(["a plain string"]) == "blocked", "a finding without severity must block")
+note(all(getattr(finding, "severity", None) == release.BLOCKED
+         for finding in release.check_release(Path(tempfile.gettempdir()) / "no-such-release-root")),
+     "an unreadable release is a blocking finding")
 
 if failures:
     for failure in failures:
