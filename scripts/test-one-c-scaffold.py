@@ -44,6 +44,16 @@ SKILLS = (
     "measure-1c-performance", "work-with-1c-edt", "add-1c-base", "activate-1c-client",
     "export-1c-source", "deploy-1c-source", "deploy-and-test-1c",
 )
+AGENT_ROLES = (
+    "analytic", "arch-reviewer", "architect", "code-reviewer", "developer",
+    "doc-writer", "error-fixer", "explorer", "metadata-manager",
+    "performance-optimizer", "planner", "refactoring", "tester",
+)
+OPENSPEC_WORKFLOWS = ("propose", "apply-change", "archive-change", "explore")
+OPENSPEC_SCAFFOLD = (
+    "openspec/README.md", "openspec/changes/README.md", "openspec/config.yaml",
+    "openspec/project.md", "openspec/specs/README.md",
+)
 SEED = (
     "docs/operations/TOOLCHAIN.md",
     "docs/quality/TEST_MODEL.md",
@@ -118,6 +128,23 @@ with tempfile.TemporaryDirectory() as raw:
             for tail in ("SKILL.md", "agents/openai.yaml"):
                 note((project / f".agents/skills/{skill}/{tail}").is_file(),
                      f"scaffold is missing the {skill} {tail}")
+
+        # Criterion 22: a role is only delivered when both clients can read it,
+        # so the projection is checked per client rather than per role.
+        for role in AGENT_ROLES:
+            note((project / f".claude/agents/{role}.md").is_file(),
+                 f"scaffold is missing the Claude projection of {role}")
+            note((project / f".codex/agents/{role}.toml").is_file(),
+                 f"scaffold is missing the Codex projection of {role}")
+
+        # Criterion 25: four workflows, both clients, and the scaffold they
+        # operate on — a workflow without its openspec tree has nothing to do.
+        for workflow in OPENSPEC_WORKFLOWS:
+            for client in (".claude", ".codex"):
+                note((project / f"{client}/skills/openspec-{workflow}/SKILL.md").is_file(),
+                     f"scaffold is missing the {client} openspec-{workflow} workflow")
+        for relative in OPENSPEC_SCAFFOLD:
+            note((project / relative).is_file(), f"scaffold is missing {relative}")
 
         scoped = (project / "configurations/AGENTS.md").read_text(encoding="utf-8")
         # The rules that must reach a working session, in the words the file uses.
