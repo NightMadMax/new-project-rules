@@ -43,18 +43,21 @@ def tracked_files(staging: Path) -> list[str]:
     return sorted(name for name in git_output(staging, "ls-files", "-z").split("\0") if name)
 
 
-def check_staging_state(staging: Path, source: dict) -> list[str]:
+def check_staging_state(staging: Path, source: dict) -> list[release.Finding]:
     """A pinned source is only pinned if staging actually sits on that commit."""
-    findings: list[str] = []
+    findings: list[release.Finding] = []
     toplevel = Path(git_output(staging, "rev-parse", "--show-toplevel").strip()).resolve()
     if toplevel != staging.resolve():
-        findings.append(f"staging is inside another repository ({toplevel}), not its root")
+        findings.append(release.Finding(
+            release.BLOCKED, f"staging is inside another repository ({toplevel}), not its root"))
         return findings
     head = git_output(staging, "rev-parse", "HEAD").strip()
     if head != source["commit"]:
-        findings.append(f"staging is on {head[:12]}, but the release pins {source['commit'][:12]}")
+        findings.append(release.Finding(
+            release.BLOCKED, f"staging is on {head[:12]}, but the release pins {source['commit'][:12]}"))
     if git_output(staging, "status", "--porcelain").strip():
-        findings.append("staging has uncommitted changes; a release cannot be built from it")
+        findings.append(release.Finding(
+            release.BLOCKED, "staging has uncommitted changes; a release cannot be built from it"))
     return findings
 
 
@@ -62,17 +65,18 @@ def digest_of(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def compare(staging: Path, rows: list[dict[str, str]], source_name: str) -> list[str]:
+def compare(staging: Path, rows: list[dict[str, str]], source_name: str) -> list[release.Finding]:
     """Every tracked file must have a row, and every row must match its file."""
-    findings: list[str] = []
+    findings: list[release.Finding] = []
     rows = [row for row in rows if row["source"] == source_name]
     declared = {row["source_path"] for row in rows}
     present = set(tracked_files(staging))
 
     for missing in sorted(present - declared):
-        findings.append(f"tracked file has no row: {missing}")
+        findings.append(release.Finding(release.BLOCKED, f"tracked file has no row: {missing}"))
     for extra in sorted(declared - present):
-        findings.append(f"row points at a file that is not in staging: {extra}")
+        findings.append(release.Finding(
+            release.BLOCKED, f"row points at a file that is not in staging: {extra}"))
 
     for row in rows:
         path = staging / row["source_path"]
@@ -80,7 +84,11 @@ def compare(staging: Path, rows: list[dict[str, str]], source_name: str) -> list
             continue
         actual = digest_of(path)
         if actual != row["source_sha256"]:
-            findings.append(f"source changed since the release was built: {row['source_path']}")
+            # A new source hash is not a broken release: it is content somebody
+            # has to read before it is republished (the plan calls this
+            # review-required).
+            findings.append(release.Finding(
+                release.REVIEW, f"source changed since the release was built: {row['source_path']}"))
     return findings
 
 
@@ -114,6 +122,12 @@ def main(argv: list[str] | None = None) -> int:
                 return 2
             staging = Path(path).resolve()
             findings.extend(check_staging_state(staging, by_name[name]))
+            if name == release.BEST_PRACTICES_SOURCE:
+                # A pinned external component is fixed by commit and checked for
+                # compatibility; its files are not inventoried, because the
+                # release must not create a second canonical copy of them (S.3).
+                findings.extend(release.practice_gate(staging))
+                continue
             findings.extend(compare(staging, rows, name))
     except release.ReleaseError as error:
         print(f"Release is not buildable: {error}", file=sys.stderr)
@@ -125,9 +139,12 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Refusing to write without staging for: {', '.join(missing)}", file=sys.stderr)
             return 2
         for finding in findings:
-            print(f"FAIL: {finding}", file=sys.stderr)
+            print(f"{finding.severity.upper():8} {finding}", file=sys.stderr)
         if findings:
-            print("Refusing to stamp a release over unresolved findings.", file=sys.stderr)
+            # Both statuses stop a write: `review-required` means a person has
+            # not yet looked, and stamping an identifier over unread content is
+            # what the status exists to prevent.
+            print(f"Refusing to stamp a release: status is {release.release_status(findings)}.", file=sys.stderr)
             return 1
         passport["inventory_count"] = len(rows)
         passport["release_id"] = release.compute_release_id(passport, rows)
@@ -136,11 +153,15 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Wrote release {passport['version']} ({passport['release_id'][:12]}…)")
         return 0
 
+    status = release.release_status(findings)
     for finding in findings:
-        print(f"FAIL: {finding}", file=sys.stderr)
-    if findings:
-        print(f"{len(findings)} release check(s) failed.", file=sys.stderr)
+        print(f"{finding.severity.upper():8} {finding}", file=sys.stderr)
+    print(f"Release status: {status}")
+    if status == "blocked":
         return 1
+    if status == "review-required":
+        print("Changed content needs a human decision before this release is republished.")
+        return 0
     print(f"Release {passport['version']} ({passport['release_id'][:12]}…) is consistent: {len(rows)} artifacts.")
     return 0
 

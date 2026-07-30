@@ -217,14 +217,29 @@ Read-only проверка и secret-safe diff переносимых глоба
 клоном upstream:
 
 ```sh
-python3 scripts/build-capability-release.py --staging ai_rules_1c=../ai_rules_1c
+python3 scripts/build-capability-release.py   --staging ai_rules_1c=../ai_rules_1c   --staging best-practices="../Best Practices"
 ```
 
-Команда read-only. Запись нового `release_id` требует staging для каждого
-источника, чистого дерева на pinned commit и отсутствия находок:
+Команда read-only и печатает один из трёх исходов:
+
+- `ready` — выпускать можно;
+- `review-required` — содержимое источника изменилось, и это должен прочитать
+  человек; код возврата ноль, но `--write` откажет;
+- `blocked` — неполный инвентарь, расхождение `release_id`, staging не на
+  pinned commit или пустой стек практик.
+
+Staging нужен для **каждого** объявленного источника. `best-practices` — pinned
+external component: его файлы не инвентаризуются (release не создаёт второй
+канонический экземпляр), но проверяется гейт решения 1.29 — в `practices/1c`
+обязана быть хотя бы одна практика со `status: accepted` и непустым `evidence`.
+Паспорт, который не объявляет `best-practices` в `sources`, блокируется: иначе
+гейт молча не запускался бы.
+
+Запись нового `release_id` требует staging для каждого источника, чистого дерева
+на pinned commit и исхода `ready`:
 
 ```sh
-python3 scripts/build-capability-release.py --staging ai_rules_1c=../ai_rules_1c --write
+python3 scripts/build-capability-release.py   --staging ai_rules_1c=../ai_rules_1c   --staging best-practices="../Best Practices" --write
 ```
 
 Выпуск фиксируется прямым push в `main` — это признанный admin-bypass защиты, и
