@@ -54,6 +54,7 @@ jobs:
           python3 scripts/test-one-c-scaffold.py
           python3 scripts/test-1c-clients.py
           python3 scripts/test-1c-source.py
+          python3 scripts/test-cli-discovery.py
           python3 scripts/test-1c-readiness.py
           python3 scripts/test-no-secrets.py
       - name: Validator report
@@ -111,6 +112,7 @@ jobs:
             "test-one-c-scaffold.py",
             "test-1c-clients.py",
             "test-1c-source.py",
+            "test-cli-discovery.py",
             "test-1c-readiness.py",
             "test-no-secrets.py"
           )) {

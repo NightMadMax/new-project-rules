@@ -11,11 +11,17 @@ case "$agent_mode" in
   *) echo "Usage: $0 [codex|claude|both]" >&2; exit 2 ;;
 esac
 
-has() { command -v "$1" >/dev/null 2>&1; }
+# A name that resolves is not a tool that starts: a file without the execute
+# bit, or a wrapper pointing at a moved installation, resolves just as well.
+# The canonical implementation, with the install locations outside PATH, is
+# scripts/cli_discovery.py — which needs Python this script cannot assume.
+has() {
+  command -v "$1" >/dev/null 2>&1 && "$1" --version >/dev/null 2>&1
+}
 
 req() {
   if has "$1"; then printf '  [ ok ] %s\n' "$1"
-  else printf '  [MISS] %s — %s\n' "$1" "$2"; missing=$((missing + 1)); fi
+  else printf '  [MISS] %s — %s (не найден запускаемый бинарник)\n' "$1" "$2"; missing=$((missing + 1)); fi
 }
 
 rec() {
@@ -26,8 +32,8 @@ rec() {
 echo "Required on this machine (agent mode: $agent_mode):"
 req git "version control"
 req gh "GitHub CLI for repos, pull requests, releases"
-case "$agent_mode" in codex|both) req codex "OpenAI Codex agent" ;; esac
-case "$agent_mode" in claude|both) req claude "Anthropic Claude Code agent" ;; esac
+case "$agent_mode" in codex|both) req codex "OpenAI Codex agent; вне PATH его найдёт scripts/check-cli.sh" ;; esac
+case "$agent_mode" in claude|both) req claude "Anthropic Claude Code agent; вне PATH его найдёт scripts/check-cli.sh" ;; esac
 
 echo
 echo "Authentication and credentials:"

@@ -148,6 +148,29 @@ Read-only проверка структуры проекта или набора
   `--doctor`, `--report-only`.
 - Когда вручную: быстрая структурная проверка, локально или в CI.
 
+### Поиск CLI по запускаемости
+
+Отвечает не на вопрос «есть ли имя в `PATH`», а на вопрос «запускается ли
+программа». Имя в `PATH` — это не программа: на Windows первым по имени
+отвечает нулевой файл App Execution Alias, который не запускается, а рабочий
+бинарник часто лежит вне `PATH` — в профиле пользователя или внутри каталога
+компонента EDT.
+
+```sh
+sh scripts/check-cli.sh codex claude
+sh scripts/check-cli.sh 1cedtcli --json
+```
+
+```powershell
+.\scripts\check-cli.ps1 codex claude
+```
+
+- Известные инструменты: `codex`, `claude`, `1cedtcli`, `docker`, `git`, `gh`;
+  любое другое имя ищется только в `PATH`.
+- `skipped` — не отказ: команда завершается нулём и печатает, что пробовали и
+  почему отклонили. `--require` превращает `skipped` в ошибку.
+- Когда вручную: «инструмент установлен, а проверка его не видит» и наоборот.
+
 ### Компрессия проекта
 
 Уровень-1 уборка накопившегося «мусора»: отчёт по умолчанию, `--apply` делает
@@ -255,9 +278,22 @@ sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --release
 команда даёт `SKIP`: маршрут недоступен, проект не сломан. Для базы с
 `source_format = designer-xml` конвертация пропускается.
 
-Команда конвертера и имена её параметров задаются снаружи
-(`--source-option`, `--target-option`): фактическая форма CLI ещё не
-зафиксирована — дефект №166. По умолчанию дерево конвертируется дважды, чтобы
+Конвертер — `1cedtcli` из поставки EDT. Он не попадает в `PATH`; найти его
+можно `sh scripts/check-cli.sh 1cedtcli` (в PowerShell —
+`.\scripts\check-cli.ps1 1cedtcli`). Направления — разные команды CLI, и одни и
+те же каталоги они называют разными параметрами:
+
+```sh
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev \
+  --converter "<путь>/1cedtcli -data <рабочая область> -command export" \
+  --source-option=--project --target-option=--configuration-files
+sh scripts/export-1c-source.sh --root ../my-project --base erp/dev --import \
+  --converter-back "<путь>/1cedtcli -data <рабочая область> -command import" \
+  --back-source-option=--configuration-files --back-target-option=--project
+```
+
+Запись через `=` обязательна: значение начинается с дефиса и иначе будет
+разобрано как отдельный флаг. По умолчанию дерево конвертируется дважды, чтобы
 проверить детерминизм: это удваивает время и место. `--skip-determinism-check`
 снимает проверку и печатает `WARN`.
 

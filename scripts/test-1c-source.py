@@ -19,6 +19,7 @@ sys.path.insert(0, str(SCRIPTS))
 import one_c_source as source_module  # noqa: E402
 
 failures: list[str] = []
+skips: list[str] = []
 TEMP = Path(tempfile.gettempdir())
 # What was already there. A test that studies leftovers must not become their
 # source: everything this run creates is removed at the end, and nothing else.
@@ -381,30 +382,53 @@ with tempfile.TemporaryDirectory() as raw:
 
 # --- what cannot be carried across quietly -----------------------------------
 
-with tempfile.TemporaryDirectory() as raw:
-    # A symlink is copied into the canon but neither measured nor shown, so a
-    # changed target would land without ever appearing in a review.
-    root, tree = canon_project(Path(raw))
-    (tree / "src/link.mdo").symlink_to(tree / "src/Configuration.mdo")
-    try:
-        source_module.export(root, BASE, tree, "edt", fake_convert)
-        failures.append("a symlink in the canon must be refused")
-    except source_module.SourceError:
-        pass
-    (tree / "src/link.mdo").unlink()
 
-    result = source_module.export(root, BASE, tree, "edt", fake_convert)
-    staging = Path(raw) / "staging"
-    make_tree(staging, {"src/Configuration.mdo": "replacement"})
-    (staging / "src/link.mdo").symlink_to(staging / "src/Configuration.mdo")
-    try:
-        source_module.accept(root, tree, staging)
-        failures.append("a symlink in the staged tree must be refused")
-    except source_module.SourceError:
-        pass
-    note((tree / "src/Configuration.mdo").read_bytes() == b"configuration", "the refusal must keep the canon")
-    source_module.release(root, BASE)
-    cleanup(root)
+def symlinks_allowed() -> bool:
+    """Windows gives an ordinary account no right to create one.
+
+    The CI runner does, so the case is covered there; on a workstation the test
+    would otherwise fail on a privilege rather than on the behaviour it checks.
+    """
+    with tempfile.TemporaryDirectory() as probe:
+        target = Path(probe) / "target"
+        target.write_bytes(b"")
+        try:
+            (Path(probe) / "link").symlink_to(target)
+        except (OSError, NotImplementedError):
+            return False
+    return True
+
+
+SYMLINKS = symlinks_allowed()
+if not SYMLINKS:
+    skips.append("отказ по символическим ссылкам: у учётной записи нет права их создавать")
+
+if SYMLINKS:
+    with tempfile.TemporaryDirectory() as raw:
+        # A symlink is copied into the canon but neither measured nor shown, so
+        # a changed target would land without ever appearing in a review.
+        root, tree = canon_project(Path(raw))
+        (tree / "src/link.mdo").symlink_to(tree / "src/Configuration.mdo")
+        try:
+            source_module.export(root, BASE, tree, "edt", fake_convert)
+            failures.append("a symlink in the canon must be refused")
+        except source_module.SourceError:
+            pass
+        (tree / "src/link.mdo").unlink()
+
+        result = source_module.export(root, BASE, tree, "edt", fake_convert)
+        staging = Path(raw) / "staging"
+        make_tree(staging, {"src/Configuration.mdo": "replacement"})
+        (staging / "src/link.mdo").symlink_to(staging / "src/Configuration.mdo")
+        try:
+            source_module.accept(root, tree, staging)
+            failures.append("a symlink in the staged tree must be refused")
+        except source_module.SourceError:
+            pass
+        note((tree / "src/Configuration.mdo").read_bytes() == b"configuration",
+             "the refusal must keep the canon")
+        source_module.release(root, BASE)
+        cleanup(root)
 
 with tempfile.TemporaryDirectory() as raw:
     # A report has to fit on a screen: a tree where everything changed would
@@ -717,6 +741,41 @@ with tempfile.TemporaryDirectory() as raw:
         run_cli(root, "--release", converter=command)
     cleanup(root)
 
+    # --- the return names the directories with its own flags (defect 166) -----
+    # 1cedtcli exports --project into --configuration-files and imports
+    # --configuration-files into --project. One pair of names for both
+    # directions would hand the return the export's flags, and the return would
+    # read the canon as if it were the export.
+    asymmetric = Path(raw) / "converter-back-asymmetric.py"
+    asymmetric.write_bytes(
+        "import sys, pathlib\n"
+        "target = pathlib.Path(sys.argv[sys.argv.index('--project') + 1])\n"
+        "source = pathlib.Path(sys.argv[sys.argv.index('--configuration-files') + 1])\n"
+        "target.mkdir(parents=True, exist_ok=True)\n"
+        "for path in sorted(p for p in source.rglob('*') if p.is_file()):\n"
+        "    out = target / path.relative_to(source).as_posix()[:-len('.xml')]\n"
+        "    out.parent.mkdir(parents=True, exist_ok=True)\n"
+        "    out.write_bytes(path.read_bytes())\n".encode("utf-8")
+    )
+    run_cli(root, converter=command)
+    export_line = run_cli(root, converter=command).stdout
+    asymmetric_back = f"{sys.executable} {asymmetric}"
+    returned = subprocess.run(
+        [sys.executable, str(CLI), "--root", str(root), "--base", "erp/dev",
+         "--converter", command, "--converter-back", asymmetric_back,
+         # Written with "=": a value that starts with a dash is an option to
+         # argparse, and the real flags all start with one.
+         "--back-source-option=--configuration-files", "--back-target-option=--project",
+         "--import"],
+        capture_output=True, text=True, encoding="utf-8", errors="replace",
+    )
+    note("UNCHANGED" in returned.stdout or "M " in returned.stdout,
+         f"the return must run with its own option names: {returned.stdout}{returned.stderr}")
+    note("cannot be started" not in returned.stderr and "Traceback" not in returned.stderr,
+         f"the return must not fail on the export's flags: {returned.stderr[:300]}")
+    run_cli(root, "--release", converter=command)
+    cleanup(root)
+
 for path in TEMP.glob("new-project-rules-1c-*"):
     if path.name in BEFORE:
         continue
@@ -730,5 +789,8 @@ if failures:
         print(f"FAIL: {failure}", file=sys.stderr)
     print(f"{len(failures)} source format check(s) failed.", file=sys.stderr)
     raise SystemExit(1)
+
+for message in skips:
+    print(f"SKIP: {message}")
 
 print("All 1C source format checks passed.")

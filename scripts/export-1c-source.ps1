@@ -13,6 +13,13 @@ param(
 
     [string]$TargetOption = "--target",
 
+    # The return names the same directories with the other flags: 1cedtcli
+    # exports --project into --configuration-files and imports the other way
+    # round. Empty means "same as the export" (defect 166).
+    [string]$BackSourceOption = "",
+
+    [string]$BackTargetOption = "",
+
     [switch]$SkipDeterminismCheck,
 
     [switch]$Import,
@@ -38,7 +45,7 @@ if ($null -eq $Python) {
 }
 
 $Exporter = Join-Path $PSScriptRoot "export-1c-source.py"
-$Arguments = @($Exporter, "--root", $Root, "--base", $Base, "--converter", $Converter, "--converter-back", $ConverterBack, "--source-option", $SourceOption, "--target-option", $TargetOption)
+$Arguments = @($Exporter, "--root", $Root, "--base", $Base, "--converter", $Converter, "--converter-back", $ConverterBack, "--source-option", $SourceOption, "--target-option", $TargetOption, "--back-source-option", $BackSourceOption, "--back-target-option", $BackTargetOption)
 if ($SkipDeterminismCheck) { $Arguments += "--skip-determinism-check" }
 if ($Import) { $Arguments += "--import" }
 if ($Apply) { $Arguments += "--apply" }
