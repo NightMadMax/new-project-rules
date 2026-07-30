@@ -66,12 +66,18 @@ class Finding(str):
     """
 
     severity: str
+    stamped: bool
 
-    def __new__(cls, severity: str, message: str) -> "Finding":
+    def __new__(cls, severity: str, message: str, stamped: bool = False) -> "Finding":
         if severity not in SEVERITIES:
             raise ValueError(f"unknown severity: {severity}")
         finding = super().__new__(cls, message)
         finding.severity = severity
+        # `stamped` marks what --write itself recomputes. Such a finding blocks a
+        # check — the file on disk really is out of date — but must not block the
+        # write that fixes it, or a freshly authored passport could never be
+        # stamped at all.
+        finding.stamped = stamped
         return finding
 
 
@@ -326,10 +332,12 @@ def check_release(contract_root: Path) -> list[Finding]:
             BLOCKED,
             f"inventory is incomplete: {len(rows)} rows against inventory_count "
             f"{passport['inventory_count']}",
+            stamped=True,
         ))
     expected_id = compute_release_id(passport, rows)
     if passport["release_id"] != expected_id:
-        findings.append(Finding(BLOCKED, f"release_id does not match the content: expected {expected_id}"))
+        findings.append(Finding(
+            BLOCKED, f"release_id does not match the content: expected {expected_id}", stamped=True))
 
     # Without this the practice gate is optional in practice: a passport that
     # simply does not mention Best Practices never gets its checkout, so the

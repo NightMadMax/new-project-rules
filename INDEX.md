@@ -105,6 +105,8 @@
 | `scripts/one_c_agents.py` | Компиляция agent-проекций Codex и Claude по спецификации upstream-адаптеров |
 | `scripts/one_c_adaptations.py` | Применение объявленных адаптаций upstream: якорь обязан совпасть ровно один раз |
 | `config/1c-adaptations/` | Адаптации upstream-файлов: замены, решение плана и причина, по одной на файл |
+| `config/1c-release.json` | Паспорт release capability `1c`: версия, pinned источники, зависимости, MCP-роли |
+| `config/1c-artifacts.tsv` | Ledger: строка на каждый source-файл с действием, владением, целью и хэшами |
 | `scripts/test-1c-upstream-routing.py` | Проверяет покрытие 241 файла маршрутами и саму развёртку |
 | `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |

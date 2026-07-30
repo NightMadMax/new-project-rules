@@ -149,6 +149,9 @@ def main(argv: list[str] | None = None) -> int:
         if missing:
             print(f"Refusing to write without staging for: {', '.join(missing)}", file=sys.stderr)
             return 2
+        # The count and the identifier are what this command recomputes, so
+        # they cannot be the reason it refuses to run.
+        findings = [finding for finding in findings if not getattr(finding, "stamped", False)]
         for finding in findings:
             print(f"{finding.severity.upper():8} {finding}", file=sys.stderr)
         if findings:
