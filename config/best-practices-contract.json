@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "NightMadMax/best-practices",
-  "source_commit": "02daf1e1fb9c1c7676f7a28c5b192ef42a217008",
+  "source_commit": "247597bd9bd18b21d55eddf38bd0ed846d063b74",
   "supported_practice_statuses": ["accepted"],
   "retired_routes": ["harvest-project-lessons"],
   "active_routing_surfaces": [
@@ -24,7 +24,7 @@
   },
   "required_files": {
     ".agents/skills/apply-best-practices/SKILL.md": "c0d7e19ffcd61cb08f010049de6882918c9d6963478adc37c7977d158e79146a",
-    ".agents/skills/harvest-practice-candidates/SKILL.md": "9f2712ca015fbf698fb253fd952a70baca67e1b616eb0e6190de1fc047be1040",
+    ".agents/skills/harvest-practice-candidates/SKILL.md": "fec94c4d122c3ea5bfaedfab9106756ee26a692f9135adf7861a734c2afe2110",
     ".agents/skills/review-practice-candidates/SKILL.md": "0392ca2b63f2b1d868cab5803eb7c2968640569dd2718c9edc1c50be06c42d42",
     "docs/architecture/decisions/ADR-0006-versioned-consumer-manifest.md": "0d833f415ba9c72e3cbc33c43ec505f77a2813fc51cf3ecb1a6903b9cd0cd214",
     "docs/reference/PRACTICE_SCHEMA.md": "7e7dd63fe28215606849a13ef39d3d1fea8fbaeead2e4933343eea46545b6028",
