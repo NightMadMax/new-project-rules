@@ -21,7 +21,9 @@ PLAN = ROOT / "docs/architecture/ONE_C_CAPABILITY_PLAN.md"
 MATRIX = ROOT / "docs/quality/READINESS_1C.md"
 DEFECTS = ROOT / "docs/quality/DEFECTS.md"
 TOOLS = ROOT / "TOOLS.md"
-STATUSES = ("тест", "частично", "Windows", "не выполнено")
+STATUSES = ("тест", "частично", "Windows", "не выполнено", "отложено")
+# "решение 1.16" and "решение S.9.1" are both decision identifiers of the plan.
+DECISION = re.compile(r"^решение [0-9S]\S*$")
 TESTING = ROOT / "docs/quality/TESTING.md"
 CI = ROOT / ".github/workflows/ci.yml"
 CONDITIONAL = ("Node.js", "Pillow", "OpenSpec", "v8unpack", "YAxUnit", "BSL Language Server")
@@ -173,6 +175,12 @@ for row in rows:
     elif row["status"] == "Windows":
         note("веха" in row["evidence"].lower(),
              f"{where}: a Windows criterion must point at the milestone, not '{row['evidence']}'")
+    elif row["status"] == "отложено":
+        # Deferred by a decision, which the plan says is not a defect. Pointing
+        # at a defect number here would invent one; pointing at the decision
+        # says who has to reopen the question before the criterion can move.
+        note(DECISION.match(row["evidence"].strip()) is not None,
+             f"{where}: a deferred criterion must name its decision, not '{row['evidence']}'")
 
     # The row must still be about the criterion it claims to be about: a
     # reformulation in the plan has to reach the matrix, not sit unnoticed.
@@ -185,12 +193,13 @@ for row in rows:
 summary = section(read(MATRIX), "## Итог", "the matrix")
 counts = {name: sum(1 for row in rows if row["status"] == name) for name in STATUSES}
 stated = re.search(
-    r"Из (\d+) критери\w+: `тест` — (\d+), `частично` — (\d+), `Windows` — (\d+), `не выполнено` — (\d+)",
+    r"Из (\d+) критери\w+: `тест` — (\d+), `частично` — (\d+), `Windows` — (\d+), "
+    r"`не выполнено` — (\d+), `отложено` — (\d+)",
     summary)
 if stated is None:
     failures.append("the summary must state the counts in one parsable line")
 else:
-    total, by_status = int(stated.group(1)), [int(stated.group(index)) for index in (2, 3, 4, 5)]
+    total, by_status = int(stated.group(1)), [int(stated.group(index)) for index in (2, 3, 4, 5, 6)]
     note(total == len(rows), f"the summary says {total} criteria against {len(rows)} rows")
     note(by_status == [counts[name] for name in STATUSES],
          f"the summary says {by_status} against {[counts[name] for name in STATUSES]}")

@@ -30,7 +30,11 @@ MANIFEST = "config/skills.tsv"
 CAPABILITIES = "config/capabilities.tsv"
 HEADER = ["skill", "class", "root", "bridge", "payload_manifest"]
 CLASSES = ("canonical", "vendored")
-BRIDGE_VALUES = ("required", "none")
+# "required" is a bridge in this repository; "delivered" is a bridge a capability
+# installs into a created project, where the canonical skill also lands. The two
+# cannot be the same value: this repository must not grow a .claude/skills entry
+# for a skill it does not itself provide.
+BRIDGE_VALUES = ("required", "none", "delivered")
 CANONICAL_ROOT = "agents/skills"
 BRIDGE_ROOT = ".claude/skills"
 
@@ -185,7 +189,8 @@ def check_bridge(root: Path, row: dict[str, str], description: str) -> list[str]
     return failures
 
 
-def check_canonical(root: Path, row: dict[str, str]) -> list[str]:
+def check_canonical(root: Path, row: dict[str, str],
+                    delivered: dict[str, str] | None = None) -> list[str]:
     name = row["skill"]
     skill_dir = root / row["root"] / name
     canonical = skill_dir / "SKILL.md"
@@ -202,6 +207,8 @@ def check_canonical(root: Path, row: dict[str, str]) -> list[str]:
         failures.append(f"non-ASCII UI metadata in {shown(metadata, root)}")
     if row["bridge"] == "required":
         failures.extend(check_bridge(root, row, description))
+    elif row["bridge"] == "delivered":
+        failures.extend(check_delivered_bridge(root, row, description, delivered or {}))
     return failures
 
 
@@ -244,6 +251,54 @@ def check_vendored(root: Path, row: dict[str, str]) -> list[str]:
     if row["bridge"] == "required":
         failures.extend(check_bridge(root, row, ""))
     return failures
+
+
+def check_delivered_bridge(root: Path, row: dict[str, str], description: str,
+                           delivered: dict[str, str]) -> list[str]:
+    """A bridge a capability installs, checked where it lives and where it goes.
+
+    The file existing is not the claim. The claim is that a created project ends
+    up with the bridge, so the row of `config/capabilities.tsv` that installs it
+    is part of the check: a bridge template nobody delivers is a file, not a
+    bridge, and that is exactly the shape defects 145 and 154 had.
+    """
+    name = row["skill"]
+    # The canonical skill sits at <capability>/.agents/skills/<name>; its bridge
+    # is the same capability's .claude/skills/<name>.
+    # row["root"] is <capability>/.agents/skills, so the capability is two up.
+    source = Path(row["root"]).parent.parent / BRIDGE_ROOT / name / "SKILL.md"
+    bridge = root / source
+    if not bridge.is_file():
+        return [f"missing {shown(bridge, root)}"]
+    failures, bridge_description = check_document(bridge, name, "bridge", root)
+    if description and bridge_description != description:
+        failures.append(f"description mismatch between canonical and bridge for {name}")
+    text, error = read_text(bridge)
+    if not error:
+        # Relative to the bridge inside the created project, not inside this
+        # repository: three levels up from .claude/skills/<name> is the root.
+        target = f"../../../.{CANONICAL_ROOT}/{name}/SKILL.md"
+        if target not in text:
+            failures.append(f"bridge for {name} must point at {target}")
+    installed = f"{BRIDGE_ROOT}/{name}/SKILL.md"
+    declared = source.as_posix().split("templates/new-project/", 1)[-1]
+    if delivered.get(installed) != declared:
+        failures.append(
+            f"bridge for {name} is not delivered: {CAPABILITIES} must install {declared} as {installed}")
+    return failures
+
+
+def delivered_targets(root: Path) -> tuple[dict[str, str], list[str]]:
+    """Destination -> source for every row of the capability manifest."""
+    path = root / CAPABILITIES
+    if not path.is_file():
+        return {}, [f"missing {CAPABILITIES}: delivered bridges cannot be checked"]
+    text, error = read_text(path)
+    if error:
+        return {}, [error]
+    rows = csv.DictReader(io.StringIO(text), delimiter="\t")
+    return {(row.get("destination") or "").strip(): (row.get("source") or "").strip()
+            for row in rows}, []
 
 
 def capability_skill_roots(root: Path) -> tuple[set[str], list[str]]:
@@ -296,13 +351,15 @@ def check_coverage(root: Path, rows: list[dict[str, str]]) -> list[str]:
 def check_all(root: Path) -> list[str]:
     rows = read_manifest(root)
     failures: list[str] = []
+    delivered, delivery_failures = delivered_targets(root)
+    failures.extend(delivery_failures)
     for row in rows:
         skill_dir = root / row["root"] / row["skill"]
         if not skill_dir.is_dir():
             failures.append(f"missing skill directory {row['root']}/{row['skill']}")
             continue
         if row["class"] == "canonical":
-            failures.extend(check_canonical(root, row))
+            failures.extend(check_canonical(root, row, delivered))
         else:
             failures.extend(check_vendored(root, row))
     failures.extend(check_coverage(root, rows))

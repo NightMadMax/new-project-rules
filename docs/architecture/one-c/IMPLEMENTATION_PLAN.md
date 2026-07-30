@@ -395,13 +395,17 @@ read-only и allowlist `doctor-1c`, `SKIP` по отсутствующему CLI
 live-base skill без session lock — у них нет машинного исполнителя, пока не
 импортирован upstream.
 
-Не сделано и ждёт импорта upstream (Э6): `develop-1c` с адаптированными
-references, принятые upstream skills побайтно, command-owner workflows,
-13 agent-проекций и тонкие мосты Claude. Эти пункты нельзя выполнить, не имея
-upstream: адаптировать нечего, а придуманное содержимое стало бы вторым
-каноном. Следствие моста: до Э6 capability-skills видит только Codex, поэтому
-правила 1, 2, 5, 7 и 8 подняты в scoped `AGENTS.md` — см. остаточные риски
-мастер-плана и дефект №154.
+Сделано 2026-07-31 после доставки: принятые upstream skills побайтно,
+13 agent-проекций в обоих клиентах и тонкие мосты Claude — последние получили
+своё значение в манифесте (`bridge: delivered`), потому что мост, который
+capability ставит в созданный проект, нечем было отличить от отсутствующего.
+Дефекты №145 и №154 закрыты; подъём правил 1, 2, 5, 7 и 8 в scoped `AGENTS.md`
+остаётся как самостоятельно полезный слой уровня сессии.
+
+Осталось (№197): `develop-1c` с адаптированными references и command-owner
+workflows. Это авторская работа по ~386 КБ upstream (`AGENTS.md` 53 КБ и
+34 rule-файла), которые решение S.6 маршрутизирует в восемь references —
+маршруты есть, получателя нет.
 
 1. Capability-native: `doctor-1c`, `setup-1c-environment`, `select-1c-project`,
    `query-1c-infobase`, `measure-1c-performance`, `work-with-1c-edt`,
