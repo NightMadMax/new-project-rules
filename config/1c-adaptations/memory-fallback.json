@@ -1,0 +1,11 @@
+{
+  "source_path": "content/skills/mcp-1c-tools/docs/1c-templates-mcp.md",
+  "decision": "S.9.2",
+  "reason": "Upstream falls back to memory.md whenever the server is unavailable. In this standard memory.md is a project-seed for verified, global, stable, non-derivable facts (S.5.2), so an unreachable server would quietly harden ordinary working context into long-term memory. The fallback routes to the canonical owner instead; the criteria of memory.md are not relaxed because a server is down.",
+  "replacements": [
+    {
+      "find": "(fallback: `memory.md → Captured during work` when the server is unavailable)",
+      "replace": "(fallback when the server is unavailable: route the fact to its canonical owner — `DEFECTS.md`, `PLAYBOOK.md`, `USER-RULES.md`, `LLM-RULES.md` or the profile document; `memory.md` only if the fact meets its own criteria)"
+    }
+  ]
+}
