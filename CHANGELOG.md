@@ -6,6 +6,12 @@
 
 ### Добавлено
 
+- Генератор agent-проекций `scripts/one_c_agents.py` (Э8 п.2): 13 upstream-агентов
+  компилируются в `.codex/agents/*.toml` и `.claude/agents/*.md` по спецификации
+  самих upstream-адаптеров, а не по её копии у нас. 26 строк ledger получили хэш
+  выхода; остались две адаптации. Заодно исправлен маршрут двух целевых
+  адаптеров: они значились производителями `.claude/settings.json` и
+  `.codex/config.toml` — файлов, которыми владеет renderer MCP.
 - Маршрутизация upstream `ai_rules_1c`: `config/1c-routing.tsv` — строка на
   группу файлов со ссылкой на решение S.x, `config/1c-upstream-inventory.txt` —
   список tracked-файлов на закреплённом commit `1b6e2ed`,

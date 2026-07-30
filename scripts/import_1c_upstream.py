@@ -30,8 +30,10 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
+import one_c_agents as agents  # noqa: E402
 import release_manifest as release  # noqa: E402
 
+ADAPTERS = {"codex": "adapters/codex.yaml", "claude": "adapters/claude-code.yaml"}
 ROUTING_NAME = "config/1c-routing.tsv"
 ROUTING_FIELDS = ("pattern", "selector", "action", "action_id", "ownership", "target", "decision")
 UPSTREAM_SOURCE = "ai_rules_1c"
@@ -83,6 +85,19 @@ def target_of(route: dict[str, str], path: str) -> str:
     return route["target"].format(stem=stem, tail=tail, path=inner)
 
 
+def project_agent(staging: Path, path: str, client: str) -> tuple[str, str]:
+    """Where an agent lands for this client, and the hash of what lands there.
+
+    The adapter is the spec, so the output is a function of two upstream files
+    and nothing else — which is what makes the hash reproducible on another
+    machine.
+    """
+    adapter = (staging / ADAPTERS[client]).read_bytes().decode("utf-8")
+    body = (staging / path).read_bytes().decode("utf-8")
+    rendered = agents.compile_agent(body, adapter, client).encode("utf-8")
+    return agents.target_for(Path(path), adapter), hashlib.sha256(rendered).hexdigest()
+
+
 def expand(contract_root: Path, staging: Path) -> tuple[list[dict[str, str]], list[str]]:
     routes = read_routing(contract_root)
     files = tracked_files(staging)
@@ -104,6 +119,11 @@ def expand(contract_root: Path, staging: Path) -> tuple[list[dict[str, str]], li
                 continue
             used.add(position)
             digest = hashlib.sha256((staging / path).read_bytes()).hexdigest()
+            target_path, target_digest = target_of(route, path), "-"
+            if route["action"] == "copy":
+                target_digest = digest
+            elif route["action"] == "compile" and route["action_id"] == "agent-projection":
+                target_path, target_digest = project_agent(staging, path, route["selector"])
             rows.append({
                 "source": UPSTREAM_SOURCE,
                 "source_path": path,
@@ -112,8 +132,8 @@ def expand(contract_root: Path, staging: Path) -> tuple[list[dict[str, str]], li
                 "action": route["action"] if route["action"] == "copy" else f"{route['action']}:{route['action_id']}",
                 "action_id": route["action_id"],
                 "ownership": route["ownership"],
-                "target_path": target_of(route, path),
-                "target_sha256": digest if route["action"] == "copy" else "-",
+                "target_path": target_path,
+                "target_sha256": target_digest,
             })
 
     stale = [route["pattern"] for index, route in enumerate(routes) if index not in used]

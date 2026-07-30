@@ -9,8 +9,8 @@ README.md	-	route	user-guide	provider-only	-	S.13
 AGENTS.md	-	route	develop-1c	provider-only	-	S.6
 install.ps1	-	route	provider-reference	provider-only	-	S.12
 AGENT-INSTALL.md	-	route	provider-reference	provider-only	-	S.12
-adapters/claude-code.yaml	-	compile	client-descriptor	project-managed	.claude/settings.json	S.11
-adapters/codex.yaml	-	compile	client-descriptor	project-managed	.codex/config.toml	S.11
+adapters/claude-code.yaml	-	route	agent-projection	provider-only	-	S.11
+adapters/codex.yaml	-	route	agent-projection	provider-only	-	S.11
 adapters/*.yaml	-	route	provider-only-adapter	provider-only	-	S.11
 content/mcp-servers.json	-	route	1c-mcp-catalog	provider-only	-	S.4.2
 content/agents/*.md	codex	compile	agent-projection	project-managed	.codex/agents/{stem}.toml	S.7
