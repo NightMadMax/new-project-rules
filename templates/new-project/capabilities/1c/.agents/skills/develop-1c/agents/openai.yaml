@@ -1,0 +1,4 @@
+interface:
+  display_name: "Develop in 1C"
+  short_description: "Project rules for BSL, architecture, forms, queries, registers, extensions and verification"
+  default_prompt: "Use $develop-1c before writing or reviewing configuration code."

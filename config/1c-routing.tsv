@@ -16,6 +16,13 @@ content/mcp-servers.json	-	route	1c-mcp-catalog	provider-only	-	S.4.2
 content/agents/*.md	codex	compile	agent-projection	project-managed	.codex/agents/{stem}.toml	S.7
 content/agents/*.md	claude	compile	agent-projection	project-managed	.claude/agents/{stem}.md	S.7
 content/commands/*.md	-	route	command-owner	provider-only	-	S.8
+content/rules/subagents.md	-	route	agent-orchestration	provider-only	-	S.7
+content/rules/subagent-pipeline.md	-	route	agent-orchestration	provider-only	-	S.7
+content/rules/orchestrator-economy.md	-	route	agent-orchestration	provider-only	-	S.7
+content/rules/getconfigfiles.md	-	route	command-owner	provider-only	-	S.8
+content/rules/tooling-playbooks.md	-	route	command-owner	provider-only	-	S.8
+content/rules/mcp-first-search.md	-	route	command-owner	provider-only	-	S.8
+content/rules/dev-standards-env.md	-	route	setup-1c-environment	provider-only	-	S.9
 content/rules/*.md	-	route	develop-1c	provider-only	-	S.6
 content/openspec-bundle/README.md	-	route	openspec-scaffold	provider-only	-	S.10
 content/openspec-bundle/claude-code/**	-	copy	-	project-managed	{tail}	S.10

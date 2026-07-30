@@ -40,9 +40,15 @@ MANAGED = (
     "docs/operations/EDT_SETUP.md",
 )
 SKILLS = (
-    "doctor-1c", "setup-1c-environment", "select-1c-project", "query-1c-infobase",
-    "measure-1c-performance", "work-with-1c-edt", "add-1c-base", "activate-1c-client",
-    "export-1c-source", "deploy-1c-source", "deploy-and-test-1c",
+    "develop-1c", "doctor-1c", "setup-1c-environment", "select-1c-project",
+    "query-1c-infobase", "measure-1c-performance", "work-with-1c-edt", "add-1c-base",
+    "activate-1c-client", "export-1c-source", "deploy-1c-source", "deploy-and-test-1c",
+)
+# S.6 routes the upstream development rules into these eight references; a skill
+# that names them and delivers none would route the reader nowhere.
+DEVELOP_REFERENCES = (
+    "bsl", "architecture", "forms", "queries", "registers", "extensions",
+    "integrations", "verification",
 )
 AGENT_ROLES = (
     "analytic", "arch-reviewer", "architect", "code-reviewer", "developer",
@@ -134,6 +140,10 @@ with tempfile.TemporaryDirectory() as raw:
             if bridge.is_file():
                 note(f"../../../.agents/skills/{skill}/SKILL.md" in bridge.read_text(encoding="utf-8"),
                      f"the Claude bridge for {skill} does not point at the canonical skill")
+
+        for name in DEVELOP_REFERENCES:
+            note((project / f".agents/skills/develop-1c/references/{name}.md").is_file(),
+                 f"scaffold is missing the develop-1c reference {name}")
 
         # Criterion 22: a role is only delivered when both clients can read it,
         # so the projection is checked per client rather than per role.
