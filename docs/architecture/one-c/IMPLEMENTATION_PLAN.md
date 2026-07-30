@@ -581,6 +581,32 @@ PowerShell-суррогатах: при `$ErrorActionPreference = "Stop"` инс
 конвертера, — исправлен здесь же. Урок вехи записан отдельно: утверждение о
 поведении, у которого нет теста, — это текст, а не свойство поставки.
 
+## Точка остановки 2026-07-30
+
+Что в `main`: release `0.1.0` выпущен и проверен, веха W закрыта, маршрут
+вливания этапов исполним без admin-bypass.
+
+Что не в `main`: доставка payload в шаблон проекта — ветка
+[`feat/1c-delivery`](https://github.com/NightMadMax/new-project-rules/tree/feat/1c-delivery),
+commit `7e6d26f`. Там 161 материализованный файл под
+`templates/new-project/capabilities/1c/upstream/`, сгенерированные строки
+`config/capabilities.tsv`, `config/skills.tsv` и манифесты десяти vendored
+skills. Bootstrap с `1c`, `check_skills` и валидатор репозитория проходят.
+
+Два хвоста ветки записаны дефектами №192 и №193. Работа продолжается на другой
+машине; для неё нужен клон upstream на закреплённом commit — сборка офлайновая
+и готового чекаута не создаёт:
+
+```sh
+git clone https://github.com/comol/ai_rules_1c
+git -C ai_rules_1c checkout 1b6e2ed089d45740672619e27548ee8ed88347c3
+```
+
+Каталог payload содержит около шестидесяти `.ps1` из upstream-скилла
+`1c-metadata-manage`; на машине с антивирусом их одновременное появление
+вызывает блокировку, поэтому каталог проекта и staging-клон стоит внести в
+исключения заранее.
+
 ## Порядок и зависимости
 
 ```text
