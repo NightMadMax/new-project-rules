@@ -48,6 +48,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-one-c-scaffold.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-clients.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-source.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-cli-discovery.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-upstream-routing.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-readiness.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-no-secrets.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
@@ -86,6 +87,7 @@ python .\scripts\test-one-c-scaffold.py
 python .\scripts\test-1c-clients.py
 python .\scripts\test-1c-source.py
 python .\scripts\test-cli-discovery.py
+python .\scripts\test-1c-upstream-routing.py
 python .\scripts\test-1c-readiness.py
 python .\scripts\test-no-secrets.py
 python .\scripts\test-standardize-existing-project.py
