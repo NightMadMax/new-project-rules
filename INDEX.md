@@ -103,6 +103,8 @@
 | `config/1c-upstream-inventory.txt` | Список tracked-файлов upstream на закреплённом commit — контрольная сумма приёмки маршрутизации |
 | `scripts/import_1c_upstream.py` | Разворачивает маршруты в строки ledger по локальному чекауту upstream |
 | `scripts/one_c_agents.py` | Компиляция agent-проекций Codex и Claude по спецификации upstream-адаптеров |
+| `scripts/one_c_adaptations.py` | Применение объявленных адаптаций upstream: якорь обязан совпасть ровно один раз |
+| `config/1c-adaptations/` | Адаптации upstream-файлов: замены, решение плана и причина, по одной на файл |
 | `scripts/test-1c-upstream-routing.py` | Проверяет покрытие 241 файла маршрутами и саму развёртку |
 | `scripts/test-bootstrap.sh` | Регрессионный тест bootstrap (macOS/Linux) |
 | `scripts/test-bootstrap.ps1` | Регрессионный тест bootstrap (Windows) |

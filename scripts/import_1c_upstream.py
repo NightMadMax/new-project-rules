@@ -30,6 +30,7 @@ from pathlib import Path
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
+import one_c_adaptations as adaptations  # noqa: E402
 import one_c_agents as agents  # noqa: E402
 import release_manifest as release  # noqa: E402
 
@@ -66,6 +67,20 @@ def tracked_files(staging: Path) -> list[str]:
     return sorted(name for name in result.stdout.split("\0") if name)
 
 
+def blob(staging: Path, path: str) -> bytes:
+    """The committed bytes, never the working copy.
+
+    With `core.autocrlf=true` — the Windows default — a checkout rewrites line
+    endings, so hashing the file on disk would pin the platform instead of the
+    content: the same upstream commit would produce a different release_id on
+    Windows and on Linux, and "same input, same identifier" would be false.
+    """
+    result = subprocess.run(["git", "-C", str(staging), "show", f"HEAD:{path}"], capture_output=True)
+    if result.returncode != 0:
+        raise release.ReleaseError(f"cannot read {path} from staging: {result.stderr.decode('utf-8', 'replace').strip()}")
+    return result.stdout
+
+
 def matches(pattern: str, path: str) -> bool:
     """`**` means "this subtree"; everything else is one path segment."""
     if pattern.endswith("/**"):
@@ -92,8 +107,8 @@ def project_agent(staging: Path, path: str, client: str) -> tuple[str, str]:
     and nothing else — which is what makes the hash reproducible on another
     machine.
     """
-    adapter = (staging / ADAPTERS[client]).read_bytes().decode("utf-8")
-    body = (staging / path).read_bytes().decode("utf-8")
+    adapter = blob(staging, ADAPTERS[client]).decode("utf-8")
+    body = blob(staging, path).decode("utf-8")
     rendered = agents.compile_agent(body, adapter, client).encode("utf-8")
     return agents.target_for(Path(path), adapter), hashlib.sha256(rendered).hexdigest()
 
@@ -118,12 +133,17 @@ def expand(contract_root: Path, staging: Path) -> tuple[list[dict[str, str]], li
             if route["pattern"] != routes[index]["pattern"]:
                 continue
             used.add(position)
-            digest = hashlib.sha256((staging / path).read_bytes()).hexdigest()
+            content = blob(staging, path)
+            digest = hashlib.sha256(content).hexdigest()
             target_path, target_digest = target_of(route, path), "-"
             if route["action"] == "copy":
                 target_digest = digest
             elif route["action"] == "compile" and route["action_id"] == "agent-projection":
                 target_path, target_digest = project_agent(staging, path, route["selector"])
+            elif route["action"] == "adapt":
+                text = content.decode("utf-8")
+                adapted = adaptations.adapt(contract_root, route["action_id"], path, text)
+                target_digest = hashlib.sha256(adapted.encode("utf-8")).hexdigest()
             rows.append({
                 "source": UPSTREAM_SOURCE,
                 "source_path": path,
@@ -169,6 +189,9 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         rows, problems = expand(Path(arguments.contract_root).resolve(), Path(arguments.staging).resolve())
+    except adaptations.AdaptationError as error:
+        print(f"Adaptation does not apply: {error}", file=sys.stderr)
+        return 1
     except release.ReleaseError as error:
         print(f"Routing is not usable: {error}", file=sys.stderr)
         return 2

@@ -61,8 +61,20 @@ def check_staging_state(staging: Path, source: dict) -> list[release.Finding]:
     return findings
 
 
-def digest_of(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def digest_of(staging: Path, relative: str) -> str:
+    """The committed bytes, never the working copy.
+
+    With `core.autocrlf=true` a checkout rewrites line endings, so a hash taken
+    from the file on disk describes the platform rather than the upstream
+    commit — and the same release would be "changed" on one machine and
+    unchanged on another.
+    """
+    result = subprocess.run(
+        ["git", "-C", str(staging), "show", f"HEAD:{relative}"], capture_output=True,
+    )
+    if result.returncode != 0:
+        raise release.ReleaseError(f"cannot read {relative} from staging")
+    return hashlib.sha256(result.stdout).hexdigest()
 
 
 def compare(staging: Path, rows: list[dict[str, str]], source_name: str) -> list[release.Finding]:
@@ -79,10 +91,9 @@ def compare(staging: Path, rows: list[dict[str, str]], source_name: str) -> list
             release.BLOCKED, f"row points at a file that is not in staging: {extra}"))
 
     for row in rows:
-        path = staging / row["source_path"]
-        if not path.is_file():
+        if row["source_path"] not in present:
             continue
-        actual = digest_of(path)
+        actual = digest_of(staging, row["source_path"])
         if actual != row["source_sha256"]:
             # A new source hash is not a broken release: it is content somebody
             # has to read before it is republished (the plan calls this

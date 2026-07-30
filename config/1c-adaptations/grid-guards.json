@@ -1,0 +1,11 @@
+{
+  "source_path": "content/skills/img-grid-analysis/scripts/overlay-grid.py",
+  "decision": "S.9.5",
+  "reason": "cols=0 divides by zero, a negative count draws nothing, and the auto row count can round to zero on a very wide image — all three fail deeper in the drawing code, where the message says nothing about the argument that caused it.",
+  "replacements": [
+    {
+      "find": "    cols = args.cols\n    step_x = sw / cols\n    rows = args.rows\n    if rows == 0:\n        rows = round(sh / step_x)\n    step_y = sh / rows\n",
+      "replace": "    cols = args.cols\n    if cols < 1:\n        parser.error(\"--cols must be a positive number of divisions\")\n    if args.rows < 0:\n        parser.error(\"--rows must be zero (auto) or a positive number of divisions\")\n    step_x = sw / cols\n    rows = args.rows\n    if rows == 0:\n        # A very wide image can round the automatic count down to zero.\n        rows = max(1, round(sh / step_x))\n    step_y = sh / rows\n"
+    }
+  ]
+}

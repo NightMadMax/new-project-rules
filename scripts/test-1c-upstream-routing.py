@@ -9,6 +9,7 @@ against a real git staging is what makes the expansion itself verifiable.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import subprocess
 import sys
@@ -110,6 +111,15 @@ agents:
     drop: [reasoningEffort]
 """
 
+adaptations_spec = importlib.util.spec_from_file_location(
+    "one_c_adaptations", SCRIPTS / "one_c_adaptations.py")
+assert adaptations_spec and adaptations_spec.loader
+adaptations_module = importlib.util.module_from_spec(adaptations_spec)
+sys.modules["one_c_adaptations"] = adaptations_module
+adaptations_spec.loader.exec_module(adaptations_module)
+
+GRID_ANCHOR = adaptations_module.load(ROOT, "grid-guards")["replacements"][0]["find"]
+
 AGENT = """---
 name: 1c-developer
 description: "Writes code."
@@ -133,7 +143,11 @@ with tempfile.TemporaryDirectory() as raw:
         "USER-RULES.md": "seed\n",
         "content/skills/caveman/SKILL.md": "caveman\n",
         "content/skills/img-grid-analysis/SKILL.md": "grid\n",
-        "content/skills/img-grid-analysis/scripts/overlay-grid.py": "print(1)\n",
+        # The anchor comes from the adaptation itself: what is under test is
+        # that a declared anchor is found exactly once and applied, not that we
+        # can reproduce upstream's file here.
+        "content/skills/img-grid-analysis/scripts/overlay-grid.py":
+            "def main():\n" + GRID_ANCHOR + "    return 0\n",
         "content/agents/developer.md": AGENT,
         "content/skills/transcribe/SKILL.md": "not ours\n",
     }
@@ -158,7 +172,6 @@ with tempfile.TemporaryDirectory() as raw:
     # The specific route sits above the group route, and the specific one wins.
     grid = by_path["content/skills/img-grid-analysis/scripts/overlay-grid.py"][0]
     note(grid["action"] == "adapt:grid-guards", f"the specific route must win: {grid['action']}")
-    note(grid["target_sha256"] == "-", "an adapted output has no hash until it is generated")
     plain = by_path["content/skills/img-grid-analysis/SKILL.md"][0]
     note(plain["action"] == "copy", f"the group route must still apply: {plain['action']}")
     note(plain["target_sha256"] == plain["source_sha256"], "a copy must not change the bytes")
@@ -217,6 +230,12 @@ with tempfile.TemporaryDirectory() as raw:
     note(any("matches nothing" in problem for problem in problems),
          "routes that match nothing in this staging must be reported")
 
+    # An adaptation carries its output hash once it applies, and what it
+    # produced must actually differ from what it started with.
+    note(grid["target_sha256"] != "-", "an applied adaptation must carry its output hash")
+    note(grid["target_sha256"] != grid["source_sha256"],
+         "an adaptation that changes nothing is not an adaptation")
+
     # An unrouted file is an error, not a default.
     (staging / "content/rules-new").mkdir(parents=True, exist_ok=True)
     (staging / "content/rules-new/x.md").write_bytes(b"new\n")
@@ -228,6 +247,53 @@ with tempfile.TemporaryDirectory() as raw:
     _, problems = importer.expand(ROOT, staging)
     note(any("has no route" in problem for problem in problems),
          f"an unrouted upstream file must be reported: {problems[:3]}")
+
+# --- the hash describes the commit, not the checkout -------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    staging = Path(raw)
+    (staging / "content/skills/caveman").mkdir(parents=True)
+    committed = b"line one\nline two\n"
+    (staging / "content/skills/caveman/SKILL.md").write_bytes(committed)
+    subprocess.run(["git", "-C", str(staging), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "staging"], check=True, capture_output=True,
+    )
+    # What `core.autocrlf=true` leaves on disk after a checkout on Windows.
+    (staging / "content/skills/caveman/SKILL.md").write_bytes(committed.replace(b"\n", b"\r\n"))
+
+    rows, _ = importer.expand(ROOT, staging)
+    row = next(row for row in rows if row["source_path"].endswith("SKILL.md"))
+    note(row["source_sha256"] == hashlib.sha256(committed).hexdigest(),
+         "the hash must come from the commit, or the same upstream would differ per platform")
+
+
+# --- an adaptation that no longer applies stops the build --------------------
+
+for name, text, expect in (
+    ("no anchor", "nothing to find here\n", "matches 0 times"),
+    ("two anchors", GRID_ANCHOR + GRID_ANCHOR, "matches 2 times"),
+):
+    try:
+        adaptations_module.adapt(
+            ROOT, "grid-guards", "content/skills/img-grid-analysis/scripts/overlay-grid.py", text)
+        failures.append(f"{name}: an ambiguous or missing anchor must stop the build")
+    except adaptations_module.AdaptationError as error:
+        note(expect in str(error), f"{name}: unexpected message: {error}")
+
+try:
+    adaptations_module.adapt(ROOT, "grid-guards", "some/other/file.py", GRID_ANCHOR)
+    failures.append("an adaptation applied to another file must be refused")
+except adaptations_module.AdaptationError:
+    pass
+
+# Every adaptation names the decision that allows it and what it prevents.
+for path in sorted((ROOT / adaptations_module.ADAPTATIONS_DIRECTORY).glob("*.json")):
+    declared = adaptations_module.load(ROOT, path.stem)
+    note(declared["decision"].startswith("S."), f"{path.name}: must reference the plan decision")
+    note(len(declared["reason"]) > 40, f"{path.name}: the reason must say what would break")
 
 if failures:
     for failure in failures:
