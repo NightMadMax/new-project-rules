@@ -1,0 +1,11 @@
+{
+  "source_path": "memory.md",
+  "decision": "S.5.2",
+  "reason": "Upstream describes eligibility in prose and leaves a commented entry format. S.5.2 states the criteria as a gate — a fact is admitted only when it is at once global, critical, stable, non-derivable and has no more precise canonical owner — and names where a rejected fact goes instead. The routing of an unavailable MCP server is already adapted for the same reason in memory-fallback (S.9.2): an unreachable server must not quietly harden working context into long-term memory. The anchor is the whole upstream file, so a changed criterion upstream stops the build instead of silently widening ours.",
+  "replacements": [
+    {
+      "find": "# Memory\n\nThis file is the working project memory for AI agents.\n\nEligibility, routing between this file and `1c-templates-mcp` (`remember` / `recall`),\nfallback when the MCP server is unavailable — see `AGENTS.md → Project memory`.\nThere are no permanent entries yet.\n\nEntry format (one entry = one self-contained rule). Use English for narrative,\npreserve original 1C identifiers (objects, modules, attributes) as-is:\n\n<!--\n## YYYY-MM-DD — <short rule title>\n\n- **Scope:** module / subsystem / object where the rule applies (e.g. `Документ.РеализацияТоваровУслуг`).\n- **Rule:** what must / must not be done.\n- **Why:** consequence of violation (production breakage / data loss / regulatory / data leak).\n- **Source:** user request, incident, or external document that established the rule.\n-->\n\n",
+      "replace": "# Память проекта <PROJECT_NAME>\n\nПроверенные долговременные факты обо всём проекте. Не журнал работы и не копия\nпоискового индекса.\n\nЗапись допустима, только если факт одновременно: относится ко всему проекту,\nкритичен, стабилен, не выводится из правил и документации и не имеет более\nточного владельца. Иначе он идёт туда, где ему место: правила — в\n`USER-RULES.md`, дефекты — в `DEFECTS.md`, проверенные решения — в\n`PLAYBOOK.md`, параметры базы — в её карточку.\n\nЗапрещены: временные заметки, TODO, метрики одного запуска, снимки данных живой\nбазы, credentials и персональные данные.\n\nФормат записи: дата, область, факт, следствие, источник.\n\n## Факты\n\n- \n"
+    }
+  ]
+}

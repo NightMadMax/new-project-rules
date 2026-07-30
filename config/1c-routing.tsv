@@ -1,7 +1,7 @@
 pattern	selector	action	action_id	ownership	target	decision
-USER-RULES.md	-	copy	-	project-seed	USER-RULES.md	S.5.1
-memory.md	-	copy	-	project-seed	memory.md	S.5.2
-LLM-RULES.md	-	copy	-	project-seed	LLM-RULES.md	S.5.3
+USER-RULES.md	-	adapt	project-user-rules	project-seed	USER-RULES.md	S.5.1
+memory.md	-	adapt	project-memory	project-seed	memory.md	S.5.2
+LLM-RULES.md	-	adapt	project-llm-rules	project-seed	LLM-RULES.md	S.5.3
 References.md	-	copy	-	project-managed	References.md	S.13
 .dev.env.example	-	copy	-	project-managed	.dev.env.example	S.4.1
 README.md	-	route	user-guide	provider-only	-	S.13
@@ -34,5 +34,5 @@ content/skills/powershell-windows/**	-	copy	-	project-managed	.agents/skills/{pa
 content/skills/prompt-enhancer/**	-	copy	-	project-managed	.agents/skills/{path}	S.9.9
 content/skills/transcribe/**	-	route	general-transcribe-plan	provider-only	-	S.9.10
 content/skills/v8unpack-cf/**	-	copy	-	project-managed	.agents/skills/{path}	S.9.11
-openspec/**	-	copy	-	project-seed	{path}	S.10
+openspec/**	-	copy	-	project-seed	openspec/{tail}	S.10
 tools/refresh-openspec-bundle.ps1	-	route	maintainer-refresh	provider-only	-	S.1

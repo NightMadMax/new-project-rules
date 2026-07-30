@@ -120,6 +120,11 @@ adaptations_spec.loader.exec_module(adaptations_module)
 
 GRID_ANCHOR = adaptations_module.load(ROOT, "grid-guards")["replacements"][0]["find"]
 
+
+def anchor(action_id: str) -> str:
+    """The upstream text an adaptation was written against."""
+    return adaptations_module.load(ROOT, action_id)["replacements"][0]["find"]
+
 AGENT = """---
 name: 1c-developer
 description: "Writes code."
@@ -140,7 +145,12 @@ with tempfile.TemporaryDirectory() as raw:
         # produce an agent projection at all.
         "adapters/codex.yaml": ADAPTER_CODEX,
         "adapters/claude-code.yaml": ADAPTER_CLAUDE,
-        "USER-RULES.md": "seed\n",
+        # The three root seeds are adapted rather than copied, so their staged
+        # bodies come from the declared anchors for the same reason as the grid
+        # fixture below.
+        "USER-RULES.md": anchor("project-user-rules"),
+        "memory.md": anchor("project-memory"),
+        "LLM-RULES.md": anchor("project-llm-rules"),
         "content/skills/caveman/SKILL.md": "caveman\n",
         "content/skills/img-grid-analysis/SKILL.md": "grid\n",
         # The anchor comes from the adaptation itself: what is under test is

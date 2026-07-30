@@ -566,7 +566,17 @@ def check_frontmatter(root: Path, files: Sequence[Path], rules_repo: bool) -> li
             if match:
                 fields[match.group(1)] = match.group(2).strip().strip('"\'')
         rel = relative(path, root)
-        skill_frontmatter = "/.agents/skills/" in f"/{rel}" or "/.claude/skills/" in f"/{rel}"
+        skill_frontmatter = any(
+            marker in f"/{rel}" for marker in ("/.agents/skills/", "/.claude/skills/", "/.codex/skills/"))
+        # A client-owned definition is not one of our documents: an agent or a
+        # slash command is delivered byte for byte from upstream and carries the
+        # frontmatter its client reads. Demanding `type`/`status` there would
+        # require editing vendored payload the release records by hash.
+        client_owned = any(
+            marker in f"/{rel}"
+            for marker in ("/.claude/agents/", "/.codex/agents/", "/.claude/commands/", "/.codex/commands/"))
+        if client_owned:
+            continue
         required_fields = ("name", "description") if skill_frontmatter else ("type", "status")
         for required in required_fields:
             if not fields.get(required):
@@ -616,7 +626,8 @@ def check_wikilinks(root: Path, files: Sequence[Path]) -> list[Finding]:
     return findings
 
 
-def check_content(root: Path, files: Sequence[Path], rules_repo: bool) -> list[Finding]:
+def check_content(root: Path, files: Sequence[Path], rules_repo: bool,
+                  byte_exact: frozenset[str] = frozenset()) -> list[Finding]:
     findings: list[Finding] = []
     for memory_path in RAW_MEMORY_PATHS:
         candidate = root.joinpath(*memory_path)
@@ -632,7 +643,11 @@ def check_content(root: Path, files: Sequence[Path], rules_repo: bool) -> list[F
         if text is None:
             continue
         in_template = rules_repo and rel.startswith("templates/new-project/")
-        if path.suffix.lower() == ".md" and not in_template:
+        # A byte-exact artifact is delivered as it was written upstream, and the
+        # release records its hash: a placeholder-looking token there is their
+        # text, not our unsubstituted template, and editing it would break the
+        # hash the delivery is verified by.
+        if path.suffix.lower() == ".md" and not in_template and rel not in byte_exact:
             for placeholder in PLACEHOLDERS:
                 if placeholder in text:
                     findings.append(Finding("ERROR", "placeholder.remaining", f"Template placeholder remains: {placeholder}.", rel))
@@ -926,7 +941,9 @@ def validate(
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))
     findings.extend(check_wikilinks(root, files))
-    findings.extend(check_content(root, files, kind == "rules"))
+    byte_exact = frozenset(row.destination for row in capability_rows
+                           if row.payload_class in ("verbatim", "binary"))
+    findings.extend(check_content(root, files, kind == "rules", byte_exact))
     if doctor:
         findings.extend(check_doctor_context(root, contract_root))
     return kind, profile, findings

@@ -21,3 +21,13 @@ activate-1c-client	canonical	templates/new-project/capabilities/1c/.agents/skill
 export-1c-source	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
 deploy-1c-source	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
 deploy-and-test-1c	canonical	templates/new-project/capabilities/1c/.agents/skills	none	-
+1c-metadata-manage	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/1c-metadata-manage.tsv
+caveman	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/caveman.tsv
+handoff	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/handoff.tsv
+img-grid-analysis	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/img-grid-analysis.tsv
+mcp-1c-tools	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/mcp-1c-tools.tsv
+md-to-docx	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/md-to-docx.tsv
+mermaid-diagrams	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/mermaid-diagrams.tsv
+powershell-windows	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/powershell-windows.tsv
+prompt-enhancer	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/prompt-enhancer.tsv
+v8unpack-cf	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/v8unpack-cf.tsv

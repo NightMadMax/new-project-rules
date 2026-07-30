@@ -179,6 +179,116 @@ def report(rows: list[dict[str, str]], files_count: int) -> None:
         print("The ledger is not written while a declared output does not exist.")
 
 
+PAYLOAD_ROOT = "templates/new-project/capabilities/1c/upstream"
+SKILLS_PREFIX = ".agents/skills/"
+CAPABILITY_FIELDS = ("capability", "source", "destination", "root_purpose",
+                     "docs_section", "docs_label", "payload_class", "policy")
+
+
+def output_bytes(contract_root: Path, staging: Path, row: dict[str, str]) -> bytes:
+    """What this row installs, recomputed rather than trusted from the ledger."""
+    if row["action"] == "copy":
+        return blob(staging, row["source_path"])
+    if row["action"] == "adapt":
+        text = blob(staging, row["source_path"]).decode("utf-8")
+        return adaptations.adapt(contract_root, row["action_id"], row["source_path"], text).encode("utf-8")
+    adapter = blob(staging, ADAPTERS[row["source_selector"]]).decode("utf-8")
+    body = blob(staging, row["source_path"]).decode("utf-8")
+    return agents.compile_agent(body, adapter, row["source_selector"]).encode("utf-8")
+
+
+def payload_class(row: dict[str, str]) -> str:
+    """How a delivered file may be installed, derived from who wrote its bytes.
+
+    `copy` and `compile` produce content this repository did not author — upstream
+    text, or a client definition rendered from it — and a substitution pass over
+    it would change bytes the ledger recorded a hash for; a literal `<YYYY-MM-DD>`
+    in an upstream README is an example, not a placeholder. An `adapt` output is
+    our own text under a declared adaptation, so it may carry our placeholders:
+    the ledger records the hash of the template as delivered, and substitution
+    happens when bootstrap copies it into a project, which never touches the
+    payload artifact.
+
+    Only a seed earns that. A managed target is compared against its desired hash
+    on every apply, and a rendered placeholder would read as drift on the first
+    run — which is why Э4 gave placeholder templates to bootstrap alone.
+    """
+    if row["action"] == "adapt" and row["ownership"] == "project-seed":
+        return "template"
+    return "verbatim"
+
+
+def materialize(contract_root: Path, staging: Path, rows: list[dict[str, str]]) -> dict[str, object]:
+    """Write the payload and the delivery rows a created project is built from.
+
+    The ledger says what a release contains; `config/capabilities.tsv` says what
+    a project receives. Keeping the second generated from the first is what stops
+    them from describing different deliveries.
+    """
+    installed = [row for row in rows
+                 if row["ownership"] in ("project-managed", "project-seed") and row["action"] != "route"]
+    payload_root = contract_root / PAYLOAD_ROOT
+    written, manifests = [], {}
+    for row in installed:
+        target = payload_root / row["target_path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        content = output_bytes(contract_root, staging, row)
+        if hashlib.sha256(content).hexdigest() != row["target_sha256"]:
+            raise release.ReleaseError(
+                f"{row['target_path']}: the ledger records a different output than the build produces")
+        target.write_bytes(content)
+        written.append(row["target_path"])
+        if row["target_path"].startswith(SKILLS_PREFIX):
+            name = row["target_path"][len(SKILLS_PREFIX):].split("/", 1)[0]
+            inside = row["target_path"][len(SKILLS_PREFIX) + len(name) + 1:]
+            manifests.setdefault(name, []).append((row["target_sha256"], inside))
+
+    delivery = [{
+        "capability": "1c",
+        "source": f"capabilities/1c/upstream/{row['target_path']}",
+        "destination": row["target_path"],
+        "root_purpose": "-", "docs_section": "-", "docs_label": "-",
+        "payload_class": payload_class(row),
+        "policy": "managed" if row["ownership"] == "project-managed" else "seed",
+    } for row in installed]
+    return {"delivery": delivery, "written": written, "manifests": manifests}
+
+
+def write_delivery(contract_root: Path, result: dict[str, object]) -> None:
+    path = contract_root / "config/capabilities.tsv"
+    lines = path.read_bytes().decode("utf-8").splitlines()
+    header, body = lines[0], lines[1:]
+    generated = {row["destination"] for row in result["delivery"]}
+    kept = []
+    for line in body:
+        cells = line.split("\t")
+        # A destination the upstream payload now owns cannot keep a second
+        # producer: whichever ran last would win silently.
+        if len(cells) >= 3 and cells[0] == "1c" and (
+                cells[2] in generated or cells[1].startswith("capabilities/1c/upstream/")):
+            continue
+        kept.append(line)
+    rows = ["\t".join(row[field] for field in CAPABILITY_FIELDS) for row in result["delivery"]]
+    path.write_bytes(("\n".join([header, *kept, *sorted(rows)]) + "\n").encode("utf-8"))
+
+    # A vendored skill has to be declared, or the contract check reports a skill
+    # nobody claimed — which is the same as an undeclared payload.
+    skills = contract_root / "config/skills.tsv"
+    lines = skills.read_bytes().decode("utf-8").splitlines()
+    skills_root = f"{PAYLOAD_ROOT}/.agents/skills"
+    kept = [line for line in lines[1:] if skills_root not in line]
+    declared = ["\t".join([name, "vendored", skills_root, "none", f"config/skills-payload/{name}.tsv"])
+                for name in sorted(result["manifests"])]
+    skills.write_bytes(("\n".join([lines[0], *kept, *declared]) + "\n").encode("utf-8"))
+
+    for name, files in result["manifests"].items():
+        manifest = contract_root / f"config/skills-payload/{name}.tsv"
+        manifest.parent.mkdir(parents=True, exist_ok=True)
+        manifest.write_bytes(
+            ("\n".join(f"{digest}  {inside}" for digest, inside in sorted(files, key=lambda item: item[1]))
+             + "\n").encode("utf-8"))
+
+
 def main(argv: list[str] | None = None) -> int:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -219,6 +329,11 @@ def main(argv: list[str] | None = None) -> int:
         (contract / release.ARTIFACTS_NAME).write_bytes(release.artifacts_text(rows).encode("utf-8"))
         print(f"Wrote {release.ARTIFACTS_NAME}: {len(rows)} rows. "
               "The release_id is stamped by build-capability-release.py --write.")
+        result = materialize(contract, Path(arguments.staging).resolve(), rows)
+        write_delivery(contract, result)
+        print(f"Wrote payload: {len(result['written'])} files, "
+              f"{len(result['delivery'])} delivery rows, "
+              f"{len(result['manifests'])} vendored skill manifest(s).")
     return 0
 
 

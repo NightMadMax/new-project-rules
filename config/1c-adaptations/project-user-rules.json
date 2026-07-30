@@ -1,0 +1,11 @@
+{
+  "source_path": "USER-RULES.md",
+  "decision": "S.5.1",
+  "reason": "Upstream ships an empty migration stub: a heading and a pair of 'migrated content' markers written by its own installer, which this standard routes as provider-only and never delivers. S.5.1 gives the file a different job — the permanent rules of one project, in the language the project is written in, naming the project and stating what does not belong here (base parameters, MCP configuration, secrets, derived agent rules). The anchor is the whole upstream file on purpose: these six lines carry no content to preserve, so any edit upstream makes to them is a change of intent that has to be read before it is accepted.",
+  "replacements": [
+    {
+      "find": "# User Rules\n\n## Migrated content from a previous setup\n\n<!-- start of migrated content -->\n<!-- end of migrated content -->\n",
+      "replace": "# Правила проекта <PROJECT_NAME>\n\nПостоянные правила именно этого проекта: соглашения разработки конфигурации,\nограничения на изменение типовой, именование, обязательные проверки. Файл\nпринадлежит команде — стандарт его не перезаписывает.\n\nПравила отсюда уточняют обычные правила 1С, но не отменяют системные\nограничения, безопасность, запрет секретов и общие правила репозитория.\n\nСюда не пишут: параметры баз и порты (они в реестре и локальных файлах),\nконфигурацию MCP, секреты, временные договорённости и выведенные автоматически\nправила поведения агента.\n\n## Правила\n\n- \n"
+    }
+  ]
+}
