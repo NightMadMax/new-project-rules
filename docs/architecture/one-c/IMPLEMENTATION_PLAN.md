@@ -76,7 +76,7 @@ related:
 | Э5. Preset и ядро | выполнен 2026-07-26 | PR #29, merge `128349e` |
 | Э6. Build-time release | частично 2026-07-26 | PR #30, merge `f4c2c0b` |
 | Э7. Каркас проекта | выполнен 2026-07-27 | PR #32, merge `dbee49e` |
-| Э8. Skills и проекции | частично 2026-07-27 | PR #33, merge `6f7aab8` |
+| Э8. Skills и проекции | выполнен 2026-07-31 | PR #33, merge `6f7aab8`; PR #48 и ветка `feat/1c-command-owners` |
 | Э9. Формат и конвертация | выполнен 2026-07-28 | PR #34, merge `bb30610` |
 | Э10. Тесты и готовность | выполнен 2026-07-28 | ветка `feat/1c-readiness` |
 | Веха W. Windows | выполнена 2026-07-30 | ветка `feat/1c-milestone-w` |
@@ -402,10 +402,15 @@ capability ставит в созданный проект, нечем было 
 Дефекты №145 и №154 закрыты; подъём правил 1, 2, 5, 7 и 8 в scoped `AGENTS.md`
 остаётся как самостоятельно полезный слой уровня сессии.
 
-Осталось (№197): `develop-1c` с адаптированными references и command-owner
-workflows. Это авторская работа по ~386 КБ upstream (`AGENTS.md` 53 КБ и
-34 rule-файла), которые решение S.6 маршрутизирует в восемь references —
-маршруты есть, получателя нет.
+Завершено 2026-07-31: `develop-1c` с восемью адаптированными references по
+решению S.6 и command-owner workflows `evolve-1c-rules` и `manage-1c-mcp` по
+S.5.3 и S.8. Загрузка исходников получила исполнителя из доставленного upstream
+(`db-load-*.ps1` плюс обязательный `db-update.ps1`), чего и ждал дефект №165.
+Пункт 2 этапа Э8 закрыт, критерий 22 проверяется тестом.
+
+Открытым по этой линии остаётся №199: `deploy-and-test-1c` не разбирает отчёт
+YAxUnit, потому что сам YAxUnit — условная зависимость, которую capability не
+устанавливает.
 
 1. Capability-native: `doctor-1c`, `setup-1c-environment`, `select-1c-project`,
    `query-1c-infobase`, `measure-1c-performance`, `work-with-1c-edt`,

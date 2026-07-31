@@ -1,0 +1,4 @@
+interface:
+  display_name: "Manage 1C MCP"
+  short_description: "Discover the 1C MCP provider and run its install, update or repair workflow"
+  default_prompt: "Use $manage-1c-mcp to install, update or repair the 1C MCP provider."
