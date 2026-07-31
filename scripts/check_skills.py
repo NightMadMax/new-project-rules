@@ -205,10 +205,32 @@ def check_canonical(root: Path, row: dict[str, str],
     # contract instead of crashing the checker.
     if not metadata.read_bytes().isascii():
         failures.append(f"non-ASCII UI metadata in {shown(metadata, root)}")
+    failures.extend(check_references(root, skill_dir, canonical))
     if row["bridge"] == "required":
         failures.extend(check_bridge(root, row, description))
     elif row["bridge"] == "delivered":
         failures.extend(check_delivered_bridge(root, row, description, delivered or {}))
+    return failures
+
+
+def check_references(root: Path, skill_dir: Path, canonical: Path) -> list[str]:
+    """A reference nobody links to is a file the agent will never open.
+
+    It still ships, still gets reviewed and still has to be kept true, so an
+    orphan is worse than a missing file: it looks like coverage. Either the
+    skill points at it or it does not belong in the delivery.
+    """
+    directory = skill_dir / "references"
+    if not directory.is_dir():
+        return []
+    body = canonical.read_bytes().decode("utf-8", errors="replace")
+    failures = []
+    for path in sorted(directory.rglob("*")):
+        if not path.is_file():
+            continue
+        relative = path.relative_to(skill_dir).as_posix()
+        if relative not in body and path.name not in body:
+            failures.append(f"reference nobody links to: {shown(path, root)}")
     return failures
 
 

@@ -46,6 +46,13 @@ jobs:
           sh scripts/test-contract.sh
           sh scripts/test-agent-setup.sh
           sh scripts/test-skills.sh
+      # Defect 147 was macOS-only and invisible to every job we ran: .ps1 files
+      # are checked out as CRLF everywhere, so a here-string in a PowerShell
+      # test wrote a shell script whose shebang did not resolve. Only running
+      # the PowerShell suite on macOS can catch that class again.
+      - name: Run the PowerShell bootstrap suite on macOS
+        shell: pwsh
+        run: ./scripts/test-bootstrap.ps1
       - name: Run Python contract suites
         env:
           PYTHONDONTWRITEBYTECODE: "1"

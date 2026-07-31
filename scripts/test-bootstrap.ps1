@@ -138,7 +138,17 @@ for arg in "`$@"; do
 done
 exec "`$REAL_GIT_PATH" "`$@"
 "@
+        # `.gitattributes` checks every .ps1 out as CRLF, on every platform, so a
+        # here-string in this file carries CRLF into the script it writes. The
+        # shebang then reads `#!/bin/sh<CR>`, the kernel looks for an interpreter
+        # by that name and reports "No such file or directory" — about git, not
+        # about the shell. That was defect 147, and it was macOS-only for exactly
+        # this reason: the Windows branch writes a .cmd, where CRLF is fine.
+        $content = $content -replace "`r`n", "`n"
         [System.IO.File]::WriteAllText($path, $content, (New-Object System.Text.UTF8Encoding($false)))
+        if ([System.IO.File]::ReadAllBytes($path) -contains 13) {
+            throw "Mock git carries a CR: its shebang would not resolve."
+        }
         & chmod +x $path
         if ($LASTEXITCODE -ne 0) { throw "Could not make mock git executable." }
     }

@@ -128,6 +128,46 @@ ledger_case(
     "route produces no output",
 )
 ledger_case("route without an owner", [row(action="route", action_id="", target_path="-", target_sha256="-")], "requires an owner")
+
+# --- what a selector may say (№149) -----------------------------------------
+# The selector takes part in the uniqueness key, so its shape decides what the
+# hash beside it describes: the whole file or one piece of it.
+
+ledger_case("selector out of the grammar", [row(source_selector="часть 2")], "is not")
+ledger_case("client selector", [row(source_selector="codex", target_path="a.toml",
+                                    action="compile", action_id="agents",
+                                    target_sha256=digest(b"other"))], None)
+ledger_case("heading selector", [row(source_selector="heading:Правила", action="adapt",
+                                     action_id="rules", target_sha256=digest(b"other"))], None)
+ledger_case("empty heading", [row(source_selector="heading:")], "is not")
+
+# A file cannot be claimed whole and in parts at once: one hash cannot describe
+# both, and the ledger would not say which.
+ledger_case(
+    "whole file and a fragment of it",
+    [row(), row(source_selector="heading:Правила", action="adapt", action_id="rules",
+                target_path="b.md", target_sha256=digest(b"other"))],
+    "whole and",
+)
+
+# Two fragments sharing a hash means the hash is the file's, and then it
+# verifies neither of them.
+ledger_case(
+    "two fragments with one hash",
+    [row(source_selector="heading:Первый", action="adapt", action_id="one",
+         target_path="a.md", target_sha256=digest(b"one")),
+     row(source_selector="heading:Второй", action="adapt", action_id="two",
+         target_path="b.md", target_sha256=digest(b"two"))],
+    "one hash",
+)
+ledger_case(
+    "two fragments hashed apart",
+    [row(source_selector="heading:Первый", source_sha256=digest(b"first"), action="adapt",
+         action_id="one", target_path="a.md", target_sha256=digest(b"one")),
+     row(source_selector="heading:Второй", source_sha256=digest(b"second"), action="adapt",
+         action_id="two", target_path="b.md", target_sha256=digest(b"two"))],
+    None,
+)
 ledger_case("duplicate source", [row(), row()], "duplicate source")
 ledger_case("bad source digest", [row(source_sha256="abc")], "source_sha256 must be")
 
