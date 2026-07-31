@@ -9,6 +9,7 @@ the difference between a rule and a check.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import tempfile
 import time
@@ -109,14 +110,44 @@ with tempfile.TemporaryDirectory() as raw:
     refuses(lambda: session.require(root, REGISTRY), "no session lock",
             "invalidation must leave nothing behind to fall back on")
 
-    # --- an approved write, and production still refused ---------------------
-    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", write_mode="approved-write")
+    # --- an approved write needs a backup that was actually checked ----------
+    refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
+                                    write_mode="approved-write"),
+            "backup", "an approved write without a checked backup must be refused")
+
+    # --- and it is never taken on production, confirmed or not ---------------
+    refuses(lambda: session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod",
+                                    production_confirmed=True, write_mode="approved-write",
+                                    backup_confirmed="erp-prod-2026-07-31.dt"),
+            "production", "an approved write on production must be refused outright")
+
+    # --- the ordinary approved write ----------------------------------------
+    lock = session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
+                           write_mode="approved-write",
+                           backup_confirmed="erp-dev-2026-07-31.dt, проверена восстановлением")
+    note("erp-dev-2026-07-31.dt" in lock["backup_confirmed"],
+         "the backup that was checked must be recorded, not merely asserted")
     note(session.require(root, REGISTRY, write=True)["write_mode"] == "approved-write",
-         "an approved write must be allowed on a non-production base")
-    session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod",
-                    production_confirmed=True, write_mode="approved-write")
-    refuses(lambda: session.require(root, REGISTRY, write=True), "production",
-            "writing to production must be refused even with an approved-write lock")
+         "an approved write must be allowed on a non-production base with a backup")
+
+    # --- the second barrier: a lock file edited by hand ----------------------
+    # `acquire` refuses production outright, so this is the only way to reach
+    # the check inside `require` — and that check is the one that catches a lock
+    # written by an older version or edited on disk.
+    forged = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
+    forged["is_production"] = "true"
+    session.lock_path(root).write_bytes(json.dumps(forged).encode("utf-8"))
+    refuses(lambda: session.require(root, [base(is_production="true")], write=True), "production",
+            "writing to production must be refused by the lock check as well")
+
+    # --- a lock written before the rule existed is not grandfathered ---------
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", write_mode="approved-write",
+                    backup_confirmed="erp-dev-2026-07-31.dt")
+    without_backup = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
+    without_backup.pop("backup_confirmed")
+    session.lock_path(root).write_bytes(json.dumps(without_backup).encode("utf-8"))
+    refuses(lambda: session.require(root, REGISTRY, write=True), "backup",
+            "an old lock carrying no backup evidence must not authorise a write")
 
     # --- an unreadable lock is not a lock ------------------------------------
     session.lock_path(root).write_bytes(b"{not json")

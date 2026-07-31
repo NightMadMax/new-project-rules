@@ -15,6 +15,7 @@ consequence is a number nobody acts on.
 
 from __future__ import annotations
 
+import json
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,6 +30,13 @@ import cli_discovery  # noqa: E402
 # and logs are outside it by construction rather than by a second list that could
 # fall out of step. A broad walk of those once carried a historical credential
 # out of a session file.
+#
+# Two reads sit outside these paths and are named here because an undeclared
+# exception is how a list like this stops meaning anything: the external
+# provider manifest, opened by the path the project declared in `.dev.env` and
+# never printed, and the output of `docker ps`. Neither reaches the network —
+# the provider is asked with `network=False` — and the same rule as everywhere
+# holds: the report carries the key name, not its value.
 ALLOWLIST = (
     ".dev.env",
     ".v8-project.json",
@@ -39,6 +47,8 @@ ALLOWLIST = (
     ".codex/config.toml",
 )
 ALLOWED_GLOBS = ("configurations/launch/*.launch",)
+# What an `ordinary` launch profile must carry (decision 1.16).
+CLIENT_TYPE_ATTRIBUTE = "ATTR_CLIENT_TYPE"
 SECRET_MARKERS = ("password", "passwd", "token", "secret", "key", "srvr=", "ref=")
 MASK = "задан"
 
@@ -112,15 +122,142 @@ def tools(names: tuple[str, ...] = ("1cedtcli", "docker", "codex", "claude")) ->
     return rows
 
 
-def report(root: Path, names: tuple[str, ...] = ("1cedtcli", "docker", "codex", "claude")) -> list[Row]:
+def registry_rows(root: Path) -> list[dict[str, str]]:
+    """The base registry as rows. An unreadable registry is no rows, not a guess."""
+    text = read(root, "config/1c-projects.tsv")
+    lines = [line for line in text.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return []
+    header = lines[0].split("\t")
+    rows = []
+    for line in lines[1:]:
+        values = line.split("\t")
+        if len(values) == len(header):
+            rows.append(dict(zip(header, values)))
+    return rows
+
+
+def setting(root: Path, key: str) -> str:
+    """Whether a local setting is recorded. The value itself never leaves here."""
+    for line in read(root, ".dev.env").splitlines():
+        name, separator, value = line.partition("=")
+        if separator and name.strip() == key and not name.lstrip().startswith("#"):
+            return value.strip()
+    return ""
+
+
+def edt_rows(root: Path, discover=None) -> list[Row]:
+    """Versions of EDT and EDT-MCP, and the state of the conditional patches.
+
+    EDT answers about itself: its CLI carries the release it was installed from.
+    EDT-MCP and the two patches do not — they are plugins inside an installation
+    the diagnosis may not walk, so the only honest source is what the project
+    recorded about them. Nothing recorded is a `SKIP` that names the key to
+    fill, never a guess about a version nobody measured.
+    """
+    discover = cli_discovery.discover if discover is None else discover
+    found = discover("1cedtcli")
+    rows = [Row("1C:EDT", "OK", f"версия {found.version or 'не определена'} — {found.path}",
+                "ничего не требуется")
+            if found.status == "ok" else
+            Row("1C:EDT", "SKIP", "; ".join(found.diagnostics)[:200],
+                "без EDT недоступны разработка и конвертация формата исходников")]
+    for component, key, consequence in (
+        ("EDT-MCP", "EDT_MCP_VERSION", "AI-клиент не управляет EDT"),
+        ("патч Run without update", "EDT_RUN_WITHOUT_UPDATE", "запуск без обновления конфигурации недоступен"),
+    ):
+        value = setting(root, key)
+        rows.append(Row(component, "OK" if value else "SKIP",
+                        f"версия {value}" if value else f"{key} не записан в .dev.env",
+                        "ничего не требуется" if value else consequence))
+    return rows
+
+
+def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
+    """The plugin and the launch profiles — a requirement of `ordinary` only.
+
+    For a managed application neither exists, so their absence is not a finding:
+    reporting it would teach people that a correct environment has open items.
+    """
+    ordinary = [row for row in rows if row.get("application_kind") == "ordinary"]
+    if not ordinary:
+        return [Row("плагин обычного приложения", "OK",
+                    "в реестре нет баз application_kind=ordinary",
+                    "не требуется: для managed плагин и server-vs-client guard не применяются")]
+    plugin = setting(root, "EDT_ORDINARY_PLUGIN")
+    result = [Row("плагин обычного приложения", "OK" if plugin else "SKIP",
+                  f"версия {plugin}" if plugin else "EDT_ORDINARY_PLUGIN не записан в .dev.env",
+                  "ничего не требуется" if plugin else
+                  f"обычные приложения не запускаются из EDT; баз ordinary: {len(ordinary)}")]
+    for row in ordinary:
+        profile = row.get("edt_profile", "").strip()
+        relative = f"configurations/launch/{profile}.launch"
+        identity = f"{row.get('project_id', '?')}/{row.get('environment_id', '?')}"
+        if not profile:
+            result.append(Row(f"профиль запуска {identity}", "SKIP", "edt_profile не заполнен в реестре",
+                              "запуск обычного приложения настраивается вручную"))
+        elif allowed(relative) and (root / relative).is_file():
+            # Decision 1.16: the attribute is checked for `ordinary` and only
+            # there. A profile without it starts the base as the wrong client,
+            # and the file being present says nothing about that.
+            if CLIENT_TYPE_ATTRIBUTE in read(root, relative):
+                result.append(Row(f"профиль запуска {identity}", "OK",
+                                  f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан", "ничего не требуется"))
+            else:
+                result.append(Row(f"профиль запуска {identity}", "SKIP",
+                                  f"{relative} без {CLIENT_TYPE_ATTRIBUTE}",
+                                  "обычное приложение запустится не тем клиентом"))
+        else:
+            result.append(Row(f"профиль запуска {identity}", "SKIP", f"{relative} отсутствует",
+                              "профиль запуска для ordinary не поставлен"))
+    return result
+
+
+def provider_rows(root: Path, discover=None) -> list[Row]:
+    """The external MCP provider: found and verified, or honestly absent."""
+    import one_c_provider
+
+    try:
+        catalog = json.loads(read(root, "config/1c-mcp-catalog.json") or "{}")
+    except ValueError:
+        return [Row("MCP provider", "FAIL", "config/1c-mcp-catalog.json не читается как JSON",
+                    "исправить каталог ролей")]
+    servers = catalog.get("servers", []) if isinstance(catalog, dict) else []
+    if not servers:
+        return [Row("MCP provider", "SKIP", "каталог ролей пуст",
+                    "капабилити не поставила каталог MCP")]
+    try:
+        # No network and no machine path in the output: the diagnosis reports
+        # what is on this machine, and a manifest that cannot be read is a row
+        # of that report — a traceback here would break the tool exactly in the
+        # situation it exists to diagnose.
+        rows = (one_c_provider.discover(root, servers, network=False) if discover is None
+                else discover(root, servers))
+    except one_c_provider.ProviderError as error:
+        return [Row("MCP provider", "FAIL", str(error)[:200],
+                    "исправить manifest провайдера или убрать ссылку на него")]
+    unresolved = [row for row in rows if row.status != "OK"]
+    if not unresolved:
+        return [Row("MCP provider", "OK", f"ролей подтверждено: {len(rows)}",
+                    "переиспользуется существующий deployment, вторые контейнеры не разворачиваются")]
+    return [Row("MCP provider", "SKIP",
+                f"подтверждено {len(rows) - len(unresolved)} из {len(rows)}: "
+                + "; ".join(f"{row.role} — {row.detail}" for row in unresolved[:3]),
+                "часть MCP-зависимой разработки недоступна")]
+
+
+def report(root: Path, names: tuple[str, ...] = ("docker", "codex", "claude"),
+           discover=None, provider=None) -> list[Row]:
     rows = list(tools(names))
-    registry = read(root, "config/1c-projects.tsv")
-    if registry.strip():
-        bases = max(0, len(registry.strip().splitlines()) - 1)
-        rows.append(Row("реестр баз", "OK", f"строк: {bases}", "ничего не требуется"))
+    registry = registry_rows(root)
+    if registry:
+        rows.append(Row("реестр баз", "OK", f"строк: {len(registry)}", "ничего не требуется"))
     else:
         rows.append(Row("реестр баз", "SKIP", "реестр пуст или отсутствует",
                         "добавить базу через add-1c-base"))
+    rows.extend(edt_rows(root, discover))
+    rows.extend(ordinary_rows(root, registry))
+    rows.extend(provider_rows(root, provider))
     environment = settings(root)
     rows.append(Row(".dev.env", "OK" if environment else "SKIP",
                     f"ключей: {len(environment)}" if environment else "файл отсутствует",

@@ -157,13 +157,21 @@ def server_name(server: dict, base: dict[str, str] | None = None) -> str:
     return f"{OWNED_PREFIX}{server['role']}-{base['project_id']}-{base['environment_id']}"
 
 
-def projected_servers(catalog: list[dict], registry: list[dict[str, str]]) -> list[dict]:
+def projected_servers(catalog: list[dict], registry: list[dict[str, str]],
+                      resolved: dict[str, str] | None = None) -> list[dict]:
     """What each client should contain, and what it cannot contain yet.
 
     A per-base server exists once per infobase; a shared one exists once. An
     endpoint that only the provider manifest knows stays unresolved: a guessed
     URL would look installed and fail at the first call.
+
+    `resolved` is what `one_c_provider` proved about an existing deployment —
+    identity matched, health answered, tools declared. Only endpoints that
+    passed that check may be registered; without it every provider endpoint
+    stays unresolved, which is the state of a machine where the provider is not
+    deployed.
     """
+    resolved = resolved or {}
     projected: list[dict] = []
     taken: dict[str, str] = {}
     for server in catalog:
@@ -183,6 +191,8 @@ def projected_servers(catalog: list[dict], registry: list[dict[str, str]]) -> li
                 entry["unresolved"] = f"роль отключена решением 1.17 — {ROLE_REASONS['data']}"
             elif server.get("endpoint") == "local-port" and base:
                 entry["url"] = f"http://127.0.0.1:{base['server_port']}/mcp"
+            elif resolved.get(server["provider_id"]):
+                entry["url"] = resolved[server["provider_id"]]
             else:
                 entry["unresolved"] = f"endpoint из provider manifest ({server['provider_id']})"
             # "erp-a"/"dev" and "erp"/"a-dev" are different bases with one name,
@@ -310,12 +320,13 @@ def canonical_json(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
 
 
-def plan(root: Path, client: str = "all") -> list[dict[str, str]]:
+def plan(root: Path, client: str = "all",
+         resolved: dict[str, str] | None = None) -> list[dict[str, str]]:
     """What each client file would become. Reading only; nothing is written."""
     if client != "all" and client not in CLIENTS:
         raise ClientError(f"Unknown client '{client}'; expected all, {', or '.join(sorted(CLIENTS))}")
     wanted = None if client == "all" else CLIENTS[client]
-    projected = projected_servers(read_catalog(root), read_registry(root))
+    projected = projected_servers(read_catalog(root), read_registry(root), resolved)
     changes: list[dict[str, str]] = []
     for name, content in (
         (CLAUDE_SETTINGS, canonical_json(render_claude_settings(read_json(root / CLAUDE_SETTINGS), projected))),
@@ -340,14 +351,15 @@ def plan(root: Path, client: str = "all") -> list[dict[str, str]]:
     return changes
 
 
-def apply(root: Path, client: str = "all") -> list[dict[str, str]]:
+def apply(root: Path, client: str = "all",
+          resolved: dict[str, str] | None = None) -> list[dict[str, str]]:
     """Write in two phases: stage everything, then rename.
 
     Three files describe one policy. A failure halfway through would leave a
     project whose clients disagree about what is allowed, so the writes that
     can fail happen before any file is replaced.
     """
-    changes = plan(root, client)
+    changes = plan(root, client, resolved)
     pending = [change for change in changes if change["action"] in ("create", "update")]
     staged: list[tuple[Path, Path]] = []
     replaced: list[tuple[Path, bytes | None]] = []

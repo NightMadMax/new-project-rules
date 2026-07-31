@@ -284,6 +284,37 @@ sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c
 и не затирает правку. Файлы, поставленные bootstrap, при первом запуске
 усыновляются (`adopt`), потому что bootstrap ledger не ведёт.
 
+### Настройка среды 1С и внешний MCP provider
+
+Открыть агента в папке проекта-правил и попросить: «настрой среду 1С для
+проекта <путь>». Или вручную:
+
+```sh
+python3 scripts/one_c_setup.py --root ../my-project
+python3 scripts/one_c_setup.py --root ../my-project --apply decisions.json
+python3 scripts/one_c_provider.py --root ../my-project --manifest <path>
+python3 scripts/one_c_doctor.py --root ../my-project
+```
+
+Без `--apply` не выполняется ничего: это отчёт с состоянием каждого компонента
+и prompt из `config/1c-components.tsv` — назначение, включаемые функции, класс,
+последствия отказа, версия, источник, требования admin/restart/сети/учётных
+данных и три варианта ответа. `decisions.json` — записанные ответы вида
+`{"Pillow": "установить автоматически"}`; компонент без ответа остаётся
+нетронутым, а запускается только команда, объявленная каталогом. После
+установки состояние перепроверяется фактически: команда, завершившаяся нулём и
+ничего не поставившая, даёт `failed`.
+
+Пропуск компонента класса `required` даёт итог `incomplete`, `conditional` —
+перечисляет отключённые функции, `optional` — не влияет ни на что.
+
+`one_c_provider.py` только обнаруживает чужой deployment: разрешены `docker ps`,
+`inspect` и `version`, а `run`, `compose` и `start` — отказ. Проверенный
+endpoint передаётся в проекции клиентов:
+`sh scripts/render-1c-clients.sh --root ../my-project --provider-manifest <path>`.
+Без manifest endpoint остаётся нерешённым — подставленный адрес выглядел бы
+установленным и отказал бы при первом вызове.
+
 ### Выгрузка исходников 1С в XML
 
 Открыть агента в папке проекта-правил и попросить: «подготовь XML-выгрузку базы
