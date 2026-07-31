@@ -11,11 +11,31 @@ case "$agent_mode" in
   *) echo "Usage: $0 [codex|claude|both]" >&2; exit 2 ;;
 esac
 
-# A name that resolves is not a tool that starts: a file without the execute
-# bit, or a wrapper pointing at a moved installation, resolves just as well.
-# The canonical implementation, with the install locations outside PATH, is
-# scripts/cli_discovery.py — which needs Python this script cannot assume.
+# The canon knows the install locations outside PATH; this script cannot assume
+# Python, so it asks the canon when Python is there and walks PATH otherwise.
+# Without this the two disagree about the same machine: check-cli starts a CLI
+# that check-environment calls missing.
+discovery=""
+for candidate in python3 python; do
+  if command -v "$candidate" >/dev/null 2>&1 &&
+     "$candidate" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)' >/dev/null 2>&1; then
+    script_dir=$(CDPATH= cd -P "$(dirname "$0")" && pwd)
+    if [ -f "$script_dir/cli_discovery.py" ]; then
+      discovery=$("$candidate" "$script_dir/cli_discovery.py" --porcelain git gh codex claude 2>/dev/null) || discovery=""
+    fi
+    break
+  fi
+done
+
 has() {
+  if [ -n "$discovery" ]; then
+    line=$(printf '%s
+' "$discovery" | grep "^$1	") || line=""
+    if [ -n "$line" ]; then
+      [ "$(printf '%s' "$line" | cut -f2)" = "ok" ]
+      return $?
+    fi
+  fi
   command -v "$1" >/dev/null 2>&1 && "$1" --version >/dev/null 2>&1
 }
 
