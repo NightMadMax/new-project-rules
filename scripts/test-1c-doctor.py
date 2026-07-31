@@ -65,7 +65,7 @@ with tempfile.TemporaryDirectory() as raw:
             "# comment",
             "DEFAULT_PASSWORD=hunter2",
             "API_TOKEN=abcdef123456",
-            "CONNECTION=Srvr=host;Ref=erp;",
+            "CONNECTION=Srvr=host;Ref=erp;",  # noscan - фикстура: сканер обязан её видеть, репозиторий - нет
             "EMPTY_SECRET=",
             "VERIFICATION_DEPTH=full",
         ]).encode("utf-8")
