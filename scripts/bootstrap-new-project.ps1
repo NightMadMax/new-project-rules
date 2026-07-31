@@ -459,7 +459,10 @@ catch {
     # not reach the console, and a bootstrap that fails with no output at all is
     # unusable — the user sees an exit code and nothing else.
     [Console]::Error.WriteLine("bootstrap-new-project: " + $_.Exception.Message)
-    exit 1
+    # Re-thrown, not swallowed: `exit` here would replace the failure semantics
+    # the callers already rely on — the run must still end the way it did, only
+    # with the reason visible.
+    throw
 }
 finally {
     if (-not $BootstrapSucceeded -and (Test-Path -LiteralPath $Destination)) {
