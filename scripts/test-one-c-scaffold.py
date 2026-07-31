@@ -312,6 +312,20 @@ registry_case(
 )
 registry_case("empty identity", registry_rows(base_row(project_id="", environment_id="")), "registry.value")
 registry_case("identifier with a separator", registry_rows(base_row(project_id="erp/main")), "registry.value")
+# The ceiling belongs to the registry, not to one row: an eleventh exposed base
+# used to fail as a port collision, which describes the wrong thing.
+eleven = registry_rows(*[
+    base_row(project_id=f"base{number}", server_port=str(6003 + number), mcp_enabled="true")
+    for number in range(11)
+])
+registry_case("eleven exposed bases", eleven, "registry.exposed")
+
+# Registering is not limited: the same eleven are fine while they stay unexposed.
+registry_case("eleven registered bases, ten exposed", registry_rows(*[
+    base_row(project_id=f"base{number}", server_port=str(6003 + number), mcp_enabled="true")
+    for number in range(10)
+] + [base_row(project_id="base10", server_port="", mcp_enabled="false")]), None)
+
 registry_case("port with a leading zero collides", registry_rows(base_row(), base_row(project_id="zup", server_port="06003")), "registry.port")
 registry_case("row that does not match the header", registry_rows("erp\tdev"), "registry.row")
 

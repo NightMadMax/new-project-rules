@@ -444,6 +444,7 @@ def check_one_c_registry(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     identities: set[tuple[str, str]] = set()
     ports: dict[int, str] = {}
+    exposed = 0
     for row in reader:
         where = f"{ONE_C_REGISTRY}:{reader.line_num}"
         if None in row or any(value is None for value in row.values()):
@@ -480,6 +481,7 @@ def check_one_c_registry(root: Path) -> list[Finding]:
                 ))
 
         if row["mcp_enabled"] == "true":
+            exposed += 1
             port = row["server_port"]
             if not (port.isascii() and port.isdigit()) or int(port) not in ONE_C_PORTS:
                 findings.append(Finding(
@@ -507,6 +509,18 @@ def check_one_c_registry(root: Path) -> list[Finding]:
                     "ERROR", "registry.path",
                     f"{where} column '{column}' must not hold a machine path.", ONE_C_REGISTRY,
                 ))
+
+    # The ceiling stated where it is reached. Uniqueness inside the range already
+    # makes an eleventh exposed base impossible, but it fails as "shares a port"
+    # or "needs a port in range" — messages about one row, when the fact is about
+    # the whole registry. Registering bases is not limited; exposing them is.
+    if exposed > len(ONE_C_PORTS):
+        findings.append(Finding(
+            "ERROR", "registry.exposed",
+            f"{exposed} bases expose MCP, but the range {ONE_C_PORTS.start}-{ONE_C_PORTS.stop - 1} "
+            f"holds {len(ONE_C_PORTS)}. Registering a base is not limited; exposing it is.",
+            ONE_C_REGISTRY,
+        ))
     return findings
 
 
