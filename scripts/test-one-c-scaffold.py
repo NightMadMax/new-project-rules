@@ -43,6 +43,7 @@ SKILLS = (
     "develop-1c", "doctor-1c", "setup-1c-environment", "select-1c-project",
     "query-1c-infobase", "measure-1c-performance", "work-with-1c-edt", "add-1c-base",
     "activate-1c-client", "export-1c-source", "deploy-1c-source", "deploy-and-test-1c",
+    "evolve-1c-rules", "manage-1c-mcp",
 )
 # S.6 routes the upstream development rules into these eight references; a skill
 # that names them and delivers none would route the reader nowhere.

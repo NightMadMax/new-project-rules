@@ -1,0 +1,4 @@
+interface:
+  display_name: "Evolve 1C Rules"
+  short_description: "Turn repeated signals into user-approved agent behaviour rules"
+  default_prompt: "Use $evolve-1c-rules when the user asks to record an approved behaviour rule."

@@ -235,3 +235,9 @@ jira-confluence	capabilities/jira-confluence/.claude/skills/work-with-jira-confl
 1c	capabilities/1c/.agents/skills/develop-1c/references/integrations.md	.agents/skills/develop-1c/references/integrations.md	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/develop-1c/references/verification.md	.agents/skills/develop-1c/references/verification.md	-	-	-	template	managed
 1c	capabilities/1c/.claude/skills/develop-1c/SKILL.md	.claude/skills/develop-1c/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/evolve-1c-rules/SKILL.md	.agents/skills/evolve-1c-rules/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/evolve-1c-rules/agents/openai.yaml	.agents/skills/evolve-1c-rules/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/evolve-1c-rules/SKILL.md	.claude/skills/evolve-1c-rules/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/manage-1c-mcp/SKILL.md	.agents/skills/manage-1c-mcp/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.agents/skills/manage-1c-mcp/agents/openai.yaml	.agents/skills/manage-1c-mcp/agents/openai.yaml	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/manage-1c-mcp/SKILL.md	.claude/skills/manage-1c-mcp/SKILL.md	-	-	-	template	managed
