@@ -122,12 +122,24 @@ def invalidate(root: Path) -> None:
 
 
 def require(root: Path, rows: list[dict], *, identity: str | None = None,
-            write: bool = False, now: float | None = None) -> dict:
+            write: bool = False, now: float | None = None,
+            system: str | None = None) -> dict:
     """The lock this operation may act on, or a refusal that says what to do.
 
     `rows` is the registry: the lock is checked against it rather than trusted,
     because a base can be re-registered on another port between two calls.
+
+    A lock authorises an operation on a live infobase, and those run on Windows
+    only. Everything else about the project — bootstrap, Git, documentation,
+    review, validators — works anywhere, so the refusal is here, at the one
+    place that stands in front of the runtime, rather than in a rule that says
+    the whole capability is Windows-only.
     """
+    if (system if system is not None else os.name) != "nt":
+        raise SessionError(
+            "операции с живой базой 1С выполняются только на Windows; "
+            "репозиторий, документация и проверки доступны на любой ОС"
+        )
     lock = read_lock(root)
     if lock is None:
         raise SessionError("no session lock: run select-1c-project and confirm the base by a call")

@@ -238,6 +238,51 @@ def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
     return result
 
 
+def port_rows(rows: list[dict[str, str]], probe=None) -> list[Row]:
+    """Whether the port a base was assigned is free on this machine.
+
+    The runtime smoke of milestone W found `6003` — the port the allocation rule
+    hands to the first base — already listened on by the platform itself. The
+    rule does not change and the diagnosis never reassigns anything: a shared
+    topology is not rewritten because one machine is busy. It says which port is
+    taken, and the choice is the user's.
+    """
+    probe = occupied if probe is None else probe
+    result: list[Row] = []
+    for row in rows:
+        if row.get("mcp_enabled") != "true":
+            continue
+        port = row.get("server_port", "").strip()
+        identity = f"{row.get('project_id', '?')}/{row.get('environment_id', '?')}"
+        if not port.isdigit():
+            continue
+        if probe(int(port)):
+            result.append(Row(f"порт {port} ({identity})", "FAIL", "порт уже занят на этой машине",
+                              "освободить порт или изменить topology явно — "
+                              "диагностика не переназначает порты"))
+        else:
+            result.append(Row(f"порт {port} ({identity})", "OK", "свободен", "ничего не требуется"))
+    return result
+
+
+def occupied(port: int) -> bool:
+    """Local occupancy only: bind, do not connect.
+
+    Connecting would answer about whoever is listening, including a service on
+    another machine; binding answers the only question that matters — whether
+    this base can start its server here.
+    """
+    import socket
+
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        try:
+            probe.bind(("127.0.0.1", port))
+        except OSError:
+            return True
+    return False
+
+
 def provider_rows(root: Path, discover=None) -> list[Row]:
     """The external MCP provider: found and verified, or honestly absent."""
     import one_c_provider
@@ -282,6 +327,7 @@ def report(root: Path, names: tuple[str, ...] = ("docker", "codex", "claude"),
                         "добавить базу через add-1c-base"))
     rows.extend(edt_rows(root, discover))
     rows.extend(ordinary_rows(root, registry))
+    rows.extend(port_rows(registry))
     rows.extend(provider_rows(root, provider))
     environment = settings(root)
     rows.append(Row(".dev.env", "OK" if environment else "SKIP",

@@ -142,6 +142,21 @@ with tempfile.TemporaryDirectory() as raw:
                 note(f"../../../.agents/skills/{skill}/SKILL.md" in bridge.read_text(encoding="utf-8"),
                      f"the Claude bridge for {skill} does not point at the canonical skill")
 
+        # Criterion 29: the registry holds what a machine checks, the card holds
+        # what it cannot. The BSP version lives in the card because it changes
+        # with every update of the vendor configuration and is read by a person
+        # choosing an API, not by a validator.
+        card = project / "configurations/PROJECT_1C.template.md"
+        note(card.is_file(), "the base card template is not delivered")
+        if card.is_file():
+            body = card.read_text(encoding="utf-8")
+            note("Версия БСП" in body, "the base card must ask for the BSP version")
+            note("support_mode" in body and "source_format" in body,
+                 "the base card must carry the modes the registry stores by machine")
+        instantiate = (project / ".agents/skills/add-1c-base/SKILL.md").read_text(encoding="utf-8")
+        note("PROJECT_1C.template.md" in instantiate and "БСП" in instantiate,
+             "add-1c-base must instantiate the card and ask for the BSP version")
+
         for name in DEVELOP_REFERENCES:
             note((project / f".agents/skills/develop-1c/references/{name}.md").is_file(),
                  f"scaffold is missing the develop-1c reference {name}")

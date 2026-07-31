@@ -169,7 +169,10 @@
 | `scripts/one_c_setup.py` | Исполнитель настройки среды: план, установка только подтверждённого, фактическая перепроверка |
 | `scripts/test-1c-setup.py` | Тесты каталога и настройки: полнота prompt, только подтверждённая установка, репозиторий не трогается |
 | `scripts/one_c_provider.py` | Обнаружение внешнего MCP provider: identity, health, инструменты, запрет запуска контейнеров |
+| `templates/new-project/capabilities/1c/PROJECT_1C.template.md` | Карточка базы: версия БСП, режим поддержки, снятия с поддержки, особенности |
 | `scripts/test-1c-provider.py` | Тесты provider: переиспользование deployment, отказ на docker run, нерешённый endpoint |
+| `scripts/one_c_yaxunit.py` | Разбор отчёта YAxUnit: провал, ошибка и пропуск различаются |
+| `scripts/test-1c-yaxunit.py` | Тесты отчёта: прогон без отчёта — не пропуск, а отказ |
 | `scripts/one_c_clients.py` | Контракт клиентских проекций 1С: владение, классы разрешений, транзакционная запись |
 | `scripts/render-1c-clients.py` | Сборка клиентских проекций 1С из каталога ролей и реестра баз |
 | `scripts/render-1c-clients.sh` | POSIX-обёртка сборки клиентских проекций |

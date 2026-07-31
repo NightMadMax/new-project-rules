@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent
@@ -99,6 +100,59 @@ def scan(text: str) -> list[tuple[str, str, int, str]]:
     return found
 
 
+REGISTRY = "config/1c-projects.tsv"
+# Where a base name is the subject rather than a leak: the registry itself, the
+# card of that base, and the document describing the environments.
+BASE_NAME_HOMES = ("config/1c-projects.tsv", "docs/operations/ENVIRONMENT_REGISTRY.md",
+                   "configurations/")
+# Identifiers too short or too common to mean a base: "erp" in a sentence is not
+# a leak, and a one-letter id would fire on everything.
+MINIMUM_NAME = 4
+
+
+def base_names(root: Path) -> set[str]:
+    """The working base identities this tree knows about.
+
+    The standard's own registry is empty by definition, so in this repository
+    the set is empty and the check is vacuous — which is exactly why it also
+    runs against a created project, where the registry is filled in. The names
+    have to come from somewhere real; inventing a list of plausible ones would
+    check nothing.
+    """
+    path = root / REGISTRY
+    if not path.is_file():
+        return set()
+    lines = path.read_bytes().decode("utf-8", errors="replace").splitlines()
+    if len(lines) < 2:
+        return set()
+    header = lines[0].split("\t")
+    wanted = [header.index(column) for column in ("project_id", "environment_id", "configuration")
+              if column in header]
+    names: set[str] = set()
+    for line in lines[1:]:
+        values = line.split("\t")
+        for index in wanted:
+            if index < len(values):
+                name = values[index].strip()
+                if len(name) >= MINIMUM_NAME:
+                    names.add(name)
+    return names
+
+
+def scan_names(text: str, names: set[str]) -> list[tuple[str, str, int, str]]:
+    """Where a real base name appears outside the files that are about it."""
+    found = []
+    for number, line in enumerate(text.splitlines(), start=1):
+        if MARKER.search(line):
+            continue
+        for name in names:
+            if re.search(rf"(?<![0-9a-zA-Z_-]){re.escape(name)}(?![0-9a-zA-Z_-])", line):
+                found.append(("name.base", f"the name of a working base '{name}'",
+                              number, line.strip()[:120]))
+                break
+    return found
+
+
 if __name__ == "__main__":
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -110,6 +164,7 @@ if __name__ == "__main__":
     arguments = parser.parse_args()
     ROOT = Path(arguments.root).resolve()
 
+    names = base_names(ROOT)
     for path in scanned_files(ROOT):
         try:
             text = path.read_bytes().decode("utf-8")
@@ -117,8 +172,12 @@ if __name__ == "__main__":
             # Not text: a regular expression over lines would find nothing in it
             # anyway, and failing the build here would say nothing actionable.
             continue
-        for code, description, number, line in scan(text):
-            failures.append(f"{path.relative_to(ROOT).as_posix()}:{number} [{code}] {description}: {line}")
+        relative = path.relative_to(ROOT).as_posix()
+        findings = list(scan(text))
+        if names and not any(relative.startswith(home) for home in BASE_NAME_HOMES):
+            findings.extend(scan_names(text, names))
+        for code, description, number, line in findings:
+            failures.append(f"{relative}:{number} [{code}] {description}: {line}")
 
     # The scanner has to be able to see what it is looking for; otherwise a
     # broken pattern reads as a clean repository.
@@ -159,6 +218,28 @@ if __name__ == "__main__":
                  "token_option = arguments.token_option"):
         if scan(line):
             failures.append(f"the scanner must not fire on '{line}'")
+
+    # The base-name check has to be exercised where names exist: this repository
+    # ships an empty registry on purpose, so without a fixture the code would be
+    # dead and the criterion would be a claim.
+    with tempfile.TemporaryDirectory() as raw:
+        fixture = Path(raw)
+        (fixture / "config").mkdir()
+        (fixture / REGISTRY).write_bytes(
+            ("project_id\tenvironment_id\tconfiguration\n"
+             "torgovlya-nord\tprod-main\tUpravlenieTorgovlei\n").encode("utf-8"))
+        found = base_names(fixture)
+        if "torgovlya-nord" not in found or "prod-main" not in found:
+            failures.append(f"the registry must supply the names to look for: {found}")
+        if any(len(name) < MINIMUM_NAME for name in found):
+            failures.append(f"a name too short to mean a base must not be looked for: {found}")
+        leak = scan_names("см. базу torgovlya-nord в примере", found)
+        if not leak:
+            failures.append("a working base name in a template must be a finding")
+        if scan_names("см. базу torgovlya-nord-2 и torgovlya", found):
+            failures.append("a longer or shorter word must not be mistaken for the name")
+        if scan_names("см. базу torgovlya-nord  # noscan", found):
+            failures.append("the marker must silence the base-name check as well")
 
     if failures:
         for failure in failures:

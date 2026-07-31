@@ -177,6 +177,32 @@ with tempfile.TemporaryDirectory() as raw:
     note(ordinary["профиль запуска erp/dev"].status == "OK",
          f"a complete profile must be found: {ordinary}")
 
+# --- a port that is taken on this machine ------------------------------------
+# Milestone W found 6003 — the port the rule hands to the first base — already
+# listened on by the platform, and nothing reported it.
+
+registry = [
+    {"project_id": "erp", "environment_id": "dev", "server_port": "6003", "mcp_enabled": "true"},
+    {"project_id": "erp", "environment_id": "prod", "server_port": "", "mcp_enabled": "false"},
+]
+taken = {row.component: row for row in doctor.port_rows(registry, probe=lambda port: port == 6003)}
+note(len(taken) == 1, f"a base that exposes no MCP reserves no port: {taken}")
+occupied_row = taken["порт 6003 (erp/dev)"]
+note(occupied_row.status == "FAIL", f"an occupied port must be a finding: {occupied_row}")
+note("переназнач" in occupied_row.action,
+     f"the report must say that nothing is reassigned automatically: {occupied_row}")
+free = doctor.port_rows(registry, probe=lambda port: False)
+note(free[0].status == "OK", f"a free port must pass: {free}")
+
+# The probe binds rather than connects: a connection would answer about whoever
+# listens anywhere, and the question is whether this machine can serve the base.
+import socket  # noqa: E402
+
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as holder:
+    holder.bind(("127.0.0.1", 0))
+    holder.listen(1)
+    note(doctor.occupied(holder.getsockname()[1]), "a bound port must be seen as occupied")
+
 # --- the provider is reported, never started ---------------------------------
 
 with tempfile.TemporaryDirectory() as raw:
