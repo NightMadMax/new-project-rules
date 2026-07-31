@@ -238,6 +238,48 @@ class MigrationPlannerTests(unittest.TestCase):
         plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(plan.status, "up_to_date")
 
+    def test_migration_refuses_a_project_whose_1c_core_was_removed(self):
+        """Defect 177: the core was only ever checked on the metadata side.
+
+        Editing metadata by hand is rejected by the validator, but a project
+        arrives at the planner through migration too, and nothing checked the
+        invariant there. A capability whose core is gone must not be carried
+        forward to a new schema as if it were intact.
+        """
+        project = self.make_project("operated")
+        commit = planner.inspect_git(self.contract).commit
+        assert commit is not None
+        metadata = planner.project_metadata.build_legacy_metadata(
+            self.version, "operated", "NightMadMax/new-project-rules", commit,
+            [row.migration_id for row in self.migrations if row.target == "project"],
+        )
+        metadata["capabilities"] = ["1c"]
+        # The core says: 1c requires a profile no lower than operated.
+        metadata["profile"] = "software"
+        (project / ".project-standard.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(plan.status, "blocked")
+        self.assertTrue(
+            any("operated" in blocker or "profile" in blocker for blocker in plan.blockers),
+            f"the blocker must name the broken invariant: {plan.blockers}",
+        )
+
+    def test_migration_carries_an_intact_1c_core_forward(self):
+        """The guard must not block a project whose core is whole."""
+        project = self.make_project("operated")
+        commit = planner.inspect_git(self.contract).commit
+        assert commit is not None
+        metadata = planner.project_metadata.build_legacy_metadata(
+            self.version, "operated", "NightMadMax/new-project-rules", commit,
+            [row.migration_id for row in self.migrations if row.target == "project"],
+        )
+        metadata["capabilities"] = ["1c"]
+        (project / ".project-standard.json").write_text(json.dumps(metadata), encoding="utf-8")
+
+        plan = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
+        self.assertEqual(plan.status, "up_to_date", plan.blockers)
+
     def test_schema4_metadata_without_release_record_upgrades_to_valid_v5(self):
         project = self.make_project("minimal")
         commit = planner.inspect_git(self.contract).commit
