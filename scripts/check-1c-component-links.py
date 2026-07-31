@@ -17,15 +17,20 @@ from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 CATALOG = "docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN.md"
+# The machine-readable catalog carries the links the setup prompt actually
+# shows; checking only the prose table would leave those unchecked.
+CATALOGS = (CATALOG, "config/1c-components.tsv")
 LINK_RE = re.compile(r"https?://[^\s<>()\[\]\"'`]+")
 TIMEOUT_SECONDS = 10
 
 
-def links(root: Path, catalog: str = CATALOG) -> list[str]:
-    path = root / catalog
-    if not path.is_file():
-        return []
-    found = LINK_RE.findall(path.read_bytes().decode("utf-8"))
+def links(root: Path, catalog: str | tuple[str, ...] = CATALOGS) -> list[str]:
+    sources = (catalog,) if isinstance(catalog, str) else catalog
+    found: set[str] = set()
+    for source in sources:
+        path = root / source
+        if path.is_file():
+            found.update(LINK_RE.findall(path.read_bytes().decode("utf-8")))
     return sorted({link.rstrip(".,;:") for link in found})
 
 

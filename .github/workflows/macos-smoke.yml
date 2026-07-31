@@ -69,6 +69,8 @@ jobs:
           python3 scripts/test-one-c-scaffold.py
           python3 scripts/test-1c-clients.py
           python3 scripts/test-1c-source.py
+          python3 scripts/test-1c-setup.py
+          python3 scripts/test-1c-provider.py
           python3 scripts/test-1c-readiness.py
           python3 scripts/test-no-secrets.py
           python3 scripts/validate-project.py --root . --kind rules --report-only

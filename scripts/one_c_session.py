@@ -63,16 +63,34 @@ def identity_of(row: dict) -> str:
 
 
 def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "analysis",
-            production_confirmed: bool = False, now: float | None = None) -> dict:
+            production_confirmed: bool = False, backup_confirmed: str = "",
+            now: float | None = None) -> dict:
     """Record a base whose identity has just been proved by a call.
 
     `confirmed_by` is what proved it — the call and what it answered. An empty
     value would make the lock a claim rather than evidence.
+
+    An approved write needs two more things, and neither of them is implied.
+    `backup_confirmed` is what proved a backup exists — its name and when it was
+    taken — because "there is a backup somewhere" is exactly the belief that
+    turns a mistaken write into a lost day. And production is refused outright:
+    a confirmation may select a production base for reading, never for writing.
     """
     if not confirmed_by:
         raise SessionError("a lock needs the call that proved the identity, not a claim")
     if write_mode not in WRITE_MODES:
         raise SessionError(f"unknown write mode '{write_mode}'; expected one of {', '.join(WRITE_MODES)}")
+    if write_mode == "approved-write":
+        if row.get("is_production") == "true":
+            raise SessionError(
+                f"{identity_of(row)} is production: an approved write is not taken on it "
+                "at all, and no confirmation makes it one"
+            )
+        if not backup_confirmed:
+            raise SessionError(
+                "an approved write needs the backup that was checked — which copy and when; "
+                "'there is a backup' is a belief, not a precondition"
+            )
     if row.get("is_production") == "true" and not production_confirmed:
         raise SessionError(
             f"{identity_of(row)} is production: it is never selected implicitly, "
@@ -87,6 +105,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
         "confirmed_by": confirmed_by,
         "write_mode": write_mode,
         "production_confirmed": bool(production_confirmed),
+        "backup_confirmed": backup_confirmed,
         "created_at": now if now is not None else time.time(),
     }
     directory = state_directory(root)
@@ -138,4 +157,10 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
             )
         if lock.get("is_production") == "true":
             raise SessionError("writing to production is refused here regardless of the lock")
+        # A lock written before this rule existed carries no backup evidence, and
+        # an old lock is not a reason to skip the precondition.
+        if not lock.get("backup_confirmed"):
+            raise SessionError(
+                "the lock carries no checked backup; take the lock again naming the copy and its date"
+            )
     return lock

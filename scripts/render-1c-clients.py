@@ -10,6 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from one_c_clients import ClientError, apply, plan  # noqa: E402
+from one_c_provider import ProviderError  # noqa: E402
 
 
 def main() -> int:
@@ -24,13 +25,33 @@ def main() -> int:
     parser.add_argument("--write", action="store_true", help="write the projections")
     parser.add_argument("--client", default="all", choices=["all", "claude", "codex"],
                         help="render only the projections of one client")
+    parser.add_argument("--provider-manifest", default="",
+                        help="manifest внешнего MCP provider; без него endpoint остаётся нерешённым")
     arguments = parser.parse_args()
 
     root = Path(arguments.root).resolve()
     try:
-        changes = apply(root, arguments.client) if arguments.write else plan(root, arguments.client)
+        # Without a manifest nothing is resolved, and that is the honest state of
+        # a machine where the provider is not deployed: a guessed URL would look
+        # installed and fail at the first call.
+        resolved = None
+        if arguments.provider_manifest:
+            import one_c_provider
+            from one_c_clients import read_catalog
+
+            rows = one_c_provider.discover(root, read_catalog(root),
+                                           explicit=arguments.provider_manifest)
+            resolved = one_c_provider.resolved(rows)
+            for row in rows:
+                if row.status != "OK":
+                    print(f"[{row.status:9}] provider {row.role} — {row.detail}")
+        changes = (apply(root, arguments.client, resolved) if arguments.write
+                   else plan(root, arguments.client, resolved))
     except ClientError as error:
         print(f"[ERROR] {error}", file=sys.stderr)
+        return 2
+    except ProviderError as error:
+        print(f"[ERROR] provider: {error}", file=sys.stderr)
         return 2
 
     for change in changes:
