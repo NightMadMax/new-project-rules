@@ -53,7 +53,8 @@ def row(**overrides: str) -> str:
         "component": "Тестовый компонент", "class": "conditional", "purpose": "зачем",
         "enables": "что включает", "consequence": "что сломается", "version": "1.0",
         "download": "https://example.invalid/download", "docs": "https://example.invalid/docs",
-        "install": "manual", "command": "", "admin": "no", "restart": "no", "network": "yes",
+        "install": "manual", "command": "", "prerequisites": "нет",
+        "admin": "no", "restart": "no", "network": "yes",
         "credentials": "no", "license": "no", "platform": "any", "detect": "cli:example",
     }
     values.update(overrides)
@@ -81,12 +82,27 @@ for component in shipped:
     note(len(components.options(component, found=True)) == 3,
          f"{component.name}: a found component must offer three answers")
 
-# The plan's own table and the machine catalog must name the same components:
-# two lists of components is two answers to what `required` means.
+# The subplan's table is derived from the catalog, so the check is an exact
+# comparison rather than a search for a word. The two had already drifted: the
+# prose promised an automatic install for components the catalog gives no
+# command for, and a per-word search could never see that.
 plan_text = (ROOT / "docs/architecture/one-c/ENVIRONMENT_SETUP_PLAN.md").read_bytes().decode("utf-8")
+note(components.TABLE_BEGIN in plan_text and components.TABLE_END in plan_text,
+     "the subplan must carry the generated catalog table between its markers")
+if components.TABLE_BEGIN in plan_text and components.TABLE_END in plan_text:
+    block = plan_text[plan_text.index(components.TABLE_BEGIN):
+                      plan_text.index(components.TABLE_END) + len(components.TABLE_END)]
+    note(block.replace("\r\n", "\n") == components.render_table(shipped),
+         "the subplan table is out of date: regenerate it with one_c_components.py --table")
+
+# The command a component installs with must run the interpreter that will
+# afterwards look for it.
 for component in shipped:
-    key = component.name.split()[0].rstrip(":")
-    note(key in plan_text, f"{component.name} is in the catalog and not in the subplan table")
+    note("python3 " not in component.command,
+         f"{component.name}: a literal python3 is the App Execution Alias stub on Windows")
+    if "{python}" in component.command:
+        note(sys.executable in setup.command_of(component),
+             f"{component.name}: the placeholder must resolve to this interpreter")
 
 # --- a row that would shorten the question is an error -----------------------
 
