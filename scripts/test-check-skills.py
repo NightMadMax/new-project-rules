@@ -112,6 +112,24 @@ def build_ok(root: Path) -> None:
     manifest(root, [canonical_row("alpha"), vendored_row("vendored")])
 
 
+# --- references the skill never opens --------------------------------------
+
+def build_orphan_reference(root: Path) -> None:
+    canonical_skill(root, "alpha")
+    write(root / CANONICAL_ROOT / "alpha/references/models.md", "# Models\n")
+    manifest(root, [canonical_row("alpha")])
+
+
+def build_linked_reference(root: Path) -> None:
+    canonical_skill(root, "alpha", body="\nПодробности — `references/models.md`.\n")
+    write(root / CANONICAL_ROOT / "alpha/references/models.md", "# Models\n")
+    manifest(root, [canonical_row("alpha")])
+
+
+case("reference nobody links to", build_orphan_reference, "reference nobody links to")
+case("reference the skill points at", build_linked_reference, None)
+
+
 # --- canonical contract ----------------------------------------------------
 
 def build_missing_bridge(root: Path) -> None:

@@ -30,6 +30,19 @@ ARTIFACT_FIELDS = (
     "ownership", "target_path", "target_sha256",
 )
 ACTIONS = ("copy", "adapt", "compile", "route")
+# What a selector may say about the part of a source a row is about. Three
+# shapes, because the hash means something different in each and a free-form
+# string let the difference go unnoticed:
+#
+#   `-`              the whole file; `source_sha256` is the hash of the file
+#   `<client>`       a projection of the whole file for one client; same hash
+#   `heading:<текст>` one fragment; the hash is the fragment's, not the file's
+#
+# Mixing `-` with any other selector for one source path is refused: the row
+# would claim the whole file and a part of it at once, and the ledger could not
+# say which of the two the hash describes.
+SELECTOR_CLIENTS = ("codex", "claude")
+HEADING_PREFIX = "heading:"
 DEPENDENCY_CLASSES = ("required", "conditional", "optional")
 OWNERSHIPS = ("project-managed", "project-seed", "provider-only", "pinned-external")
 BLOCKED, REVIEW = "blocked", "review"
@@ -245,6 +258,11 @@ def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> li
 
     rows: list[dict[str, str]] = []
     seen: set[tuple[str, str, str]] = set()
+    # Which parts of each source path the ledger claims, and the hash each
+    # fragment carries: both are needed to catch a file claimed whole and in
+    # parts at once, and two fragments hashed as if they were the whole file.
+    selectors: dict[tuple[str, str], set[str]] = {}
+    fragment_hashes: dict[tuple[str, str], dict[str, str]] = {}
     sources = set(known_sources)
     targets: set[str] = set()
     for number, row in enumerate(reader, start=2):
@@ -283,10 +301,37 @@ def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> li
         elif not SHA_RE.fullmatch(row["target_sha256"]):
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} target_sha256 must be a 64-hex digest")
 
+        selector = row["source_selector"]
+        if not (selector == "-" or selector in SELECTOR_CLIENTS
+                or (selector.startswith(HEADING_PREFIX) and selector[len(HEADING_PREFIX):].strip())):
+            raise ReleaseError(
+                f"{ARTIFACTS_NAME}:{number} selector '{selector}' is not '-', "
+                f"a client ({', '.join(SELECTOR_CLIENTS)}) or '{HEADING_PREFIX}<заголовок>'"
+            )
+
         key = (row["source"], row["source_path"], row["source_selector"])
         if key in seen:
             raise ReleaseError(f"{ARTIFACTS_NAME}:{number} duplicate source {row['source_path']}")
         seen.add(key)
+
+        path_key = (row["source"], row["source_path"])
+        previous = selectors.setdefault(path_key, set())
+        if ("-" in previous and selector != "-") or (selector == "-" and previous - {"-"}):
+            raise ReleaseError(
+                f"{ARTIFACTS_NAME}:{number} {row['source_path']} is claimed both whole and "
+                "in parts; one hash cannot describe both"
+            )
+        # Two fragments of one file are two different pieces of text. Sharing a
+        # hash means the hash is the file's, and then it verifies neither.
+        if selector.startswith(HEADING_PREFIX):
+            same = fragment_hashes.setdefault(path_key, {})
+            if row["source_sha256"] in same.values():
+                raise ReleaseError(
+                    f"{ARTIFACTS_NAME}:{number} two fragments of {row['source_path']} carry one hash; "
+                    "a fragment is hashed by its own bytes"
+                )
+            same[selector] = row["source_sha256"]
+        previous.add(selector)
         if row["target_path"] != "-":
             if row["target_path"] in targets:
                 raise ReleaseError(f"{ARTIFACTS_NAME}:{number} two rows deliver into {row['target_path']}")
