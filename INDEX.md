@@ -160,6 +160,8 @@
 | `scripts/export-1c-source.sh` | POSIX-обёртка выгрузки исходников |
 | `scripts/export-1c-source.ps1` | PowerShell-обёртка выгрузки исходников |
 | `scripts/test-1c-source.py` | Тесты конвертации: расположение выгрузки, детерминизм, блокировка, возврат |
+| `scripts/one_c_session.py` | Session lock: какую базу сессии разрешено трогать и чем это подтверждено |
+| `scripts/test-1c-session.py` | Тесты гейта: отказ без lock, без подтверждения production, при смене порта |
 | `scripts/one_c_clients.py` | Контракт клиентских проекций 1С: владение, классы разрешений, транзакционная запись |
 | `scripts/render-1c-clients.py` | Сборка клиентских проекций 1С из каталога ролей и реестра баз |
 | `scripts/render-1c-clients.sh` | POSIX-обёртка сборки клиентских проекций |

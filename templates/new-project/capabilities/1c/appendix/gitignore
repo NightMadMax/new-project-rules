@@ -3,3 +3,4 @@
 node_modules/
 .*.incoming-*
 .*.previous-*
+.1c-state/

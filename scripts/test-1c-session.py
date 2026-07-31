@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""The session lock has to refuse, and refuse for a nameable reason.
+
+Every case here is a rule that previously existed only as a sentence in a skill:
+what a skill does with a sentence depends on the session reading it, which is
+the difference between a rule and a check.
+"""
+
+from __future__ import annotations
+
+import importlib.util
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+SCRIPTS = Path(__file__).resolve().parent
+spec = importlib.util.spec_from_file_location("one_c_session", SCRIPTS / "one_c_session.py")
+assert spec and spec.loader
+session = importlib.util.module_from_spec(spec)
+sys.modules["one_c_session"] = session
+spec.loader.exec_module(session)
+
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="replace")
+
+failures: list[str] = []
+
+
+def note(condition: bool, message: str) -> None:
+    if not condition:
+        failures.append(message)
+
+
+def refuses(action, expected: str, message: str) -> None:
+    try:
+        action()
+    except session.SessionError as error:
+        note(expected in str(error), f"{message}: unexpected reason: {error}")
+        return
+    failures.append(message)
+
+
+def base(**overrides) -> dict:
+    row = {
+        "project_id": "erp", "environment_id": "dev", "server_port": "6003",
+        "application_kind": "managed", "is_production": "false",
+    }
+    row.update(overrides)
+    return row
+
+
+DEV = base()
+PROD = base(environment_id="prod", server_port="6004", is_production="true")
+REGISTRY = [DEV, PROD]
+
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw)
+
+    # --- nothing confirmed yet ---------------------------------------------
+    refuses(lambda: session.require(root, REGISTRY), "no session lock",
+            "a live-base operation without a lock must be refused")
+
+    # --- a lock is evidence, not a claim -----------------------------------
+    refuses(lambda: session.acquire(root, DEV, confirmed_by=""), "proved the identity",
+            "a lock without the call that proved the identity must be refused")
+
+    # --- production is never implied ---------------------------------------
+    refuses(lambda: session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod"),
+            "production", "production must not be selectable without a named confirmation")
+    lock = session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", production_confirmed=True)
+    note(lock["production_confirmed"] is True, "the confirmation must be recorded, not just accepted")
+    session.invalidate(root)
+
+    # --- the ordinary path --------------------------------------------------
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev")
+    held = session.require(root, REGISTRY)
+    note(held["project_id"] == "erp", f"a confirmed base must be usable: {held}")
+    note(session.require(root, REGISTRY, identity="erp/dev")["environment_id"] == "dev",
+         "asking for the base that is locked must succeed")
+
+    # --- another base is not this one ---------------------------------------
+    refuses(lambda: session.require(root, REGISTRY, identity="erp/prod"), "holds erp/dev",
+            "an operation naming another base must be refused")
+
+    # --- writing is a separate confirmation ---------------------------------
+    refuses(lambda: session.require(root, REGISTRY, write=True), "analysis mode",
+            "a write under an analysis lock must be refused")
+
+    # --- the port moved under the lock --------------------------------------
+    moved = [base(server_port="6007"), PROD]
+    refuses(lambda: session.require(root, moved), "changed its port",
+            "a base re-registered on another port must invalidate the confirmation")
+
+    # --- the base left the registry -----------------------------------------
+    refuses(lambda: session.require(root, [PROD]), "no longer in the registry",
+            "a lock on a base that is gone must not be honoured")
+
+    # --- a lock that nobody has spoken to since -----------------------------
+    stale = time.time() - session.LOCK_TTL_SECONDS - 60
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", now=stale)
+    refuses(lambda: session.require(root, REGISTRY), "expired",
+            "a lock older than a working session must be re-confirmed")
+
+    # --- selecting again drops the previous confirmation ---------------------
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev")
+    session.invalidate(root)
+    refuses(lambda: session.require(root, REGISTRY), "no session lock",
+            "invalidation must leave nothing behind to fall back on")
+
+    # --- an approved write, and production still refused ---------------------
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", write_mode="approved-write")
+    note(session.require(root, REGISTRY, write=True)["write_mode"] == "approved-write",
+         "an approved write must be allowed on a non-production base")
+    session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod",
+                    production_confirmed=True, write_mode="approved-write")
+    refuses(lambda: session.require(root, REGISTRY, write=True), "production",
+            "writing to production must be refused even with an approved-write lock")
+
+    # --- an unreadable lock is not a lock ------------------------------------
+    session.lock_path(root).write_bytes(b"{not json")
+    refuses(lambda: session.require(root, REGISTRY), "no session lock",
+            "a damaged lock must not be treated as a confirmation")
+
+if failures:
+    for failure in failures:
+        print(f"FAIL: {failure}", file=sys.stderr)
+    print(f"{len(failures)} session check(s) failed.", file=sys.stderr)
+    raise SystemExit(1)
+
+print("Session lock checks passed.")
