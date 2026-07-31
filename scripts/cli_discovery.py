@@ -267,6 +267,8 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("tools", nargs="*", default=[], help=f"известные: {', '.join(TOOLS)}")
     parser.add_argument("--json", action="store_true", help="машиночитаемый отчёт")
+    parser.add_argument("--porcelain", action="store_true",
+                        help="строка на инструмент: имя, статус, путь — для shell без парсера JSON")
     parser.add_argument("--require", action="store_true",
                         help="считать `skipped` ошибкой; по умолчанию это не отказ")
     arguments = parser.parse_args()
@@ -274,7 +276,12 @@ def main() -> int:
     names = arguments.tools or ["git", "gh", "codex", "claude"]
     results = report(names)
 
-    if arguments.json:
+    if arguments.porcelain:
+        # Tab-separated so a shell can read it with `cut`; JSON in POSIX sh means
+        # a hand-rolled parser, and a hand-rolled parser is where it breaks.
+        for result in results:
+            print(f"{result.tool}	{result.status}	{result.path}")
+    elif arguments.json:
         print(json.dumps([result.as_dict() for result in results], ensure_ascii=False, indent=2))
     else:
         for result in results:

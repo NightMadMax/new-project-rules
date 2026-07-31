@@ -98,6 +98,8 @@
 | `scripts/cli_discovery.py` | Поиск CLI по запускаемости: все совпадения `PATH`, места установки вне его, `skipped` с причиной |
 | `scripts/check-cli.sh` | POSIX-обёртка поиска CLI |
 | `scripts/check-cli.ps1` | PowerShell-обёртка поиска CLI |
+| `scripts/lib/Find-Python.ps1` | Единственное определение «пригодного Python» для всех PowerShell-обёрток |
+| `scripts/test-powershell-wrappers.ps1` | Тесты обёрток: заглушка не выбирается, рабочий интерпретатор за ней находится |
 | `scripts/test-cli-discovery.py` | Тесты обнаружения: заглушка не запускается, рабочий бинарник за ней находится |
 | `config/1c-routing.tsv` | Маршрут каждой группы файлов upstream `ai_rules_1c` со ссылкой на решение плана |
 | `config/1c-upstream-inventory.txt` | Список tracked-файлов upstream на закреплённом commit — контрольная сумма приёмки маршрутизации |

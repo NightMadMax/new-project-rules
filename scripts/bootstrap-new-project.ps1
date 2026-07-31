@@ -24,7 +24,11 @@ $StandardSourceFile = Join-Path $RulesRoot "config/standard-source.txt"
 $StandardVersionFile = Join-Path $RulesRoot "STANDARD_VERSION"
 $MigrationsManifest = Join-Path $RulesRoot "config/migrations.tsv"
 $ProfileRanks = @{ minimal = 0; software = 1; operated = 2; all = 3 }
-$git = Get-Command git -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+# Every hit, not the first: a zero-byte alias resolves like an executable
+# and refuses to run, and the working binary can be further along PATH.
+$git = @(Get-Command git -CommandType Application -All -ErrorAction SilentlyContinue |
+    Where-Object { (Get-Item -LiteralPath $_.Source -ErrorAction SilentlyContinue).Length -gt 0 }) |
+    Select-Object -First 1
 if ($null -eq $git) {
     throw "Git is required to record project-standard provenance and initialize the project repository."
 }
@@ -448,6 +452,17 @@ if ($BestPracticesStacks.Count -gt 0) {
 Write-Host "Created '$ProjectName' at $Destination using profile '$Profile'."
 Write-Host "Keep this project inside the parent Obsidian vault, review INDEX.md, then create its GitHub repository."
 $BootstrapSucceeded = $true
+}
+catch {
+    # The reason is written explicitly rather than left to the default rendering:
+    # when the run also removes the half-built destination, that rendering does
+    # not reach the console, and a bootstrap that fails with no output at all is
+    # unusable — the user sees an exit code and nothing else.
+    [Console]::Error.WriteLine("bootstrap-new-project: " + $_.Exception.Message)
+    # Re-thrown, not swallowed: `exit` here would replace the failure semantics
+    # the callers already rely on — the run must still end the way it did, only
+    # with the reason visible.
+    throw
 }
 finally {
     if (-not $BootstrapSucceeded -and (Test-Path -LiteralPath $Destination)) {

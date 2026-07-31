@@ -22,16 +22,7 @@ $EnvironmentExit = $LASTEXITCODE
 
 Write-Host ""
 Write-Host "Project diagnostics:"
-function Find-Python39 {
-    foreach ($Name in @("python", "python3")) {
-        $Command = Get-Command $Name -ErrorAction SilentlyContinue | Select-Object -First 1
-        if ($null -ne $Command) {
-            & $Command.Source -c "import sys; sys.exit(0 if sys.version_info >= (3, 9) else 1)" *> $null
-            if ($LASTEXITCODE -eq 0) { return $Command }
-        }
-    }
-    $null
-}
+. (Join-Path $PSScriptRoot "lib/Find-Python.ps1")
 $Python = Find-Python39
 if ($null -eq $Python) {
     Write-Host "[WARN] validator.runtime: Python 3.9+ is unavailable; structural validation was skipped."

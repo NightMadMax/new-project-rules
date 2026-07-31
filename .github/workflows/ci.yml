@@ -155,6 +155,12 @@ jobs:
       - name: PowerShell test environment isolation
         shell: powershell
         run: .\scripts\test-powershell-environment.ps1
+      - name: PowerShell wrapper discovery test with Windows PowerShell 5.1
+        shell: powershell
+        run: .\scripts\test-powershell-wrappers.ps1
+      - name: PowerShell wrapper discovery test with PowerShell 7
+        shell: pwsh
+        run: .\scripts\test-powershell-wrappers.ps1
 
   cross-repo-e2e:
     strategy:

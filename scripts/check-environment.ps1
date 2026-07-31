@@ -28,6 +28,27 @@ function Test-Starts {
     return $LASTEXITCODE -eq 0
 }
 
+# The canon knows the install locations outside PATH; this script cannot assume
+# Python, so it delegates when Python is there and keeps the PATH walk as the
+# fallback. Without this the two disagree about the same machine: check-cli finds
+# and starts a CLI that check-environment reports as missing.
+$script:Discovery = @{}
+function Read-Discovery {
+    param([string[]]$Names)
+    . (Join-Path $PSScriptRoot "lib/Find-Python.ps1")
+    $Python = Find-Python39
+    if ($null -eq $Python) { return }
+    $Script = Join-Path $PSScriptRoot "cli_discovery.py"
+    if (-not (Test-Path -LiteralPath $Script)) { return }
+    $Previous = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { $Report = & $Python.Source $Script "--json" @Names 2>$null | Out-String }
+    catch { return }
+    finally { $ErrorActionPreference = $Previous }
+    try { $Parsed = $Report | ConvertFrom-Json } catch { return }
+    foreach ($Entry in @($Parsed)) { $script:Discovery[$Entry.tool] = $Entry }
+}
+
 function Get-Launchable {
     # A name on PATH is not a tool. An App Execution Alias is a zero-byte file
     # that resolves like an executable and then refuses to run, and the working
@@ -36,6 +57,11 @@ function Get-Launchable {
     # Canonical implementation and the known install locations outside PATH:
     # scripts/cli_discovery.py, which needs Python this script cannot assume.
     param([string]$Name)
+    if ($script:Discovery.ContainsKey($Name)) {
+        $Entry = $script:Discovery[$Name]
+        if ($Entry.status -eq "ok") { return $Entry.path }
+        return $null
+    }
     foreach ($Command in @(Get-Command $Name -All -ErrorAction SilentlyContinue)) {
         if ($Command.CommandType -ne "Application") { continue }
         $Item = Get-Item $Command.Source -ErrorAction SilentlyContinue
@@ -61,6 +87,8 @@ function Test-Recommended {
     if (Test-Has $Name) { Write-Host "  [ ok ] $Name" }
     else { Write-Host "  [ -- ] $Name - $Note" }
 }
+
+Read-Discovery @("git", "gh", "codex", "claude")
 
 Write-Host "Required on this machine (agent mode: $AgentMode):"
 Test-Required "git" "version control"

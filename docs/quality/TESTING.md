@@ -68,6 +68,7 @@ python3 scripts/standardize_existing_project.py --root . --json
 ```powershell
 .\scripts\test-powershell-syntax.ps1
 .\scripts\test-powershell-environment.ps1
+.\scripts\test-powershell-wrappers.ps1
 .\scripts\test-bootstrap.ps1
 .\scripts\test-contract.ps1
 .\scripts\test-agent-setup.ps1
