@@ -6,8 +6,11 @@ rather than intention.
 
 The repository is not part of the transaction. Setup changes the machine — a
 package, a plugin, a token — and a failure there must not reach the project that
-was just created and validated. So this executor never writes inside the project
-root: everything it produces is a report.
+was just created and validated. The executor itself writes nothing at all:
+everything it produces is a report. The one thing that does touch disk is the
+install command the catalog declares, and it runs inside the project because
+`npm ci --prefix .agents/skills/...` is written relative to it — a project-local
+dependency lands where the project looks for it, and nowhere else.
 
 Approval is per component and explicit. A decision arrives as a recorded answer
 to the prompt of `one_c_components`, and only the answer "установить
@@ -63,11 +66,13 @@ class Step:
 
 
 def environment(root: Path, relative: str = ".dev.env") -> dict[str, str]:
-    """Local settings as keys and whether they are set — values stay out.
+    """Local settings as a mapping of key to value.
 
-    Setup reads this file to learn that a token or a plugin has been recorded,
-    which is a yes/no question. Carrying the value into a report would repeat
-    the incident the diagnostics allowlist exists for.
+    The values are read because emptiness is the question — a token recorded as
+    an empty string is not recorded. They must not travel further: every report
+    built from this says only "задан" or names the key that is missing. The
+    incident behind the diagnostics allowlist was exactly a value that reached
+    a report through a path nobody had looked at.
     """
     path = root / relative
     if not path.is_file():
@@ -80,6 +85,16 @@ def environment(root: Path, relative: str = ".dev.env") -> dict[str, str]:
         if separator:
             values[name.strip()] = value.strip()
     return values
+
+
+def node_prefix(component: Component) -> str:
+    """The directory the install command installs into."""
+    parts = component.command.split()
+    if "--prefix" in parts:
+        index = parts.index("--prefix")
+        if index + 1 < len(parts):
+            return parts[index + 1]
+    return "."
 
 
 def module_present(name: str) -> bool:
@@ -111,10 +126,11 @@ def detect(component: Component, root: Path, *, settings: dict[str, str] | None 
         return State(component.name, module_present(target),
                      f"модуль {target}" + ("" if module_present(target) else " не импортируется"))
     if scheme == "node":
-        # A project-local package is a directory in the skill it belongs to, and
-        # its absence is what the install command fixes.
-        installed = (root / ".agents/skills/md-to-docx/node_modules" / target).is_dir()
-        return State(component.name, installed, f"node_modules/{target}")
+        # Where the package lands is decided by the install command, so it is
+        # read from there: a copy of the path here would answer about the wrong
+        # directory the moment a second node component appears.
+        installed = (root / node_prefix(component) / "node_modules" / target).is_dir()
+        return State(component.name, installed, f"{node_prefix(component)}/node_modules/{target}")
     if scheme == "env":
         value = settings.get(target, "")
         return State(component.name, bool(value),
@@ -202,20 +218,49 @@ def read_decisions(path: Path) -> dict[str, str]:
     return data
 
 
-def run(command: str, runner) -> tuple[bool, str]:
+def run(command: str, runner, root: Path) -> tuple[bool, str]:
     try:
-        result = runner(command)
-    except OSError as error:
-        return False, f"не запускается: {error.strerror or error}"
+        result = runner(command, root)
+    except subprocess.TimeoutExpired:
+        # An install that hangs is a reported step, not a traceback that throws
+        # away the steps already taken.
+        return False, f"не ответил за {INSTALL_TIMEOUT_SECONDS} с"
+    except (OSError, subprocess.SubprocessError) as error:
+        return False, f"не запускается: {getattr(error, 'strerror', None) or error}"
     code, output = result
     return code == 0, (output or "").strip()[:200]
 
 
-def default_runner(command: str) -> tuple[int, str]:
-    completed = subprocess.run(command, shell=True, capture_output=True,
+def default_runner(command: str, root: Path) -> tuple[int, str]:
+    """Run inside the project. The catalog's commands are relative to it.
+
+    Without `cwd` the documented route — running the executor from the standard
+    checkout with `--root ../project` — installs into the standard checkout,
+    where nothing looks for it: the step then fails while a foreign repository
+    has been changed.
+    """
+    completed = subprocess.run(command, shell=True, capture_output=True, cwd=str(root),
                                timeout=INSTALL_TIMEOUT_SECONDS, check=False)
     output = (completed.stdout or b"") + (completed.stderr or b"")
     return completed.returncode, output.decode("utf-8", errors="replace")
+
+
+def validate(components: dict[str, Component], decisions: dict[str, str]) -> None:
+    """Every answer is checked before the first command runs.
+
+    Validating inside the loop means a typo in the last answer aborts a run that
+    has already installed three components, and the report of what happened is
+    lost with the exception.
+    """
+    unknown = sorted(set(decisions) - set(components))
+    if unknown:
+        raise SetupError(f"decisions name components the catalog does not have: {', '.join(unknown)}")
+    for name, decision in decisions.items():
+        decision = decision.strip()
+        if decision and not any(decision.startswith(option) for option in DECISIONS):
+            raise SetupError(f"{name}: unknown decision '{decision}'")
+        if decision.startswith(APPROVED) and not components[name].command.strip():
+            raise SetupError(f"{name}: automatic install approved, but the catalog names no command")
 
 
 def apply(root: Path, standard_root: Path, decisions: dict[str, str], *,
@@ -223,10 +268,7 @@ def apply(root: Path, standard_root: Path, decisions: dict[str, str], *,
           provider=None) -> tuple[list[Step], dict[str, object]]:
     """Carry out only what was approved, then check the result for real."""
     components = load(standard_root)
-    known = {component.name: component for component in components}
-    unknown = sorted(set(decisions) - set(known))
-    if unknown:
-        raise SetupError(f"decisions name components the catalog does not have: {', '.join(unknown)}")
+    validate({component.name: component for component in components}, decisions)
 
     steps: list[Step] = []
     skipped: set[str] = set()
@@ -239,8 +281,13 @@ def apply(root: Path, standard_root: Path, decisions: dict[str, str], *,
             continue
         state = detect(component, root, settings=settings, discover=discover, provider=provider)
         decision = decisions.get(component.name, "").strip()
-        if decision and not any(decision.startswith(option) for option in DECISIONS):
-            raise SetupError(f"{component.name}: unknown decision '{decision}'")
+        if not state.found and component.scheme == "manual" and decision.startswith(USE):
+            # There is no machine check for this one, so a human saying "use it"
+            # is the only evidence there can be. Without this branch a component
+            # like the platform itself could never leave the skipped set, and a
+            # fully configured machine would never reach `ready`.
+            steps.append(Step(component.name, decision, "already", "подтверждено человеком"))
+            continue
         if state.found:
             # Nothing to install. Reinstalling goes through the vendor installer,
             # which is the user's step, not ours.
@@ -263,7 +310,12 @@ def apply(root: Path, standard_root: Path, decisions: dict[str, str], *,
             steps.append(Step(component.name, decision, "skipped", component.consequence))
             skipped.add(component.name)
             continue
-        if decision.startswith(MANUAL):
+        # Only the one answer that asked for an install starts one. Anything
+        # else — "установить самостоятельно" or an answer from the set offered
+        # for a component that was found last time — leaves the machine alone.
+        # Falling through to the install here meant that "не использовать"
+        # installed the component it declined.
+        if not decision.startswith(APPROVED):
             steps.append(Step(component.name, decision, "manual-pending",
                               f"источник: {component.download}"))
             skipped.add(component.name)
@@ -271,11 +323,12 @@ def apply(root: Path, standard_root: Path, decisions: dict[str, str], *,
         # Approved automatic install: the catalog's command, nothing else. A
         # decision cannot smuggle in a command of its own.
         command = component.command.strip()
-        if not command:
-            raise SetupError(f"{component.name}: automatic install approved, but the catalog names no command")
-        succeeded, detail = run(command, runner)
+        succeeded, detail = run(command, runner, root)
         # The install is not the evidence. The detector that reported it missing
-        # reports it again, and its answer is what the step records.
+        # reports it again, and its answer is what the step records. The import
+        # machinery caches directory listings, so a package installed a moment
+        # ago is invisible to this process until the caches are dropped.
+        importlib.invalidate_caches()
         after = detect(component, root, settings=environment(root), discover=discover, provider=provider)
         if succeeded and after.found:
             steps.append(Step(component.name, decision, "installed", after.detail, [command]))

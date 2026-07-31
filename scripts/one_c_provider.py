@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -107,6 +108,10 @@ def read_manifest(path: Path) -> dict[str, dict]:
         tools = entry.get("tools", [])
         if not isinstance(tools, list):
             raise ProviderError(f"provider manifest: tools of '{identity}' must be a list")
+        if identity in described:
+            # Silently keeping the last one would register whichever endpoint
+            # happened to be written second.
+            raise ProviderError(f"provider manifest describes '{identity}' twice")
         described[identity] = {"url": url, "tools": [name for name in tools if isinstance(name, str)],
                                "health": entry.get("health", url)}
     return described
@@ -145,11 +150,24 @@ def deployment(runner=None) -> list[str]:
 
 
 def probe(url: str, opener=urlopen) -> tuple[bool, str]:
-    """(healthy, detail). Every failure is a detail, never an exception."""
+    """(healthy, detail). Every failure is a detail, never an exception.
+
+    Only http and https are asked. `urlopen` also speaks `file:`, and a `file:`
+    URL answers without a status — which read as healthy, registered a path on
+    disk as an MCP endpoint and turned a manifest into a way to make the
+    diagnosis read an arbitrary file.
+    """
+    scheme = url.split(":", 1)[0].lower()
+    if scheme not in ("http", "https"):
+        return False, f"схема '{scheme}' не проверяется: health-check только по http и https"
     try:
         with opener(Request(url, method="GET", headers={"User-Agent": "new-project-rules"}),
                     timeout=TIMEOUT_SECONDS) as response:
             code = getattr(response, "status", 0) or 0
+            # No status is no answer: "healthy" has to be something the server
+            # said, not the absence of an objection.
+            if not code:
+                return False, "ответ без статуса"
             return code < 400, str(code)
     except HTTPError as error:
         return False, f"{error.code} {error.reason}"[:80]
@@ -160,7 +178,7 @@ def probe(url: str, opener=urlopen) -> tuple[bool, str]:
 
 
 def check(catalog: list[dict], described: dict[str, dict], *, opener=urlopen,
-          running: list[str] | None = None) -> list[Row]:
+          running: list[str] | None = None, network: bool = True) -> list[Row]:
     """One row per catalog role: what was found, and what was proved about it."""
     rows: list[Row] = []
     for server in catalog:
@@ -182,13 +200,24 @@ def check(catalog: list[dict], described: dict[str, dict], *, opener=urlopen,
             rows.append(Row(role, identity, "FAIL", "сервер не объявил ни одного инструмента",
                             entry["url"]))
             continue
+        if not network:
+            # The diagnosis stays local: a health check is an outgoing request
+            # to an address the diagnosis did not choose, and `SKIP` is what an
+            # unperformed check is called here.
+            rows.append(Row(role, identity, "SKIP",
+                            f"описан в manifest, инструментов: {len(entry['tools'])}; "
+                            "health не проверялся — диагностика не ходит в сеть"))
+            continue
         healthy, detail = probe(entry["health"], opener=opener)
         if not healthy:
             rows.append(Row(role, identity, "FAIL", f"health-check не прошёл: {detail}", entry["url"]))
             continue
         reused = ""
         if running:
-            matched = [name for name in running if identity in name]
+            # On a name boundary, not anywhere in the string: a short id would
+            # otherwise claim any container whose name happens to contain it.
+            pattern = re.compile(rf"(?:^|[^0-9a-z]){re.escape(identity.lower())}(?:$|[^0-9a-z])")
+            matched = [name for name in running if pattern.search(name.lower())]
             reused = f"; переиспользуется контейнер {matched[0]}" if matched else ""
         rows.append(Row(role, identity, "OK",
                         f"инструментов: {len(entry['tools'])}; health {detail}{reused}", entry["url"]))
@@ -201,14 +230,28 @@ def resolved(rows: list[Row]) -> dict[str, str]:
 
 
 def discover(root: Path, catalog: list[dict], *, explicit: str = "", opener=urlopen,
-             runner=None, environ: dict[str, str] | None = None) -> list[Row]:
+             runner=None, environ: dict[str, str] | None = None, network: bool = True,
+             reveal_path: bool = False) -> list[Row]:
+    """`reveal_path` decides whether the report may name the manifest itself.
+
+    The path comes from `.dev.env` or the environment, so it is a machine path
+    of the user — the class of value the diagnostics report masks rather than
+    prints. The CLI of this module names it, because there the path is the
+    answer; anything embedding these rows in another report gets the key name.
+    """
     path = manifest_path(root, explicit, environ)
     if path is None or not path.is_file():
-        where = str(path) if path is not None else f"{MANIFEST_ENV} или {MANIFEST_KEY} в {DEV_ENV}"
+        if path is not None and reveal_path:
+            where = str(path)
+        elif path is not None:
+            where = f"путь задан ({MANIFEST_KEY}), но файла по нему нет"
+        else:
+            where = f"{MANIFEST_ENV} или {MANIFEST_KEY} в {DEV_ENV} не задан"
         return [Row(server.get("role", ""), server.get("provider_id", ""), "SKIP",
                     f"provider manifest не найден: {where}")
                 for server in catalog]
-    return check(catalog, read_manifest(path), opener=opener, running=deployment(runner))
+    return check(catalog, read_manifest(path), opener=opener, running=deployment(runner),
+                 network=network)
 
 
 def render(rows: list[Row]) -> str:
@@ -236,7 +279,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[ERROR] {catalog} отсутствует: это не проект с capability 1c", file=sys.stderr)
         return 2
     try:
-        rows = discover(root, read_catalog(root), explicit=arguments.manifest)
+        rows = discover(root, read_catalog(root), explicit=arguments.manifest, reveal_path=True)
     except (ClientError, ProviderError) as error:
         print(f"[ERROR] {error}", file=sys.stderr)
         return 2

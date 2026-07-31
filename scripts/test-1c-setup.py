@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import sys
 import tempfile
 from pathlib import Path
@@ -118,6 +119,38 @@ with tempfile.TemporaryDirectory() as raw:
     except components.CatalogError:
         pass
 
+# --- every key the catalog reads has a declared place to be written ----------
+
+template = (ROOT / "templates/new-project/capabilities/1c/dev.env.template").read_bytes().decode("utf-8")
+guide = (ROOT / "templates/new-project/capabilities/1c/docs/EDT_SETUP.template.md").read_bytes().decode("utf-8")
+for component in shipped:
+    if component.scheme == "env":
+        note(f"{component.target}=" in template,
+             f"{component.name}: key {component.target} is read but is in no shipped .dev.env template")
+        note(component.target in guide,
+             f"{component.name}: key {component.target} is nowhere in the user documentation")
+
+# --- a catalog that cannot be decoded is an error, not a traceback -----------
+
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw)
+    (root / "config").mkdir()
+    (root / components.CATALOG).write_bytes(catalog_text([row()]).encode("cp1251"))
+    try:
+        components.load(root)
+        failures.append("a catalog in another encoding must be a CatalogError, not a traceback")
+    except components.CatalogError:
+        pass
+    except UnicodeDecodeError:
+        failures.append("a catalog in another encoding must be a CatalogError, not a UnicodeDecodeError")
+
+    # A BOM is what an editor on Windows adds without asking.
+    (root / components.CATALOG).write_bytes(b"\xef\xbb\xbf" + catalog_text([row()]).encode("utf-8"))
+    try:
+        note(len(components.load(root)) == 1, "a catalog with a BOM must load")
+    except components.CatalogError as error:
+        failures.append(f"a BOM must not break the catalog: {error}")
+
 # --- the three classes carry different consequences --------------------------
 
 with tempfile.TemporaryDirectory() as raw:
@@ -162,9 +195,11 @@ class Runner:
         self.code = code
         self.detector = detector
         self.commands: list[str] = []
+        self.roots: list[Path] = []
 
-    def __call__(self, command: str):
+    def __call__(self, command: str, root: Path):
         self.commands.append(command)
+        self.roots.append(root)
         if self.code == 0 and self.detector is not None:
             self.detector.installed = True
         return self.code, "output"
@@ -238,6 +273,53 @@ with tempfile.TemporaryDirectory() as raw:
     note(tree(project) == before, "a failed install must not touch the finished repository")
     note(summary["status"] == "incomplete", f"a failure must be visible in the outcome: {summary}")
 
+    # An answer from the "found" set is not an approval. This is what "не
+    # использовать" used to do to a component that was missing: install it.
+    for declined in (components.FOUND_OPTIONS[2], components.FOUND_OPTIONS[0],
+                     components.MISSING_OPTIONS[1]):
+        runner = Runner(detector=Detector())
+        steps, _ = setup.apply(project, standard, {"Автоматический": declined},
+                               runner=runner, discover=Detector())
+        note(runner.commands == [],
+             f"'{declined}' must not start an install of a missing component: {runner.commands}")
+
+    # A typo in the last answer must not abort a run that already installed the
+    # first components — and take the report of what happened with it.
+    detector = Detector()
+    runner = Runner(detector=detector)
+    try:
+        setup.apply(project, standard,
+                    {"Автоматический": components.MISSING_OPTIONS[0], "Ручной": "чушь"},
+                    runner=runner, discover=detector)
+        failures.append("an unknown decision must be refused")
+    except setup.SetupError:
+        pass
+    note(runner.commands == [],
+         f"nothing may run before every decision has been validated: {runner.commands}")
+
+    # The command runs inside the project: the catalog writes `--prefix
+    # .agents/...`, which means the project, not whatever directory the executor
+    # happened to be started from.
+    runner = Runner(detector=Detector())
+    setup.apply(project, standard, {"Автоматический": components.MISSING_OPTIONS[0]},
+                runner=runner, discover=Detector())
+    note(runner.roots == [project], f"an install must run inside the project: {runner.roots}")
+
+    marker = "created-by-install.txt"
+    real = catalog(Path(raw) / "real-standard", [
+        row(component="Реальный", install="project-local",
+            command=f'{json.dumps(sys.executable)} -c "open(\'{marker}\', \'w\').close()"',
+            detect="cli:nothing-here"),
+    ])
+    steps, _ = setup.apply(project, real, {"Реальный": components.MISSING_OPTIONS[0]},
+                           discover=Detector())
+    note((project / marker).is_file(),
+         "the real runner must execute inside the project, not in the current directory")
+    note(not (Path.cwd() / marker).is_file() or Path.cwd() == project,
+         "the install must not land in the directory the executor was started from")
+    (project / marker).unlink(missing_ok=True)
+    before = tree(project)
+
     # A decision that is not one of the offered answers is a refusal.
     try:
         setup.apply(project, standard, {"Автоматический": "поставь молча"},
@@ -287,6 +369,35 @@ with tempfile.TemporaryDirectory() as raw:
         failures.append("a decision about an unknown component must be refused")
     except setup.SetupError:
         pass
+
+    # A component only a human can confirm must have a way to be confirmed —
+    # otherwise a fully configured machine could never reach `ready`.
+    human = catalog(Path(raw) / "human-standard", [
+        row(component="Платформа", **{"class": "required"}, install="assisted", detect="manual"),
+    ])
+    steps, summary = setup.apply(project, human, {}, runner=Runner(), discover=Detector())
+    note(summary["status"] == "incomplete", f"unconfirmed, it is still missing: {summary}")
+    steps, summary = setup.apply(project, human, {"Платформа": components.FOUND_OPTIONS[0]},
+                                 runner=Runner(), discover=Detector())
+    note(summary["status"] == "ready" and steps[0].result == "already",
+         f"a human saying 'использовать' is the only evidence there can be: {steps}, {summary}")
+
+    # A component that belongs to another platform is not counted against this
+    # one: on macOS the Windows-only tools are not missing, they are irrelevant.
+    other = "windows" if os.name != "nt" else "any"
+    elsewhere = catalog(Path(raw) / "platform-standard", [
+        row(component="Чужая платформа", **{"class": "required"}, platform=other,
+            detect="cli:absent"),
+    ])
+    rows = setup.plan(project, elsewhere, discover=Detector())
+    if other == "windows":
+        note(rows[0]["state"] == "n/a" and not rows[0]["prompt"],
+             f"a component of another platform must not be asked about: {rows}")
+        steps, summary = setup.apply(project, elsewhere, {}, runner=Runner(), discover=Detector())
+        note(summary["status"] == "ready" and not steps,
+             f"a component of another platform must not make this machine incomplete: {summary}")
+    else:
+        note(rows[0]["state"] == "missing", f"a component of this platform must be asked about: {rows}")
 
     # The environment file is read for keys, never for values.
     settings = setup.environment(project)

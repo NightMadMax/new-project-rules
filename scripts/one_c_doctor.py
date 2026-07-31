@@ -30,6 +30,13 @@ import cli_discovery  # noqa: E402
 # and logs are outside it by construction rather than by a second list that could
 # fall out of step. A broad walk of those once carried a historical credential
 # out of a session file.
+#
+# Two reads sit outside these paths and are named here because an undeclared
+# exception is how a list like this stops meaning anything: the external
+# provider manifest, opened by the path the project declared in `.dev.env` and
+# never printed, and the output of `docker ps`. Neither reaches the network —
+# the provider is asked with `network=False` — and the same rule as everywhere
+# holds: the report carries the key name, not its value.
 ALLOWLIST = (
     ".dev.env",
     ".v8-project.json",
@@ -40,6 +47,8 @@ ALLOWLIST = (
     ".codex/config.toml",
 )
 ALLOWED_GLOBS = ("configurations/launch/*.launch",)
+# What an `ordinary` launch profile must carry (decision 1.16).
+CLIENT_TYPE_ATTRIBUTE = "ATTR_CLIENT_TYPE"
 SECRET_MARKERS = ("password", "passwd", "token", "secret", "key", "srvr=", "ref=")
 MASK = "задан"
 
@@ -188,7 +197,16 @@ def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
             result.append(Row(f"профиль запуска {identity}", "SKIP", "edt_profile не заполнен в реестре",
                               "запуск обычного приложения настраивается вручную"))
         elif allowed(relative) and (root / relative).is_file():
-            result.append(Row(f"профиль запуска {identity}", "OK", relative, "ничего не требуется"))
+            # Decision 1.16: the attribute is checked for `ordinary` and only
+            # there. A profile without it starts the base as the wrong client,
+            # and the file being present says nothing about that.
+            if CLIENT_TYPE_ATTRIBUTE in read(root, relative):
+                result.append(Row(f"профиль запуска {identity}", "OK",
+                                  f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан", "ничего не требуется"))
+            else:
+                result.append(Row(f"профиль запуска {identity}", "SKIP",
+                                  f"{relative} без {CLIENT_TYPE_ATTRIBUTE}",
+                                  "обычное приложение запустится не тем клиентом"))
         else:
             result.append(Row(f"профиль запуска {identity}", "SKIP", f"{relative} отсутствует",
                               "профиль запуска для ordinary не поставлен"))
@@ -208,7 +226,16 @@ def provider_rows(root: Path, discover=None) -> list[Row]:
     if not servers:
         return [Row("MCP provider", "SKIP", "каталог ролей пуст",
                     "капабилити не поставила каталог MCP")]
-    rows = one_c_provider.discover(root, servers) if discover is None else discover(root, servers)
+    try:
+        # No network and no machine path in the output: the diagnosis reports
+        # what is on this machine, and a manifest that cannot be read is a row
+        # of that report — a traceback here would break the tool exactly in the
+        # situation it exists to diagnose.
+        rows = (one_c_provider.discover(root, servers, network=False) if discover is None
+                else discover(root, servers))
+    except one_c_provider.ProviderError as error:
+        return [Row("MCP provider", "FAIL", str(error)[:200],
+                    "исправить manifest провайдера или убрать ссылку на него")]
     unresolved = [row for row in rows if row.status != "OK"]
     if not unresolved:
         return [Row("MCP provider", "OK", f"ролей подтверждено: {len(rows)}",

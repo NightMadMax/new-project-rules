@@ -86,8 +86,10 @@ class Component:
 def load(root: Path, relative: str = CATALOG) -> list[Component]:
     path = root / relative
     try:
-        lines = path.read_bytes().decode("utf-8").splitlines()
-    except OSError as error:
+        # `utf-8-sig` because an editor on Windows adds a BOM without asking,
+        # and the first column name would then never match.
+        lines = path.read_bytes().decode("utf-8-sig").splitlines()
+    except (OSError, UnicodeDecodeError) as error:
         raise CatalogError(f"{relative} is unreadable: {error}") from error
     if not lines:
         raise CatalogError(f"{relative} is empty")

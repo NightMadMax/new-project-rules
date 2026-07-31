@@ -130,7 +130,19 @@ with tempfile.TemporaryDirectory() as raw:
     note(session.require(root, REGISTRY, write=True)["write_mode"] == "approved-write",
          "an approved write must be allowed on a non-production base with a backup")
 
+    # --- the second barrier: a lock file edited by hand ----------------------
+    # `acquire` refuses production outright, so this is the only way to reach
+    # the check inside `require` — and that check is the one that catches a lock
+    # written by an older version or edited on disk.
+    forged = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
+    forged["is_production"] = "true"
+    session.lock_path(root).write_bytes(json.dumps(forged).encode("utf-8"))
+    refuses(lambda: session.require(root, [base(is_production="true")], write=True), "production",
+            "writing to production must be refused by the lock check as well")
+
     # --- a lock written before the rule existed is not grandfathered ---------
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", write_mode="approved-write",
+                    backup_confirmed="erp-dev-2026-07-31.dt")
     without_backup = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
     without_backup.pop("backup_confirmed")
     session.lock_path(root).write_bytes(json.dumps(without_backup).encode("utf-8"))

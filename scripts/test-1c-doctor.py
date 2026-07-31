@@ -21,6 +21,12 @@ doctor = importlib.util.module_from_spec(spec)
 sys.modules["one_c_doctor"] = doctor
 spec.loader.exec_module(doctor)
 
+spec = importlib.util.spec_from_file_location("one_c_provider", SCRIPTS / "one_c_provider.py")
+assert spec and spec.loader
+provider = importlib.util.module_from_spec(spec)
+sys.modules["one_c_provider"] = provider
+spec.loader.exec_module(provider)
+
 for stream in (sys.stdout, sys.stderr):
     if hasattr(stream, "reconfigure"):
         stream.reconfigure(encoding="utf-8", errors="replace")
@@ -144,8 +150,17 @@ with tempfile.TemporaryDirectory() as raw:
     ordinary = {row.component: row for row in doctor.ordinary_rows(root, doctor.registry_rows(root))}
     note(ordinary["плагин обычного приложения"].status == "OK",
          f"a recorded plugin must be reported: {ordinary}")
+    # Decision 1.16: the file being there says nothing about the client the base
+    # will start as. A profile without the attribute starts the wrong one.
+    note(ordinary["профиль запуска erp/dev"].status == "SKIP"
+         and doctor.CLIENT_TYPE_ATTRIBUTE in ordinary["профиль запуска erp/dev"].detail,
+         f"a profile without {doctor.CLIENT_TYPE_ATTRIBUTE} must not pass: {ordinary}")
+
+    (root / "configurations/launch/erp-dev.launch").write_bytes(
+        b'<launch><stringAttribute key="ATTR_CLIENT_TYPE" value="ordinary"/></launch>')
+    ordinary = {row.component: row for row in doctor.ordinary_rows(root, doctor.registry_rows(root))}
     note(ordinary["профиль запуска erp/dev"].status == "OK",
-         f"an existing profile must be found: {ordinary}")
+         f"a complete profile must be found: {ordinary}")
 
 # --- the provider is reported, never started ---------------------------------
 
@@ -155,10 +170,30 @@ with tempfile.TemporaryDirectory() as raw:
     (root / "config/1c-mcp-catalog.json").write_bytes(
         b'{"servers": [{"role": "syntax", "provider_id": "1c-syntax-checker-mcp", '
         b'"endpoint": "from-provider-manifest"}]}')
-    rows = doctor.provider_rows(root)
+    # The environment of whoever runs the tests must not decide the answer.
+    rows = doctor.provider_rows(root, discover=lambda project, servers: provider.discover(
+        project, servers, environ={}, network=False))
     note(len(rows) == 1 and rows[0].status == "SKIP",
          f"without a manifest the provider is a SKIP with a reason: {rows}")
     note(rows[0].action, "the provider row must say what is unavailable")
+
+    # A manifest that cannot be read is a row of the report. A traceback here
+    # would break the tool exactly in the situation it exists to diagnose.
+    (root / "broken-manifest.json").write_bytes(b"not json")
+    (root / ".dev.env").write_bytes(
+        f"MCP_PROVIDER_MANIFEST={root / 'broken-manifest.json'}\n".encode("utf-8"))
+    rows = doctor.provider_rows(root)
+    note(len(rows) == 1 and rows[0].status == "FAIL",
+         f"an unreadable manifest must be a FAIL row, not an exception: {rows}")
+    note(str(root) not in doctor.render(rows),
+         f"the machine path must not reach the report: {doctor.render(rows)}")
+
+    # And the path itself is masked the same way a value is.
+    (root / ".dev.env").write_bytes(  # noscan - фикстура: путь обязан выглядеть машинным
+        b"MCP_PROVIDER_MANIFEST=/home/somebody/secret-place/m.json\n")  # noscan - фикстура
+    rows = doctor.provider_rows(root)
+    note("secret-place" not in doctor.render(rows),
+         f"a machine path from .dev.env must not reach the report: {doctor.render(rows)}")
 
 if failures:
     for failure in failures:

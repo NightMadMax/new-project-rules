@@ -163,8 +163,52 @@ with tempfile.TemporaryDirectory() as raw:
     note(all(row.status == "SKIP" for row in rows if row.role != "toolkit"),
          f"an unknown identity must not resolve a catalog role: {rows}")
 
+    # Only http and https are health-checked. `urlopen` also opens `file:`, and
+    # a file answers without a status — which would read as healthy and register
+    # a path on disk as an MCP endpoint.
+    for scheme in (f"file:///{path}", "ftp://127.0.0.1/mcp"):
+        local = manifest(root, [{"id": "1c-syntax-checker-mcp", "url": scheme, "tools": ["check"]}])
+        rows = provider.check(CATALOG, provider.read_manifest(local), opener=Opener())
+        note({row.role: row for row in rows}["syntax"].status == "FAIL",
+             f"{scheme.split(':')[0]} must not be treated as a healthy endpoint")
+        note(provider.resolved(rows) == {}, f"{scheme.split(':')[0]} must never be registered")
+
+    # A response that carries no status is not an answer.
+    class Silent:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *arguments):
+            return False
+
+    rows = provider.check(CATALOG, provider.read_manifest(path), opener=lambda *a, **k: Silent())
+    note(all(row.status != "OK" for row in rows), "a response without a status is not health")
+
+    # The diagnosis does not go to the network: an unperformed check is a SKIP
+    # with its reason, not a claim either way.
+    probing = Opener()
+    rows = provider.check(CATALOG, provider.read_manifest(path), opener=probing, network=False)
+    note(probing.urls == [], f"with network=False nothing may be requested: {probing.urls}")
+    note(all(row.status == "SKIP" for row in rows), f"an unperformed check is a SKIP: {rows}")
+    note(provider.resolved(rows) == {}, "an unverified endpoint must not be registered")
+
+    # The manifest path is a machine path: only the owner of the report decides
+    # whether it may be printed.
+    (root / ".dev.env").write_bytes(  # noscan - фикстура: путь обязан выглядеть машинным
+        f"{provider.MANIFEST_KEY}=/home/somebody/secret-place/m.json\n".encode("utf-8"))  # noscan - фикстура
+    hidden = provider.discover(root, CATALOG, environ={})
+    note(all("secret-place" not in row.detail for row in hidden),
+         f"the manifest path must not leak into an embedded report: {hidden[0].detail}")
+    shown = provider.discover(root, CATALOG, environ={}, reveal_path=True)
+    note(any("secret-place" in row.detail for row in shown),
+         "the CLI of this module must still name the path it looked for")
+
     # A manifest that cannot be trusted is an error, not an empty result.
-    for broken in (b"{}", b'{"servers": []}', b'{"servers": [{"id": "x"}]}', b"not json"):
+    for broken in (b"{}", b'{"servers": []}', b'{"servers": [{"id": "x"}]}', b"not json",
+                   # Two entries for one id: keeping the last silently would
+                   # register whichever endpoint happened to be written second.
+                   b'{"servers": [{"id": "a", "url": "http://x/1", "tools": ["t"]}, '
+                   b'{"id": "a", "url": "http://x/2", "tools": ["t"]}]}'):
         (root / "broken.json").write_bytes(broken)
         try:
             provider.read_manifest(root / "broken.json")
