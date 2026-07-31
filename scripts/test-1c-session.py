@@ -60,7 +60,7 @@ with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
 
     # --- nothing confirmed yet ---------------------------------------------
-    refuses(lambda: session.require(root, REGISTRY), "no session lock",
+    refuses(lambda: session.require(root, REGISTRY, system="nt"), "no session lock",
             "a live-base operation without a lock must be refused")
 
     # --- a lock is evidence, not a claim -----------------------------------
@@ -76,38 +76,38 @@ with tempfile.TemporaryDirectory() as raw:
 
     # --- the ordinary path --------------------------------------------------
     session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev")
-    held = session.require(root, REGISTRY)
+    held = session.require(root, REGISTRY, system="nt")
     note(held["project_id"] == "erp", f"a confirmed base must be usable: {held}")
-    note(session.require(root, REGISTRY, identity="erp/dev")["environment_id"] == "dev",
+    note(session.require(root, REGISTRY, system="nt", identity="erp/dev")["environment_id"] == "dev",
          "asking for the base that is locked must succeed")
 
     # --- another base is not this one ---------------------------------------
-    refuses(lambda: session.require(root, REGISTRY, identity="erp/prod"), "holds erp/dev",
+    refuses(lambda: session.require(root, REGISTRY, system="nt", identity="erp/prod"), "holds erp/dev",
             "an operation naming another base must be refused")
 
     # --- writing is a separate confirmation ---------------------------------
-    refuses(lambda: session.require(root, REGISTRY, write=True), "analysis mode",
+    refuses(lambda: session.require(root, REGISTRY, system="nt", write=True), "analysis mode",
             "a write under an analysis lock must be refused")
 
     # --- the port moved under the lock --------------------------------------
     moved = [base(server_port="6007"), PROD]
-    refuses(lambda: session.require(root, moved), "changed its port",
+    refuses(lambda: session.require(root, moved, system="nt"), "changed its port",
             "a base re-registered on another port must invalidate the confirmation")
 
     # --- the base left the registry -----------------------------------------
-    refuses(lambda: session.require(root, [PROD]), "no longer in the registry",
+    refuses(lambda: session.require(root, [PROD], system="nt"), "no longer in the registry",
             "a lock on a base that is gone must not be honoured")
 
     # --- a lock that nobody has spoken to since -----------------------------
     stale = time.time() - session.LOCK_TTL_SECONDS - 60
     session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", now=stale)
-    refuses(lambda: session.require(root, REGISTRY), "expired",
+    refuses(lambda: session.require(root, REGISTRY, system="nt"), "expired",
             "a lock older than a working session must be re-confirmed")
 
     # --- selecting again drops the previous confirmation ---------------------
     session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev")
     session.invalidate(root)
-    refuses(lambda: session.require(root, REGISTRY), "no session lock",
+    refuses(lambda: session.require(root, REGISTRY, system="nt"), "no session lock",
             "invalidation must leave nothing behind to fall back on")
 
     # --- an approved write needs a backup that was actually checked ----------
@@ -127,7 +127,7 @@ with tempfile.TemporaryDirectory() as raw:
                            backup_confirmed="erp-dev-2026-07-31.dt, проверена восстановлением")
     note("erp-dev-2026-07-31.dt" in lock["backup_confirmed"],
          "the backup that was checked must be recorded, not merely asserted")
-    note(session.require(root, REGISTRY, write=True)["write_mode"] == "approved-write",
+    note(session.require(root, REGISTRY, system="nt", write=True)["write_mode"] == "approved-write",
          "an approved write must be allowed on a non-production base with a backup")
 
     # --- the second barrier: a lock file edited by hand ----------------------
@@ -137,7 +137,7 @@ with tempfile.TemporaryDirectory() as raw:
     forged = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
     forged["is_production"] = "true"
     session.lock_path(root).write_bytes(json.dumps(forged).encode("utf-8"))
-    refuses(lambda: session.require(root, [base(is_production="true")], write=True), "production",
+    refuses(lambda: session.require(root, [base(is_production="true")], write=True, system="nt"), "production",
             "writing to production must be refused by the lock check as well")
 
     # --- a lock written before the rule existed is not grandfathered ---------
@@ -146,12 +146,25 @@ with tempfile.TemporaryDirectory() as raw:
     without_backup = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
     without_backup.pop("backup_confirmed")
     session.lock_path(root).write_bytes(json.dumps(without_backup).encode("utf-8"))
-    refuses(lambda: session.require(root, REGISTRY, write=True), "backup",
+    refuses(lambda: session.require(root, REGISTRY, system="nt", write=True), "backup",
             "an old lock carrying no backup evidence must not authorise a write")
+
+    # --- the runtime half is Windows, the repository half is not -------------
+    # Half of criterion 18 used to have no executor at all: the rule that live
+    # base operations are blocked elsewhere was a sentence in a plan.
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev")
+    refuses(lambda: session.require(root, REGISTRY, system="posix"), "только на Windows",
+            "a live-base operation must be refused off Windows")
+    note(session.require(root, REGISTRY, system="nt")["project_id"] == "erp",
+         "the same lock must work on Windows")
+    # And the refusal is about the runtime alone: the lock itself is a file in
+    # the repository, and taking it is how a review on macOS prepares the work.
+    lock = session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev")
+    note(lock["project_id"] == "erp", "taking a lock must not depend on the platform")
 
     # --- an unreadable lock is not a lock ------------------------------------
     session.lock_path(root).write_bytes(b"{not json")
-    refuses(lambda: session.require(root, REGISTRY), "no session lock",
+    refuses(lambda: session.require(root, REGISTRY, system="nt"), "no session lock",
             "a damaged lock must not be treated as a confirmation")
 
 if failures:

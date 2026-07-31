@@ -28,6 +28,7 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confl
 1c	capabilities/1c/ONE_C_WORKSPACE.template.md	ONE_C_WORKSPACE.md	Общая область 1С и реестр баз	-	-	template	seed
 1c	capabilities/1c/docs/ENVIRONMENT_REGISTRY.template.md	docs/operations/ENVIRONMENT_REGISTRY.md	Назначение контуров, данные, backup и восстановление	Operations	Контуры 1С	template	seed
 1c	capabilities/1c/1c-projects.template.tsv	config/1c-projects.tsv	-	-	-	template	seed
+1c	capabilities/1c/PROJECT_1C.template.md	configurations/PROJECT_1C.template.md	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/doctor-1c/SKILL.md	.agents/skills/doctor-1c/SKILL.md	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/doctor-1c/agents/openai.yaml	.agents/skills/doctor-1c/agents/openai.yaml	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/setup-1c-environment/SKILL.md	.agents/skills/setup-1c-environment/SKILL.md	-	-	-	template	managed
