@@ -87,6 +87,17 @@ def environment(root: Path, relative: str = ".dev.env") -> dict[str, str]:
     return values
 
 
+def command_of(component: Component) -> str:
+    """The catalog's command with `{python}` resolved to this interpreter.
+
+    A literal `python3` is two different mistakes at once: on Windows it is the
+    App Execution Alias stub that never starts, and on POSIX it can be an
+    interpreter other than the one that will afterwards look for the module —
+    the install succeeds and the check reports it missing.
+    """
+    return component.command.strip().replace("{python}", f'"{sys.executable}"')
+
+
 def node_prefix(component: Component) -> str:
     """The directory the install command installs into."""
     parts = component.command.split()
@@ -322,7 +333,7 @@ def apply(root: Path, standard_root: Path, decisions: dict[str, str], *,
             continue
         # Approved automatic install: the catalog's command, nothing else. A
         # decision cannot smuggle in a command of its own.
-        command = component.command.strip()
+        command = command_of(component)
         succeeded, detail = run(command, runner, root)
         # The install is not the evidence. The detector that reported it missing
         # reports it again, and its answer is what the step records. The import

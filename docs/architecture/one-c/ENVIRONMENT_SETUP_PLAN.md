@@ -59,26 +59,33 @@ create-new-project → setup-1c-environment → doctor-1c
 
 ## Каталог компонентов
 
-| Компонент | Класс | Зачем | Установка | Результат пропуска |
-|---|---|---|---|---|
-| Git for Windows | required | Версионирование, синхронизация и откат | automatic/manual; <https://git-scm.com/download/win> | Полноценная работа с проектом невозможна |
-| Python 3.9+ | required | Валидаторы, миграции и скрипты стандарта | automatic/manual; <https://www.python.org/downloads/windows/> | Статус `incomplete` |
-| Платформа 1С | required | Runtime баз и Toolkit | assisted/manual после входа; <https://releases.1c.ru/project/Platform83> | Базы и Toolkit не запускаются |
-| 1C:EDT | required | Разработка, метаданные, ошибки и отладка | automatic/manual; <https://edt.1c.ru/> | Нет полноценной 1С-разработки |
-| EDT-MCP | required | Доступ AI-клиента к workspace EDT | p2 automatic/assisted; <https://github.com/DitriXNew/EDT-MCP> | AI-клиент не управляет EDT |
-| Docker Desktop | required | Внешние контейнерные MCP | automatic/manual; <https://docs.docker.com/desktop/setup/install/windows-install/> | Недоступны container MCP |
-| Внешний MCP provider | required | Syntax, Help, SSL, Templates и CodeChecker | reuse либо штатный provider workflow; <https://vibecoding1c.ru/mcp_server> | MCP-зависимая разработка неполна |
-| Доступ к 1С:Напарнику | required | CodeChecker, ревью, правка BSL и ИТС | ручной токен; <https://code.1c.ai/tokens/> | CodeChecker недоступен |
-| Плагин обычного приложения | conditional | Запуск `application_kind=ordinary` | готовый release artifact; <https://github.com/bia-technologies/edt-runordinaryapplication-plugin/releases/latest> | Обычные приложения не запускаются из EDT |
-| Патч `Run without update` | conditional | Запуск без обновления конфигурации | готовый совместимый release artifact | Эта функция недоступна |
-| Node.js | conditional | `md-to-docx` и OpenSpec CLI | automatic/manual; <https://nodejs.org/en/download> | Отключаются выбранные Node-функции |
-| npm package `docx` | conditional | Генерация DOCX | project-local из lock; <https://www.npmjs.com/package/docx> | Недоступен `md-to-docx` |
-| Pillow | conditional | `img-grid-analysis` | project-local; <https://pillow.readthedocs.io/en/stable/installation/index.html> | Недоступен анализ сетки |
-| YAxUnit | conditional | Модульные тесты BSL | расширение из release артефактов; <https://bia-technologies.github.io/yaxunit/> | Модульные тесты недоступны, остаются syntax и smoke |
-| BSL Language Server (standalone) | conditional | Проверка репозитория вне MCP-сессии | automatic/manual; <https://github.com/1c-syntax/bsl-language-server/releases> | Проверка BSL доступна только через Syntax MCP в сессии агента |
-| `v8unpack` | conditional | Offline unpack/repack CF/CFE/EPF | project-local tested version; <https://pypi.org/project/v8unpack/> | Недоступен `v8unpack-cf` |
-| OpenSpec CLI | conditional | CLI-операции OpenSpec | user-level compatible version; <https://github.com/Fission-AI/OpenSpec/blob/main/docs/installation.md> | Markdown/AI workflow остаётся, CLI отключён |
-| `uv` | optional | Удобное управление Python environments | automatic/manual; <https://docs.astral.sh/uv/getting-started/installation/> | Используются `venv`/`pip` |
+Таблица собирается из `config/1c-components.tsv` — источника, из которого
+исполнитель строит prompt. Пересобрать: `python3 scripts/one_c_components.py --table`.
+
+<!-- generated from config/1c-components.tsv -->
+
+| Компонент | Класс | Зачем | Установка | Требуется заранее | Результат пропуска |
+|---|---|---|---|---|---|
+| Git for Windows | required | Версионирование, синхронизация и откат проекта | manual; <https://git-scm.com/download/win> | нет | Полноценная работа с проектом невозможна |
+| Python 3.9+ | required | Валидаторы, миграции и скрипты стандарта | manual; <https://www.python.org/downloads/windows/> | нет | Статус incomplete: проверки стандарта не запускаются |
+| Платформа 1С | required | Runtime баз и встроенный сервер Toolkit | assisted; <https://releases.1c.ru/project/Platform83> | нет | Базы и Toolkit не запускаются |
+| 1C:EDT | required | Разработка, метаданные, ошибки и отладка | manual; <https://edt.1c.ru/> | платформа 1С нужной ветки | Нет полноценной 1С-разработки |
+| EDT-MCP | required | Доступ AI-клиента к workspace EDT | assisted; <https://github.com/DitriXNew/EDT-MCP> | установленная совместимая 1C:EDT | AI-клиент не управляет EDT |
+| Docker Desktop | required | Внешние контейнерные MCP | manual; <https://docs.docker.com/desktop/setup/install/windows-install/> | WSL 2, Virtual Machine Platform, виртуализация в BIOS/UEFI, служба LanmanServer | Недоступны container MCP |
+| Внешний MCP provider | required | Готовая поставка контейнерных MCP-серверов | reuse; <https://vibecoding1c.ru/mcp_server> | Docker Desktop | MCP-зависимая разработка неполна |
+| Доступ к 1С:Напарнику | required | Токен для CodeChecker, ревью и правки BSL | manual; <https://code.1c.ai/tokens/> | нет | CodeChecker недоступен |
+| Плагин обычного приложения | conditional | Запуск баз с application_kind=ordinary из EDT | manual; <https://github.com/bia-technologies/edt-runordinaryapplication-plugin/releases/latest> | установленная 1C:EDT | Обычные приложения не запускаются из EDT |
+| Патч Run without update | conditional | Запуск без обновления конфигурации базы | manual; `config/1c-release.json` | установленная 1C:EDT | Эта функция недоступна |
+| Node.js | conditional | Runtime для md-to-docx и OpenSpec CLI | manual; <https://nodejs.org/en/download> | нет | Отключаются выбранные Node-функции |
+| npm package docx | conditional | Генерация DOCX из Markdown | project-local: `npm ci --prefix .agents/skills/md-to-docx`; <https://www.npmjs.com/package/docx> | Node.js | Недоступен md-to-docx |
+| Pillow | conditional | Обработка изображений для разметки сетки | project-local: `{python} -m pip install pillow`; <https://pillow.readthedocs.io/en/stable/installation/index.html> | нет | Недоступен анализ сетки на изображении |
+| YAxUnit | conditional | Модульные тесты BSL | manual; <https://bia-technologies.github.io/yaxunit/> | платформа 1С и непроизводственная база | Модульные тесты недоступны, остаются syntax и smoke |
+| BSL Language Server standalone | conditional | Проверка репозитория вне MCP-сессии | manual; <https://github.com/1c-syntax/bsl-language-server/releases> | нет | Проверка BSL доступна только через Syntax MCP в сессии агента |
+| v8unpack | conditional | Offline unpack и repack CF, CFE и EPF | project-local: `{python} -m pip install v8unpack`; <https://pypi.org/project/v8unpack/> | нет | Недоступен v8unpack-cf |
+| OpenSpec CLI | conditional | CLI-операции OpenSpec | manual; <https://github.com/Fission-AI/OpenSpec/blob/main/docs/installation.md> | Node.js не ниже 20.19.0 | Markdown и AI workflow остаются, CLI отключён |
+| uv | optional | Управление Python environments | manual; <https://docs.astral.sh/uv/getting-started/installation/> | нет | Используются venv и pip |
+
+<!-- /generated -->
 
 ## Версии
 

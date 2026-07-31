@@ -146,6 +146,28 @@ def setting(root: Path, key: str) -> str:
     return ""
 
 
+STANDARD_ROOT = SCRIPTS.parent
+
+
+def catalog_key(component: str, fallback: str) -> str:
+    """Which `.dev.env` key holds this component's state, per the catalog.
+
+    The same fact was declared twice — in the catalog and here — so renaming a
+    key in the catalog left the diagnosis reading the old one and reporting
+    `SKIP` for a reason nobody could see. The catalog is the source; the
+    fallback only keeps the diagnosis working when it cannot be read at all.
+    """
+    try:
+        import one_c_components
+
+        for item in one_c_components.load(STANDARD_ROOT):
+            if item.name == component and item.scheme == "env":
+                return item.target
+    except Exception:  # noqa: BLE001 - a diagnosis never fails on its own catalog
+        pass
+    return fallback
+
+
 def edt_rows(root: Path, discover=None) -> list[Row]:
     """Versions of EDT and EDT-MCP, and the state of the conditional patches.
 
@@ -162,10 +184,12 @@ def edt_rows(root: Path, discover=None) -> list[Row]:
             if found.status == "ok" else
             Row("1C:EDT", "SKIP", "; ".join(found.diagnostics)[:200],
                 "без EDT недоступны разработка и конвертация формата исходников")]
-    for component, key, consequence in (
-        ("EDT-MCP", "EDT_MCP_VERSION", "AI-клиент не управляет EDT"),
-        ("патч Run without update", "EDT_RUN_WITHOUT_UPDATE", "запуск без обновления конфигурации недоступен"),
+    for component, catalog_name, fallback, consequence in (
+        ("EDT-MCP", "EDT-MCP", "EDT_MCP_VERSION", "AI-клиент не управляет EDT"),
+        ("патч Run without update", "Патч Run without update", "EDT_RUN_WITHOUT_UPDATE",
+         "запуск без обновления конфигурации недоступен"),
     ):
+        key = catalog_key(catalog_name, fallback)
         value = setting(root, key)
         rows.append(Row(component, "OK" if value else "SKIP",
                         f"версия {value}" if value else f"{key} не записан в .dev.env",
@@ -184,9 +208,10 @@ def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
         return [Row("плагин обычного приложения", "OK",
                     "в реестре нет баз application_kind=ordinary",
                     "не требуется: для managed плагин и server-vs-client guard не применяются")]
-    plugin = setting(root, "EDT_ORDINARY_PLUGIN")
+    key = catalog_key("Плагин обычного приложения", "EDT_ORDINARY_PLUGIN")
+    plugin = setting(root, key)
     result = [Row("плагин обычного приложения", "OK" if plugin else "SKIP",
-                  f"версия {plugin}" if plugin else "EDT_ORDINARY_PLUGIN не записан в .dev.env",
+                  f"версия {plugin}" if plugin else f"{key} не записан в .dev.env",
                   "ничего не требуется" if plugin else
                   f"обычные приложения не запускаются из EDT; баз ordinary: {len(ordinary)}")]
     for row in ordinary:

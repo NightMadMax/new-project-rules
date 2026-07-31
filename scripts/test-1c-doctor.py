@@ -122,6 +122,21 @@ with tempfile.TemporaryDirectory() as raw:
     note(edt["EDT-MCP"].status == "OK" and "1.4.0" in edt["EDT-MCP"].detail,
          f"a recorded version must be reported: {edt['EDT-MCP']}")
 
+# --- the diagnosis takes its keys from the catalog, not from a copy ----------
+
+spec = importlib.util.spec_from_file_location("one_c_components", SCRIPTS / "one_c_components.py")
+assert spec and spec.loader
+catalog = importlib.util.module_from_spec(spec)
+sys.modules["one_c_components"] = catalog
+spec.loader.exec_module(catalog)
+
+declared = {item.name: item.target for item in catalog.load(SCRIPTS.parent) if item.scheme == "env"}
+for component, name in (("EDT-MCP", "EDT-MCP"),
+                        ("патч Run without update", "Патч Run without update"),
+                        ("плагин обычного приложения", "Плагин обычного приложения")):
+    note(doctor.catalog_key(name, "СТАРЫЙ_КЛЮЧ") == declared.get(name),
+         f"{component}: the diagnosis must read the key the catalog declares, not a copy")
+
 # --- the plugin and the launch profile belong to `ordinary` only -------------
 
 with tempfile.TemporaryDirectory() as raw:

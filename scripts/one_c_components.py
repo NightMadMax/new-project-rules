@@ -23,8 +23,8 @@ from pathlib import Path
 CATALOG = "config/1c-components.tsv"
 COLUMNS = (
     "component", "class", "purpose", "enables", "consequence", "version",
-    "download", "docs", "install", "command", "admin", "restart", "network",
-    "credentials", "license", "platform", "detect",
+    "download", "docs", "install", "command", "prerequisites", "admin", "restart",
+    "network", "credentials", "license", "platform", "detect",
 )
 # `command` is the only optional cell: most components are installed by a vendor
 # installer that no command of ours may stand in for.
@@ -45,8 +45,9 @@ FOUND_OPTIONS = ("использовать", "обновить или переу
 # text, because the text is where a field silently loses its meaning.
 PROMPT_FIELDS = (
     "Компонент", "Класс", "Назначение", "Включает", "Последствия отказа",
-    "Версия", "Источник", "Документация", "Установка", "Права администратора",
-    "Перезагрузка", "Сеть", "Учётные данные", "Лицензия", "Варианты",
+    "Версия", "Источник", "Документация", "Установка", "Требуется заранее",
+    "Права администратора", "Перезагрузка", "Сеть", "Учётные данные", "Лицензия",
+    "Варианты",
 )
 YES_NO = {"yes": "да", "no": "нет"}
 
@@ -162,6 +163,10 @@ def prompt(component: Component, found: bool = False, detail: str = "") -> str:
         f"Источник: {component.download}",
         f"Документация: {component.docs}",
         f"Установка: {component.install}" + (f" — {component.command}" if component.command.strip() else ""),
+        # What has to be there first. Without this the user meets a component
+        # that simply refuses to install and no line says why: Docker on a clean
+        # Windows is the standing example.
+        f"Требуется заранее: {component.prerequisites}",
         f"Права администратора: {YES_NO[component.admin]}",
         f"Перезагрузка: {YES_NO[component.restart]}",
         f"Сеть: {YES_NO[component.network]}",
@@ -169,6 +174,31 @@ def prompt(component: Component, found: bool = False, detail: str = "") -> str:
         f"Лицензия: {YES_NO[component.license]}",
         "Варианты: " + "; ".join(options(component, found)),
     ]
+    return "\n".join(lines)
+
+
+TABLE_BEGIN = "<!-- generated from config/1c-components.tsv -->"
+TABLE_END = "<!-- /generated -->"
+
+
+def render_table(components: list[Component]) -> str:
+    """The subplan's table, built from the catalog.
+
+    Two hand-kept lists of components are two answers to what `required` means,
+    and they had already drifted: the prose promised an automatic install for
+    seven components the catalog gives no command for. So the table is derived
+    and the check is exact, rather than a search for a word.
+    """
+    lines = [TABLE_BEGIN,
+             "",
+             "| Компонент | Класс | Зачем | Установка | Требуется заранее | Результат пропуска |",
+             "|---|---|---|---|---|---|"]
+    for item in components:
+        install = item.install if not item.command.strip() else f"{item.install}: `{item.command}`"
+        source = f"<{item.download}>" if item.download.startswith("http") else f"`{item.download}`"
+        lines.append(f"| {item.name} | {item.component_class} | {item.purpose} | "
+                     f"{install}; {source} | {item.prerequisites} | {item.consequence} |")
+    lines.extend(["", TABLE_END])
     return "\n".join(lines)
 
 
@@ -199,12 +229,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--standard-root", default=".", help="checkout of new-project-rules")
     parser.add_argument("--class", dest="component_class", choices=CLASSES,
                         help="show only one class")
+    parser.add_argument("--table", action="store_true",
+                        help="таблица каталога для подплана среды")
     arguments = parser.parse_args(argv)
     try:
         components = load(Path(arguments.standard_root).resolve())
     except CatalogError as error:
         print(f"[ERROR] {error}", file=sys.stderr)
         return 2
+    if arguments.table:
+        print(render_table(components))
+        return 0
     for component in components:
         if arguments.component_class and component.component_class != arguments.component_class:
             continue
