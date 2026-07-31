@@ -50,6 +50,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-source.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-cli-discovery.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-upstream-routing.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-session.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-doctor.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-readiness.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-no-secrets.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
