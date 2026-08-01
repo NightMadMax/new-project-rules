@@ -34,3 +34,4 @@ mermaid-diagrams	vendored	templates/new-project/capabilities/1c/upstream/.agents
 powershell-windows	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/powershell-windows.tsv
 prompt-enhancer	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/prompt-enhancer.tsv
 v8unpack-cf	vendored	templates/new-project/capabilities/1c/upstream/.agents/skills	none	config/skills-payload/v8unpack-cf.tsv
+transcribe	canonical	templates/new-project/capabilities/transcribe/.agents/skills	delivered	-
