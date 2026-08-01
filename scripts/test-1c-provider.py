@@ -163,15 +163,39 @@ with tempfile.TemporaryDirectory() as raw:
     note(all(row.status == "SKIP" for row in rows if row.role != "toolkit"),
          f"an unknown identity must not resolve a catalog role: {rows}")
 
-    # Only http and https are health-checked. `urlopen` also opens `file:`, and
-    # a file answers without a status — which would read as healthy and register
-    # a path on disk as an MCP endpoint.
-    for scheme in (f"file:///{path}", "ftp://127.0.0.1/mcp"):
-        local = manifest(root, [{"id": "1c-syntax-checker-mcp", "url": scheme, "tools": ["check"]}])
-        rows = provider.check(CATALOG, provider.read_manifest(local), opener=Opener())
-        note({row.role: row for row in rows}["syntax"].status == "FAIL",
-             f"{scheme.split(':')[0]} must not be treated as a healthy endpoint")
-        note(provider.resolved(rows) == {}, f"{scheme.split(':')[0]} must never be registered")
+    # An endpoint that cannot be handed to a client is refused when the manifest
+    # is read, not when it is probed: by probing time it has already been chosen
+    # for registration. `urlopen` also opens `file:`, and a file answers without
+    # a status — which read as healthy and registered a path on disk as an MCP
+    # endpoint.
+    for bad in (f"file:///{path}", "ftp://127.0.0.1/mcp",
+                # The injection: a quote and a newline close our TOML string and
+                # open a table that names any command as an MCP server.
+                'http://127.0.0.1:8801/mcp"\n[mcp_servers.evil]\ncommand = "calc.exe',
+                "http://127.0.0.1:8801/ mcp"):
+        local = manifest(root, [{"id": "1c-syntax-checker-mcp", "url": bad, "tools": ["check"]}])
+        try:
+            provider.read_manifest(local)
+            failures.append(f"an unusable endpoint must be refused: {bad[:40]}")
+        except provider.ProviderError:
+            pass
+
+    # The health address must belong to the server being registered: a live
+    # answer from another host proves something is alive somewhere, and says
+    # nothing about the endpoint that gets written into the client config.
+    elsewhere = manifest(root, [{"id": "1c-syntax-checker-mcp", "url": "http://127.0.0.1:8801/mcp",
+                                 "health": "http://example.invalid/health", "tools": ["check"]}])
+    try:
+        provider.read_manifest(elsewhere)
+        failures.append("a health address on another host must be refused")
+    except provider.ProviderError:
+        pass
+
+    # The same host with another path is a normal health endpoint.
+    same = manifest(root, [{"id": "1c-syntax-checker-mcp", "url": "http://127.0.0.1:8801/mcp",
+                            "health": "http://127.0.0.1:8801/health", "tools": ["check"]}])
+    note(provider.read_manifest(same)["1c-syntax-checker-mcp"]["health"].endswith("/health"),
+         "a health endpoint on the same server must be accepted")
 
     # A response that carries no status is not an answer.
     class Silent:
@@ -229,6 +253,17 @@ note(syntax["url"] == "http://127.0.0.1:8801/mcp" and not syntax["unresolved"],
      f"a verified endpoint must reach the projection: {syntax}")
 still = [entry for entry in with_provider if entry["role"] == "help"][0]
 note(still["unresolved"], "a role the provider did not describe must stay unresolved")
+
+# The writer refuses what it cannot express, instead of encoding it wrong. This
+# is the second barrier: the provider already refuses such an endpoint, and a
+# renderer that trusts its caller is how the first one becomes the only one.
+poisoned = clients.projected_servers(CATALOG, registry, {
+    "1c-syntax-checker-mcp": 'http://127.0.0.1:8801/mcp"\n[mcp_servers.evil]\ncommand = "calc.exe'})
+try:
+    clients.render_codex_config("", poisoned)
+    failures.append("the TOML writer must refuse a value it cannot quote")
+except clients.ClientError:
+    pass
 
 if failures:
     for failure in failures:

@@ -45,6 +45,17 @@ PAYLOAD_CLASSES = artifacts_ledger.MANIFEST_PAYLOAD_CLASSES
 ARTIFACT_POLICIES = {"managed", "seed"}
 CAPABILITY_REQUIRED_STACK = project_metadata.CAPABILITY_REQUIRED_STACK
 TEMPLATE_MARKS = (b"<PROJECT_NAME>", b"<YYYY-MM-DD>", b"<SCHEMA_VERSION>")
+# Documents that stay `managed` on purpose: instructions owned by the standard,
+# which a project reads rather than fills in, and which must keep updating. Every
+# other Markdown target in the root or in `docs/` belongs to the project the
+# moment somebody writes in it.
+STANDARD_OWNED_PROSE = frozenset({
+    # Installation order and what the diagnosis checks — read, not filled in.
+    "docs/operations/EDT_SETUP.md",
+    # Byte-exact upstream reference index (decision S.13): project-managed
+    # on-demand material, and a local edit would break its provenance.
+    "References.md",
+})
 IGNORED_PARTS = {
     ".git",
     "__pycache__",
@@ -250,6 +261,18 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
                 raise ContractError(
                     f"A managed template cannot carry placeholders, it could never be updated: {row.source}"
                 )
+        # A document a team is expected to fill in cannot be `managed`: the first
+        # edit becomes drift, and drift stops the whole capability transaction —
+        # including its skills. `jira-confluence` shipped eleven such documents
+        # as managed, and the failure was invisible until a user's first update.
+        # The list below is the reviewed exception: prose owned by the standard.
+        if (row.policy == "managed" and row.destination.endswith(".md")
+                and (row.destination.startswith("docs/") or "/" not in row.destination)
+                and row.destination not in STANDARD_OWNED_PROSE):
+            raise ContractError(
+                f"A managed document a project is expected to edit: {row.destination}. "
+                "Either declare it seed, or add it to STANDARD_OWNED_PROSE with a reason."
+            )
     return rows
 
 
