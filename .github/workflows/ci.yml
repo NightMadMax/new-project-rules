@@ -61,6 +61,7 @@ jobs:
           python3 scripts/test-1c-setup.py
           python3 scripts/test-1c-provider.py
           python3 scripts/test-1c-yaxunit.py
+          python3 scripts/test-transcribe.py
           python3 scripts/test-1c-readiness.py
           python3 scripts/test-no-secrets.py
       - name: Validator report
@@ -125,6 +126,7 @@ jobs:
             "test-1c-setup.py",
             "test-1c-provider.py",
             "test-1c-yaxunit.py",
+            "test-transcribe.py",
             "test-1c-readiness.py",
             "test-no-secrets.py"
           )) {

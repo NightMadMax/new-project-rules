@@ -1,0 +1,4 @@
+interface:
+  display_name: "Transcribe"
+  short_description: "Transcribe audio and video locally"
+  default_prompt: "Use $transcribe to transcribe a recording without sending the media anywhere."

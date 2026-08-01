@@ -62,7 +62,7 @@
 | [[docs/research/PROJECT_AUDIT_2026-07-03|PROJECT_AUDIT_2026-07-03.md]] | Повторный глубокий аудит: adversarial standardization checks, CI, portability и readiness |
 | [[docs/research/BEST_PRACTICES_INTEGRATION|BEST_PRACTICES_INTEGRATION.md]] | Решения по интеграции базы Best Practices в create-new-project |
 | [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06.md]] | Архитектура знаний между new-project-rules и Best Practices: дублирование, маршрутизация, SSOT |
-| [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN|GENERAL_TRANSCRIBE_SKILL_PLAN.md]] | Отложенный план общего skill transcribe: локальный Whisper, outputs, зависимости и проверки |
+| [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN|GENERAL_TRANSCRIBE_SKILL_PLAN.md]] | План общего skill transcribe (реализован): локальный Whisper, outputs, зависимости и проверки |
 | [[docs/research/archive/README|Research archive]] | Устаревшие аудиты и завершённые исследования NPR ↔ Best Practices |
 | [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|CODE_REVIEW_scripts_2026-06-28.md]] | Ревью shell-, PowerShell-скриптов и CI |
 | [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|NPR_BP_CLOSEOUT_REVIEW_2026-07-08.md]] | Финальный live-аудит и закрытие программы NPR ↔ Best Practices |
@@ -173,6 +173,8 @@
 | `scripts/test-1c-provider.py` | Тесты provider: переиспользование deployment, отказ на docker run, нерешённый endpoint |
 | `scripts/one_c_yaxunit.py` | Разбор отчёта YAxUnit: провал, ошибка и пропуск различаются |
 | `scripts/test-1c-yaxunit.py` | Тесты отчёта: прогон без отчёта — не пропуск, а отказ |
+| `templates/new-project/capabilities/transcribe/` | Capability `transcribe`: локальная расшифровка, skill, скрипт и карточка проекта |
+| `scripts/test-transcribe.py` | Тесты локальной расшифровки: пустой результат — отказ, кадры fail-closed, атомарная запись |
 | `scripts/one_c_clients.py` | Контракт клиентских проекций 1С: владение, классы разрешений, транзакционная запись |
 | `scripts/render-1c-clients.py` | Сборка клиентских проекций 1С из каталога ролей и реестра баз |
 | `scripts/render-1c-clients.sh` | POSIX-обёртка сборки клиентских проекций |

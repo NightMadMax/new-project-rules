@@ -242,3 +242,8 @@ jira-confluence	capabilities/jira-confluence/.claude/skills/work-with-jira-confl
 1c	capabilities/1c/.agents/skills/manage-1c-mcp/SKILL.md	.agents/skills/manage-1c-mcp/SKILL.md	-	-	-	template	managed
 1c	capabilities/1c/.agents/skills/manage-1c-mcp/agents/openai.yaml	.agents/skills/manage-1c-mcp/agents/openai.yaml	-	-	-	template	managed
 1c	capabilities/1c/.claude/skills/manage-1c-mcp/SKILL.md	.claude/skills/manage-1c-mcp/SKILL.md	-	-	-	template	managed
+transcribe	capabilities/transcribe/.agents/skills/transcribe/SKILL.md	.agents/skills/transcribe/SKILL.md	-	-	-	template	managed
+transcribe	capabilities/transcribe/.agents/skills/transcribe/agents/openai.yaml	.agents/skills/transcribe/agents/openai.yaml	-	-	-	template	managed
+transcribe	capabilities/transcribe/.agents/skills/transcribe/scripts/transcribe.py	.agents/skills/transcribe/scripts/transcribe.py	-	-	-	verbatim	managed
+transcribe	capabilities/transcribe/.claude/skills/transcribe/SKILL.md	.claude/skills/transcribe/SKILL.md	-	-	-	template	managed
+transcribe	capabilities/transcribe/TRANSCRIBE.template.md	docs/operations/TRANSCRIBE.md	Локальная расшифровка записей: зависимости, режимы, границы	Operations	Расшифровка записей	template	seed
