@@ -561,6 +561,24 @@ with tempfile.TemporaryDirectory() as raw:
     if malformed_code != 1:
         failures.append("main(): a malformed manifest must exit 1")
 
+# A skill must not name a flag its script does not have. Eight review findings
+# had this shape — `--include-memory`, `--mode install`, a note command with no
+# executor. A promise the code cannot keep is worse than a missing feature,
+# because the reader plans around it.
+repository = Path(__file__).resolve().parent.parent
+PHANTOM_FLAGS = ("--include-memory", "--mode install")
+skill_files = sorted(repository.glob(".agents/skills/*/SKILL.md")) + sorted(
+    repository.glob("templates/new-project/capabilities/*/.agents/skills/*/SKILL.md"))
+for skill_path in skill_files:
+    if "upstream" in skill_path.parts:
+        continue  # vendored text is upstream's to shape, not ours
+    body = skill_path.read_text(encoding="utf-8")
+    for flag in PHANTOM_FLAGS:
+        if flag in body:
+            failures.append(
+                f"{skill_path.relative_to(repository).as_posix()} names {flag}, "
+                "which no script implements")
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)

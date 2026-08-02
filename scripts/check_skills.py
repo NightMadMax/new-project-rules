@@ -275,6 +275,22 @@ def check_vendored(root: Path, row: dict[str, str]) -> list[str]:
     return failures
 
 
+def capability_directory(root: str) -> Path:
+    """The capability a skill root belongs to.
+
+    Not simply two levels up: a vendored skill sits under `<capability>/upstream/
+    .agents/skills`, and its bridge may not live inside that subtree — decision
+    S.9.1 keeps the vendored tree byte-exact and puts the Claude bridge outside
+    it. Both kinds of skill therefore resolve to the capability directory, and
+    the bridge lands beside our own.
+    """
+    path = Path(root)
+    for index, part in enumerate(path.parts):
+        if part == "capabilities" and index + 1 < len(path.parts):
+            return Path(*path.parts[:index + 2])
+    return path.parent.parent
+
+
 def check_delivered_bridge(root: Path, row: dict[str, str], description: str,
                            delivered: dict[str, str]) -> list[str]:
     """A bridge a capability installs, checked where it lives and where it goes.
@@ -287,8 +303,7 @@ def check_delivered_bridge(root: Path, row: dict[str, str], description: str,
     name = row["skill"]
     # The canonical skill sits at <capability>/.agents/skills/<name>; its bridge
     # is the same capability's .claude/skills/<name>.
-    # row["root"] is <capability>/.agents/skills, so the capability is two up.
-    source = Path(row["root"]).parent.parent / BRIDGE_ROOT / name / "SKILL.md"
+    source = capability_directory(row["root"]) / BRIDGE_ROOT / name / "SKILL.md"
     bridge = root / source
     if not bridge.is_file():
         return [f"missing {shown(bridge, root)}"]

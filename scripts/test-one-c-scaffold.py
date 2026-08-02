@@ -56,6 +56,10 @@ AGENT_ROLES = (
     "doc-writer", "error-fixer", "explorer", "metadata-manager",
     "performance-optimizer", "planner", "refactoring", "tester",
 )
+VENDORED_SKILLS = (
+    "1c-metadata-manage", "caveman", "handoff", "img-grid-analysis", "mcp-1c-tools",
+    "md-to-docx", "mermaid-diagrams", "powershell-windows", "prompt-enhancer", "v8unpack-cf",
+)
 OPENSPEC_WORKFLOWS = ("propose", "apply-change", "archive-change", "explore")
 OPENSPEC_SCAFFOLD = (
     "openspec/README.md", "openspec/changes/README.md", "openspec/config.yaml",
@@ -156,6 +160,15 @@ with tempfile.TemporaryDirectory() as raw:
         instantiate = (project / ".agents/skills/add-1c-base/SKILL.md").read_text(encoding="utf-8")
         note("PROJECT_1C.template.md" in instantiate and "БСП" in instantiate,
              "add-1c-base must instantiate the card and ask for the BSP version")
+
+        # A vendored skill named as a hard gate must be visible to both clients,
+        # or the gate cannot be followed in half of them (№217). Decision S.9.1
+        # keeps the bridge outside the byte-exact subtree.
+        for skill in VENDORED_SKILLS:
+            note((project / f".agents/skills/{skill}/SKILL.md").is_file(),
+                 f"scaffold is missing the vendored skill {skill}")
+            note((project / f".claude/skills/{skill}/SKILL.md").is_file(),
+                 f"scaffold is missing the Claude bridge for vendored {skill}")
 
         for name in DEVELOP_REFERENCES:
             note((project / f".agents/skills/develop-1c/references/{name}.md").is_file(),
