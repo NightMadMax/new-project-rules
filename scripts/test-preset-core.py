@@ -386,11 +386,15 @@ with tempfile.TemporaryDirectory() as raw:
     destination = Path(raw) / "release-record"
     result = run_shell(destination, "minimal", "--preset", "1c")
     if result is not None and result.returncode == 0:
-        subprocess.run(
+        applied = subprocess.run(
             [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
              "--project", str(destination), "--capability", "1c", "--apply", "--yes"],
             capture_output=True, text=True,
         )
+        # Checked, not assumed: without this the next line reported a missing
+        # record and said nothing about the install that never happened.
+        note(applied.returncode == 0,
+             f"installing 1c must succeed: {(applied.stderr + applied.stdout).strip()[-600:]}")
         passport = json.loads((ROOT / "config/1c-release.json").read_text(encoding="utf-8"))
         recorded = metadata_of(destination).get("capability_releases", {}).get("1c")
         note(
