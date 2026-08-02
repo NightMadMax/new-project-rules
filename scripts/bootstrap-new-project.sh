@@ -197,10 +197,32 @@ capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${
   exit 1
 }
 known_capabilities=""
+# Destinations are checked here and not only in the PowerShell adapter. Parity
+# tests compare the produced trees, and for a healthy manifest both trees are
+# identical — so a manifest check missing on one side is exactly what they
+# cannot see (№249). Two capabilities writing into one path is the same class:
+# whoever runs second owns a file the first one already recorded as its own.
+seen_capability_destinations='|'
 while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
   [ "$row_capability" = capability ] && continue
   known_capabilities="$known_capabilities$row_capability
 "
+  # Wrapped in slashes so the first and the last component are ordinary ones:
+  # the earlier spelling anchored the pattern to a leading slash and therefore
+  # matched `a/../b` but not `../b`.
+  case "/$artifact_destination/" in
+    */../*|*//*) echo "Unsafe capability destination '$artifact_destination'" >&2; exit 1 ;;
+  esac
+  case "$artifact_destination" in
+    /*|*:*|*\\*) echo "Unsafe capability destination '$artifact_destination'" >&2; exit 1 ;;
+  esac
+  case "$seen_capability_destinations" in
+    *"|$artifact_destination|"*)
+      echo "Duplicate capability destination '$artifact_destination'" >&2
+      exit 1
+      ;;
+  esac
+  seen_capability_destinations="$seen_capability_destinations$artifact_destination|"
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
   case "$(printf '%s' "$payload_class" | tr -d '\r')" in
     ""|-|template|verbatim|binary) ;;
@@ -266,11 +288,20 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
     exit 1
   }
   case "/$artifact_destination/" in
-    /*/../*|//*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
+    */../*|*//*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
+  esac
+  case "$artifact_destination" in
+    /*|*:*|*\\*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
   esac
   case "$seen_destinations" in
     *"|$artifact_destination|"*)
       echo "Duplicate destination '$artifact_destination' in $manifest" >&2
+      exit 1
+      ;;
+  esac
+  case "$seen_capability_destinations" in
+    *"|$artifact_destination|"*)
+      echo "Capability destination conflicts with profile artifact '$artifact_destination'" >&2
       exit 1
       ;;
   esac
@@ -321,8 +352,18 @@ install_template() {
   source_file=$1
   target_file=$2
   mkdir -p "$(dirname "$destination/$target_file")"
-  sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g; s|<SCHEMA_VERSION>|$standard_version|g" \
-    "$templates/$source_file" > "$destination/$target_file"
+  # Substitution only where there is something to substitute. `sed` in git-bash
+  # rewrites line endings, so a template without placeholders arrived on Windows
+  # with different bytes from the source it was copied from — and the first
+  # capability update reported a conflict on a managed file nobody had touched.
+  # The condition is the one the update handler uses to decide whether a file is
+  # rendered, so delivery and comparison agree by construction.
+  if grep -q '<PROJECT_NAME>\|<YYYY-MM-DD>\|<SCHEMA_VERSION>' "$templates/$source_file"; then
+    sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g; s|<SCHEMA_VERSION>|$standard_version|g" \
+      "$templates/$source_file" > "$destination/$target_file"
+  else
+    cp "$templates/$source_file" "$destination/$target_file"
+  fi
 }
 
 # Byte-exact delivery: vendored payload and binaries must arrive unchanged, so

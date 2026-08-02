@@ -16,6 +16,7 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
 import capability_artifacts  # noqa: E402
+import capability_install  # noqa: E402
 import validate_project_support as support  # noqa: E402
 
 
@@ -30,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # The Windows console is not UTF-8 by default, and a plan names paths and
+    # explains itself. Without this the tool can die on its own report.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     args = build_parser().parse_args(argv)
     project = Path(args.project).resolve()
     contract = Path(args.contract_root).resolve()
@@ -41,7 +48,13 @@ def main(argv: list[str] | None = None) -> int:
     try:
         artifacts = support.release_artifacts(contract, args.capability)
         plan = capability_artifacts.build_plan(project, args.capability, artifacts)
-    except (capability_artifacts.CapabilityArtifactsError, support.ManifestError) as error:
+        # The record travels with the files. Computing it before the plan is
+        # applied is what lets a project that cannot host this capability be
+        # refused while nothing has been written yet.
+        plan = capability_artifacts.with_documents(
+            plan, capability_install.documents(project, contract, args.capability))
+    except (capability_artifacts.CapabilityArtifactsError, support.ManifestError,
+            capability_install.InstallError) as error:
         print(f"Cannot plan: {error}", file=sys.stderr)
         return 1
 

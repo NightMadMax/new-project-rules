@@ -27,6 +27,9 @@ GIT_IDENTITY = {
 # Get-Content/Set-Content style regression pass unnoticed. CRLF is here to catch
 # line-ending normalisation, including the one Git would apply on commit.
 PAYLOAD = b"<PROJECT_NAME> <YYYY-MM-DD>\r\n\xff\xfe\x00\x80 binary tail\r\n"
+# CRLF and no placeholder: nothing to substitute, and text processing would
+# still change the bytes the update handler compares against.
+PLAIN_TEMPLATE = b"# Plain\r\n\r\n- no placeholder here\r\n"
 failures: list[str] = []
 
 
@@ -51,6 +54,11 @@ def prepare(workspace: Path) -> Path:
     (templates / "payload" / "BINARY.bin").write_bytes(PAYLOAD)
     (templates / "payload" / "TEMPLATE.md").write_bytes(b"# <PROJECT_NAME>\n")
     (templates / "payload" / "DASH.md").write_bytes(b"# <PROJECT_NAME>\n")
+    # A template with nothing to substitute is delivered, then compared against
+    # this same source by the update handler. Passing it through text
+    # substitution changed its bytes on Windows — git-bash `sed` rewrites line
+    # endings — and every such file became a conflict on the first update.
+    (templates / "payload" / "PLAIN.md").write_bytes(PLAIN_TEMPLATE)
     executable = templates / "payload" / "tool.sh"
     executable.write_bytes(b"#!/bin/sh\necho tool\n")
     executable.chmod(0o755)
@@ -62,6 +70,7 @@ def prepare(workspace: Path) -> Path:
         ("payload/BINARY.bin", "payload/BINARY.bin", "binary"),
         ("payload/TEMPLATE.md", "payload/TEMPLATE.md", "template"),
         ("payload/DASH.md", "payload/DASH.md", "-"),
+        ("payload/PLAIN.md", "payload/PLAIN.md", "template"),
         ("payload/tool.sh", "payload/tool.sh", "verbatim"),
     ):
         rows.append("\t".join([
@@ -93,6 +102,14 @@ def check_project(project: Path, label: str) -> None:
             failures.append(f"{label}: {name} was not delivered")
         elif "<PROJECT_NAME>" in template.read_bytes().decode("utf-8"):
             failures.append(f"{label}: {name} placeholders were not substituted")
+
+    plain = project / "payload" / "PLAIN.md"
+    if not plain.is_file():
+        failures.append(f"{label}: a template without placeholders was not delivered")
+    elif plain.read_bytes() != PLAIN_TEMPLATE:
+        failures.append(
+            f"{label}: a template with nothing to substitute was rewritten in delivery; "
+            "the update handler compares it against the source byte for byte")
 
     tool = project / "payload" / "tool.sh"
     if not tool.is_file():
@@ -149,22 +166,47 @@ def run_bootstrap(contract: Path, workspace: Path, runner, label: str) -> None:
     check_project(destination, label)
 
 
-def run_unknown_class(contract: Path, workspace: Path, runner, label: str) -> None:
-    """An unknown class must stop the run instead of guessing a delivery mode."""
+def broken_row(destination: str, payload_class: str = "verbatim") -> str:
+    return "\t".join([
+        CAPABILITY, f"capabilities/{CAPABILITY}/payload/VERBATIM.md", destination,
+        "-", "-", "-", payload_class,
+    ])
+
+
+# What a doctored manifest must not get past either bootstrap, and the word the
+# message has to contain. These are checks of the manifest, so a parity test
+# comparing produced trees cannot stand in for them: with a healthy manifest
+# both trees are identical, which is how the shell adapter went without the
+# destination checks the PowerShell one had (№249).
+MANIFEST_REFUSALS = (
+    ("unknown payload class", lambda text: text.replace("\tverbatim\n", "\tmystery\n", 1), "payload class"),
+    ("escaping destination", lambda text: text + broken_row("../escape.md") + "\n", "destination"),
+    ("absolute destination", lambda text: text + broken_row("/tmp/escape.md") + "\n", "destination"),
+    ("destination twice", lambda text: text + broken_row("payload/VERBATIM.md") + "\n", "destination"),
+    ("destination of a profile artifact", lambda text: text + broken_row("README.md") + "\n", "destination"),
+)
+
+
+def run_manifest_refusal(contract: Path, workspace: Path, runner, label: str,
+                         name: str, doctor, word: str) -> None:
+    """A manifest the delivery cannot honour must stop the run, not be guessed at."""
     manifest = contract / "config" / "capabilities.tsv"
     original = manifest.read_bytes().decode("utf-8")
-    manifest.write_bytes(original.replace("\tverbatim\n", "\tmystery\n", 1).encode("utf-8"))
-    destination = workspace / f"rejected-{label}"
+    manifest.write_bytes(doctor(original).encode("utf-8"))
+    destination = workspace / f"rejected-{label}-{name.replace(' ', '-')}"
     try:
         result = runner(contract, destination)
         if result is None:
             return
         if result.returncode == 0:
-            failures.append(f"{label}: an unknown payload class was accepted")
-        if "payload class" not in (result.stderr + result.stdout):
-            failures.append(f"{label}: the unknown payload class was not explained")
+            failures.append(f"{label}: {name} was accepted")
+            return
+        if word not in (result.stderr + result.stdout):
+            failures.append(
+                f"{label}: {name} was rejected without naming '{word}': "
+                f"{(result.stderr + result.stdout).strip()[:200]}")
         if destination.exists() and any(destination.iterdir()):
-            failures.append(f"{label}: a rejected run left files behind")
+            failures.append(f"{label}: a run rejected for {name} left files behind")
     finally:
         manifest.write_bytes(original.encode("utf-8"))
 
@@ -177,7 +219,8 @@ def main() -> int:
         for runner, label in runners:
             run_bootstrap(contract, workspace, runner, label)
         for runner, label in runners:
-            run_unknown_class(contract, workspace, runner, label)
+            for name, doctor, word in MANIFEST_REFUSALS:
+                run_manifest_refusal(contract, workspace, runner, label, name, doctor, word)
 
     if failures:
         for failure in failures:

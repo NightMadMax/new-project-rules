@@ -64,13 +64,41 @@ class Plan:
     status: str
     operations: tuple[Operation, ...] = ()
     conflicts: tuple[str, ...] = ()
+    # Files the install rewrites whole and does not own: the project metadata,
+    # the two indexes, the practice manifest. They ride in the same transaction
+    # because a project whose files arrived and whose metadata did not is
+    # exactly the state that made the tool report a capability as *removed*
+    # right after installing it (№242). They carry no ledger entry — the project
+    # owns them, the capability only adds a line.
+    documents: tuple[tuple[str, bytes], ...] = ()
 
     def summary(self) -> str:
         counts: dict[str, int] = {}
         for operation in self.operations:
             counts[operation.action] = counts.get(operation.action, 0) + 1
         parts = [f"{action}: {counts[action]}" for action in ACTIONS if action in counts]
+        if self.documents:
+            parts.append(f"record: {len(self.documents)}")
         return ", ".join(parts) or "no operations"
+
+
+def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]]) -> Plan:
+    """The same plan, also rewriting these project files.
+
+    A plan that only has documents to write is still work to do, so a plan that
+    was `up_to_date` about its artifacts becomes `ready`: that is the case of a
+    capability whose files bootstrap already delivered and whose record nobody
+    ever wrote.
+    """
+    if not documents:
+        return plan
+    for target, _ in documents:
+        if artifacts_ledger.unsafe_target(target):
+            raise CapabilityArtifactsError(f"Unsafe document target: {target}")
+        if any(operation.target == target for operation in plan.operations):
+            raise CapabilityArtifactsError(f"{target} is both a capability artifact and a project record")
+    status = "ready" if plan.status == "up_to_date" else plan.status
+    return Plan(plan.capability, status, plan.operations, plan.conflicts, tuple(documents))
 
 
 def digest_bytes(data: bytes) -> str:
@@ -158,11 +186,17 @@ def build_plan(
             raise CapabilityArtifactsError(f"Unsupported policy '{policy}' for {target}")
         if payload_class not in artifacts_ledger.MANIFEST_PAYLOAD_CLASSES:
             raise CapabilityArtifactsError(f"Unknown payload class '{payload_class}' for {target}")
+        # One barrier, not two. The first of the two conditions that used to
+        # stand here compared an expression with itself — `parent` *is*
+        # `(project_root / target).parent`, and `.absolute().resolve()` is
+        # `.resolve()` — so it could never fire and only made the guard look
+        # doubled. What actually catches an escape is where the resolved parent
+        # lands relative to the project.
         parent = (project_root / target).parent
-        if parent.exists() and parent.resolve() != (project_root / target).parent.absolute().resolve():
-            raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
-        if parent.exists() and project_root.resolve() not in parent.resolve().parents and parent.resolve() != project_root.resolve():
-            raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
+        if parent.exists():
+            resolved_parent, resolved_root = parent.resolve(), project_root.resolve()
+            if resolved_parent != resolved_root and resolved_root not in resolved_parent.parents:
+                raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
 
         path = project_root / target
         current = path.read_bytes() if path.is_file() else None
@@ -323,6 +357,15 @@ def apply_plan(project_root: Path, plan: Plan) -> None:
                             f"Staged copy of {operation.target} does not match the release")
                 staged.append((staged_path, path))
 
+        for target, body in plan.documents:
+            path = project_root / target
+            if not path.parent.exists():
+                created_directories.append(path.parent)
+                path.parent.mkdir(parents=True, exist_ok=True)
+            staged_path = _staged_name(path)
+            staged_path.write_bytes(body)
+            staged.append((staged_path, path))
+
         for operation in plan.operations:
             if operation.action == "remove":
                 path = project_root / operation.target
@@ -440,6 +483,8 @@ def format_plan(plan: Plan) -> str:
             continue
         detail = f" ({operation.detail})" if operation.detail else ""
         lines.append(f"  {operation.action}: {operation.target} [{operation.policy}]{detail}")
+    for target, _ in sorted(plan.documents):
+        lines.append(f"  record: {target} (project file, not owned by the capability)")
     for conflict in plan.conflicts:
         lines.append(f"  conflict: {conflict}")
     return "\n".join(lines)

@@ -15,10 +15,13 @@ consequence is a number nobody acts on.
 
 from __future__ import annotations
 
+import html
 import json
+import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 
 SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
@@ -213,6 +216,28 @@ def edt_rows(root: Path, discover=None) -> list[Row]:
     return rows
 
 
+def started_processor(body: str) -> Optional[str]:
+    """The project-relative processor a launch profile starts, if it names one.
+
+    The profile is XML, the value is escaped, and the path inside it is quoted:
+    `/Execute &quot;<path>&quot;`. Only a path that stays inside the project can
+    be checked here, and one that does not is exactly what should not be
+    reported as ready — an absolute path belongs to one machine (№241), and a
+    placeholder belongs to nobody until somebody edits it (№252).
+    """
+    match = re.search(rf'{STARTUP_OPTION_ATTRIBUTE}"\s+value="([^"]*)"', body)
+    if not match:
+        return None
+    value = html.unescape(match.group(1))
+    quoted = re.search(r'/Execute\s+"([^"]+)"', value) or re.search(r"/Execute\s+(\S+)", value)
+    if not quoted:
+        return None
+    path = quoted.group(1).strip().replace("\\", "/")
+    if not path or path.startswith("/") or ".." in path.split("/") or re.match(r"^[A-Za-z]:", path):
+        return None
+    return path
+
+
 def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
     """The plugin and the launch profiles — a requirement of `ordinary` only.
 
@@ -248,12 +273,26 @@ def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
                 # A Toolkit profile also has to start the build; the HTTP-debug
                 # profile deliberately has no `/Execute` and is not judged by it.
                 started = STARTUP_OPTION_ATTRIBUTE in body and "/Execute" in body
-                result.append(Row(f"профиль запуска {identity}", "OK",
-                                  f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан"
-                                  + (", автозапуск обработки задан" if started else
-                                     ", без автозапуска обработки"),
-                                  "ничего не требуется" if started else
-                                  "клиент стартует, Toolkit открывается вручную"))
+                target = started_processor(body)
+                if not started:
+                    result.append(Row(f"профиль запуска {identity}", "OK",
+                                      f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан, "
+                                      "без автозапуска обработки",
+                                      "клиент стартует, Toolkit открывается вручную"))
+                elif target is None or not (root / target).is_file():
+                    # Naming a processor is not starting one. The path used to
+                    # be taken on trust, so a profile pointing at a placeholder
+                    # no one substitutes was reported as needing nothing (№253).
+                    named = target or "путь не разобран"
+                    result.append(Row(f"профиль запуска {identity}", "SKIP",
+                                      f"{relative} запускает '{named}', которого нет в проекте",
+                                      "профиль не стартует обработку; поправить путь в "
+                                      f"{STARTUP_OPTION_ATTRIBUTE}"))
+                else:
+                    result.append(Row(f"профиль запуска {identity}", "OK",
+                                      f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан, "
+                                      f"автозапуск: {target}",
+                                      "ничего не требуется"))
             else:
                 result.append(Row(f"профиль запуска {identity}", "SKIP",
                                   f"{relative} без {CLIENT_TYPE_ATTRIBUTE}",

@@ -26,6 +26,9 @@ from typing import Optional, Sequence
 
 MIN_PYTHON = (3, 9)
 KB = 1024
+# How few releases the size limit may push the changelog down to. A file with no
+# release in it is not a changelog, so this is where the limit stops winning.
+KEEP_FLOOR = 1
 IGNORED_PARTS = {".git"}
 
 # Standard artifact locations, relative to the project root.
@@ -145,31 +148,58 @@ def split_changelog(
 
     A split happens only when the changelog exceeds ``max_bytes``. The oldest
     version blocks move to the archive until the changelog is at or below
-    ``target_bytes`` or only ``keep`` releases remain, whichever comes first.
-    ``Unreleased`` is always retained locally.
+    ``target_bytes``. ``Unreleased`` is always retained locally.
+
+    ``keep`` is how many releases the split aims to leave, not a veto over the
+    limit. It used to be one: when the newest ``keep`` releases were themselves
+    over ``max_bytes``, the file stayed over it and the tool could only warn —
+    a limit and a retention policy that contradicted each other, with no setting
+    at which the project was in order (№251). The limit outranks ``keep`` now,
+    down to ``KEEP_FLOOR``, because a changelog with no release describes
+    nothing.
+
+    That extra yielding happens only if it works. Archiving history is a real
+    cost, and paying it without getting under the limit is the worst of both:
+    the releases are gone from the file and the warning is still there. When
+    the weight is in ``Unreleased`` — which is retained locally by definition —
+    no number of archived releases can help, and the honest answer is to say so
+    rather than to empty the file trying.
     """
     if len(text.encode("utf-8")) <= max_bytes:
         return None
     preamble, blocks = split_h2_blocks(text)
     unreleased = [b for b in blocks if b.startswith("## Unreleased")]
     versions = [b for b in blocks if not b.startswith("## Unreleased")]
-    if len(versions) <= keep:
+    if len(versions) <= KEEP_FLOOR:
         return None
+
+    # Sizing is done against the preamble the file will actually have, pointer
+    # included: adding it afterwards made every size decision here optimistic by
+    # the length of that sentence.
+    if "CHANGELOG_ARCHIVE" not in preamble:
+        preamble = preamble.rstrip("\n") + "\n\n" + CHANGELOG_ARCHIVE_POINTER + "\n"
 
     def changelog_bytes(kept_versions: Sequence[str]) -> int:
         body = preamble + "".join(unreleased) + "".join(kept_versions)
         return len(body.encode("utf-8"))
 
+    # Down to `keep` to reach the target...
+    floor = min(keep, len(versions))
     kept_n = len(versions)
-    while kept_n > keep and changelog_bytes(versions[:kept_n]) > target_bytes:
+    while kept_n > floor and changelog_bytes(versions[:kept_n]) > target_bytes:
         kept_n -= 1
+    # ...and below it only when going below it actually gets under the limit.
+    if changelog_bytes(versions[:kept_n]) > max_bytes:
+        deeper = kept_n
+        while deeper > KEEP_FLOOR and changelog_bytes(versions[:deeper]) > max_bytes:
+            deeper -= 1
+        if changelog_bytes(versions[:deeper]) <= max_bytes:
+            kept_n = deeper
     kept_versions = versions[:kept_n]
     moved_versions = versions[kept_n:]
     if not moved_versions:
         return None
 
-    if "CHANGELOG_ARCHIVE" not in preamble:
-        preamble = preamble.rstrip("\n") + "\n\n" + CHANGELOG_ARCHIVE_POINTER + "\n"
     new_changelog = preamble + "".join(unreleased) + "".join(kept_versions)
 
     if archive_text is None:
@@ -385,16 +415,30 @@ def plan_compression(cfg: Config) -> Plan:
         else:
             size_kb = len(changelog.encode("utf-8")) / KB
             if len(changelog.encode("utf-8")) > cfg.changelog_max_bytes:
-                # Over the limit and nothing left to move: the releases that
-                # remain are the ones --changelog-keep protects. Saying "no
-                # split needed" here read as "within the limit", which is the
-                # opposite of the truth.
+                # Over the limit and nothing can move. Which of the two reasons
+                # it is decides what the reader should do, and naming the wrong
+                # one sends them to a setting that changes nothing: this project
+                # was told to lower --changelog-keep while it had one release
+                # and 49 KB of `Unreleased` (№251).
+                unreleased_bytes = sum(
+                    len(block.encode("utf-8"))
+                    for block in split_h2_blocks(changelog)[1]
+                    if block.startswith("## Unreleased")
+                )
+                if unreleased_bytes > cfg.changelog_max_bytes // 2:
+                    detail = (
+                        f"`## Unreleased` alone is {unreleased_bytes / KB:.0f} KB and stays "
+                        "here by definition; archiving releases cannot help. Cut a release."
+                    )
+                else:
+                    detail = (
+                        f"the newest {cfg.changelog_keep} release(s) are kept by policy and "
+                        "nothing else can move. Lower --changelog-keep to split further."
+                    )
                 plan.notices.append(Notice(
                     "WARN", "changelog.size",
                     f"CHANGELOG.md is {size_kb:.0f} KB, over the "
-                    f"{cfg.changelog_max_bytes // KB} KB limit, but the newest "
-                    f"{cfg.changelog_keep} release(s) are kept by policy and nothing "
-                    "else can move. Lower --changelog-keep to split further.",
+                    f"{cfg.changelog_max_bytes // KB} KB limit, but {detail}",
                 ))
             else:
                 plan.notices.append(Notice(

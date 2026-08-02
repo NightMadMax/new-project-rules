@@ -167,9 +167,30 @@ core_rows = [
     for line in (ROOT / "config/capability-core.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
 ]
 declared = {row[0]: {"min_profile": row[1], "stack": row[2]} for row in core_rows}
+capability_rows = [
+    line.split("\t")
+    for line in (ROOT / "config/capabilities.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
+]
 note(
     declared == project_metadata.CAPABILITY_CORE,
     f"config/capability-core.tsv and CAPABILITY_CORE disagree: {declared} vs {project_metadata.CAPABILITY_CORE}",
+)
+
+# The three lists of capability names must be one list. `CAPABILITY_CORE` had a
+# comparison and `CAPABILITY_NAMES` had none, so bootstrap — which accepts what
+# the delivery manifest declares — and the validator — which accepts what this
+# set declares — could disagree, and the disagreement surfaces as a project that
+# is created and immediately invalid (№247).
+manifest_names = {row[0] for row in capability_rows if row and row[0]}
+note(
+    manifest_names == project_metadata.CAPABILITY_NAMES,
+    f"config/capabilities.tsv and CAPABILITY_NAMES disagree: "
+    f"{sorted(manifest_names)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
+)
+note(
+    set(declared) == project_metadata.CAPABILITY_NAMES,
+    f"config/capability-core.tsv and CAPABILITY_NAMES disagree: "
+    f"{sorted(declared)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
 )
 
 # A capability that indexes documentation needs a profile that has an index.
@@ -203,10 +224,6 @@ for surface in CAPABILITY_SURFACES:
         note(name in body, f"{surface} does not mention capability '{name}'")
 
 DOCS_INDEX_PROFILE = "software"
-capability_rows = [
-    line.split("\t")
-    for line in (ROOT / "config/capabilities.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
-]
 indexing = sorted({row[0] for row in capability_rows if len(row) > 4 and row[4] != "-"})
 note(indexing, "no capability declares a docs_section, so this invariant checks nothing")
 for name in indexing:
@@ -313,6 +330,77 @@ with tempfile.TemporaryDirectory() as raw:
     wrong_case_shell = run_shell(workspace / "case-shell", "minimal", "1C")
     if wrong_case_shell is not None:
         note(wrong_case_shell.returncode != 0, "shell: capability names must be case-sensitive")
+
+
+# --- a capability can be added after the project exists (№242, №244) --------
+#
+# The tool used to write the files and stop there, so the validator reported the
+# capability as *removed* right after it had been installed, and the only way
+# out was editing metadata by hand. What makes this a test of the scenario and
+# not of the handler is the last line: the project has to still be valid.
+
+with tempfile.TemporaryDirectory() as raw:
+    destination = Path(raw) / "added"
+    result = run_shell(destination, "software")
+    if result is not None and result.returncode == 0:
+        added = subprocess.run(
+            [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
+             "--project", str(destination), "--capability", "jira-confluence", "--apply", "--yes"],
+            capture_output=True, text=True,
+        )
+        note(added.returncode == 0, f"adding a capability must succeed: {added.stderr[-300:]}")
+        if added.returncode == 0:
+            data = metadata_of(destination)
+            note(data["capabilities"] == ["jira-confluence"],
+                 f"the capability was not recorded in metadata: {data['capabilities']}")
+            docs_index = (destination / "docs/README.md").read_text(encoding="utf-8")
+            note("docs/jira/STATUS_MODEL" in docs_index,
+                 "the delivered documents were not linked from docs/README.md")
+            check = subprocess.run(
+                [sys.executable, str(SCRIPTS / "validate-project.py"),
+                 "--root", str(destination), "--report-only"],
+                capture_output=True, text=True,
+            )
+            note("0 error(s)" in check.stdout,
+                 f"a project must stay valid after a capability is added: {check.stdout[-300:]}")
+
+    # A capability whose floor the project does not meet cannot be installed by
+    # copying files: what is missing belongs to the profile.
+    low = Path(raw) / "too-light"
+    result = run_shell(low, "minimal")
+    if result is not None and result.returncode == 0:
+        refused = subprocess.run(
+            [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
+             "--project", str(low), "--capability", "transcribe", "--apply", "--yes"],
+            capture_output=True, text=True,
+        )
+        note(refused.returncode != 0, "a capability below its profile floor must be refused")
+        note("profile" in refused.stderr, f"the refusal must name the profile: {refused.stderr[:200]}")
+        note(not (low / "docs/operations/TRANSCRIBE.md").exists(),
+             "a refused install left files behind")
+
+
+# --- the installed release is recorded (№244) -------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    destination = Path(raw) / "release-record"
+    result = run_shell(destination, "minimal", "--preset", "1c")
+    if result is not None and result.returncode == 0:
+        applied = subprocess.run(
+            [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
+             "--project", str(destination), "--capability", "1c", "--apply", "--yes"],
+            capture_output=True, text=True,
+        )
+        # Checked, not assumed: without this the next line reported a missing
+        # record and said nothing about the install that never happened.
+        note(applied.returncode == 0,
+             f"installing 1c must succeed: {(applied.stderr + applied.stdout).strip()[-600:]}")
+        passport = json.loads((ROOT / "config/1c-release.json").read_text(encoding="utf-8"))
+        recorded = metadata_of(destination).get("capability_releases", {}).get("1c")
+        note(
+            recorded == {"version": passport["version"], "release_id": passport["release_id"]},
+            f"the installed release must be recorded, got {recorded}",
+        )
 
 
 # --- the ledger is independent evidence of what was installed --------------

@@ -284,6 +284,17 @@ sh scripts/apply-capability-artifacts.sh --project ../my-project --capability 1c
 и не затирает правку. Файлы, поставленные bootstrap, при первом запуске
 усыновляются (`adopt`), потому что bootstrap ledger не ведёт.
 
+Этой же командой capability добавляется в уже созданный проект. Кроме файлов
+она записывает capability и установленный release в `.project-standard.json`,
+ссылки на новые документы в `INDEX.md` и `docs/README.md`, а обязательный стек
+практик — в `.best-practices.json`; строки плана с пометкой `record` — это они.
+Всё идёт одной транзакцией: проект либо получает установку целиком, либо
+остаётся прежним.
+
+Профиль проекта команда не повышает. Если capability требует профиль выше
+текущего, установка отклоняется до записи: недостающие документы принадлежат
+профилю, и копированием файлов их не добавить.
+
 ### Настройка среды 1С и внешний MCP provider
 
 Открыть агента в папке проекта-правил и попросить: «настрой среду 1С для
@@ -314,6 +325,26 @@ endpoint передаётся в проекции клиентов:
 `sh scripts/render-1c-clients.sh --root ../my-project --provider-manifest <path>`.
 Без manifest endpoint остаётся нерешённым — подставленный адрес выглядел бы
 установленным и отказал бы при первом вызове.
+
+### Session lock живой базы 1С
+
+Обычно этим распоряжается skill `select-1c-project`. Вручную:
+
+```sh
+python3 scripts/one_c_session.py --root ../my-project acquire --base erp/dev \
+  --confirmed-by "<вызов и что он ответил>" --switch-read off --switch-confirmed "<вызов>"
+python3 scripts/one_c_session.py --root ../my-project require --base erp/dev
+python3 scripts/one_c_session.py --root ../my-project require --base erp/dev --write
+python3 scripts/one_c_session.py --root ../my-project release
+```
+
+Замок говорит, какую базу этой сессии разрешено трогать и чем это подтверждено.
+`--confirmed-by` — вызов, доказавший идентичность: порт сам по себе не говорит,
+какая база за ним стоит. Управляемому приложению нужны ещё два аргумента:
+состояние переключателя записи (`--switch-read on|off` — ровно одно из двух
+слов) и вызов, который его прочитал. Записи требуются `--write-mode
+approved-write` и `--backup-confirmed`; production для записи не открывается
+никаким подтверждением. Отказ печатается с `[REFUSED]` и ненулевым кодом.
 
 ### Выгрузка исходников 1С в XML
 

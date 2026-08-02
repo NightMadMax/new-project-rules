@@ -121,6 +121,7 @@
 | `scripts/check_skills.py` | Проверка skills по `config/skills.tsv`: canonical-триада и vendored payload по hash |
 | `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
 | `scripts/capability_artifacts.py` | Транзакционные план и применение артефактов capability |
+| `scripts/capability_install.py` | Запись capability в metadata, индексы и стек практик проекта |
 | `scripts/presets.py` | Раскрытие preset в профиль, capability и стеки |
 | `scripts/release_manifest.py` | Контракт release capability: паспорт, ledger артефактов, `release_id` |
 | `scripts/build-capability-release.py` | Сборка и проверка release против локального staging |
@@ -165,7 +166,7 @@
 | `scripts/test-1c-source.py` | Тесты конвертации: расположение выгрузки, детерминизм, блокировка, возврат |
 | `scripts/one_c_doctor.py` | Диагностика окружения 1С: allowlist источников, маскирование до вывода, статус и следствие в каждой строке |
 | `scripts/test-1c-doctor.py` | Тесты диагностики: чтение вне allowlist отклоняется, значение секрета не доходит до отчёта |
-| `scripts/one_c_session.py` | Session lock: какую базу сессии разрешено трогать и чем это подтверждено |
+| `scripts/one_c_session.py` | Session lock и его CLI: какую базу сессии разрешено трогать и чем это подтверждено |
 | `scripts/test-1c-session.py` | Тесты гейта: отказ без lock, без подтверждения production, при смене порта |
 | `config/1c-components.tsv` | Каталог компонентов среды 1С: класс, назначение, последствия отказа, источник и способ установки |
 | `scripts/one_c_components.py` | Загрузка каталога компонентов и prompt с обязательным набором полей |

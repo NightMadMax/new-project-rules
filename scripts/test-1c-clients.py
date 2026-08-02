@@ -359,6 +359,15 @@ for name, content in (
     ("row longer than the header", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row() + "\textra"]) + "\n").encode("utf-8")),
     ("exposed without a port", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="")]) + "\n").encode("utf-8")),
     ("port outside the range", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="9000")]) + "\n").encode("utf-8")),
+    # The identity becomes an MCP server name and a TOML table header. A quote
+    # or a dot there produced a config.toml no client can parse — including the
+    # user's own text outside our markers — and the renderer wrote it anyway,
+    # because the rule lived in the validator and the validator is a separate
+    # run (№248). Refusing an unrepresentable value is the writer's job.
+    ("quote in project_id", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(project_id='erp"a')]) + "\n").encode("utf-8")),
+    ("dot in project_id", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(project_id="erp.a")]) + "\n").encode("utf-8")),
+    ("space in environment_id", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(environment_id="dev stand")]) + "\n").encode("utf-8")),
+    ("upper case in project_id", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(project_id="ERP")]) + "\n").encode("utf-8")),
 ):
     with tempfile.TemporaryDirectory() as raw:
         project = make_project(Path(raw))

@@ -9,6 +9,8 @@ related:
   - "[[INDEX]]"
   - "[[docs/architecture/decisions/ADR-0001-two-level-documentation|ADR-0001]]"
   - "[[docs/research/PROJECT_ARTIFACT_MODEL|PROJECT_ARTIFACT_MODEL]]"
+  - "[[docs/architecture/ONE_C_CAPABILITY_PLAN|ONE_C_CAPABILITY_PLAN]]"
+  - "[[docs/architecture/one-c/IMPLEMENTATION_PLAN|IMPLEMENTATION_PLAN]]"
 ---
 
 # Архитектура
@@ -47,6 +49,21 @@ related:
 - `.project-standard-artifacts.json` в созданном проекте — что фактически
   установлено. Сравнение его с release даёт план: создать, обновить, удалить
   или остановиться на конфликте.
+
+У capability две половины, и путать их не стоит. **Поставка** отвечает на
+вопрос «какие файлы у проекта появились и кому они принадлежат»: манифесты выше,
+`capability_artifacts` как транзакция и `capability_install` как запись проекта
+о себе — capability и установленный release в `.project-standard.json`, ссылки в
+обоих индексах, стек практик. **Runtime** отвечает на другой вопрос — «что
+проекту разрешено делать с живой системой», — и для `1c` это отдельный слой:
+`one_c_session` (замок сессии: какая база, чем это подтверждено, разрешена ли
+запись), `one_c_doctor` (диагностика только на чтение), `one_c_provider` и
+`one_c_clients` (обнаружение внешнего MCP-провайдера и проекции клиентских
+конфигураций с владением по имени), `one_c_setup`, `one_c_source`. По объёму это
+большая часть кода стандарта; её решения и статусы живут в
+[[docs/architecture/ONE_C_CAPABILITY_PLAN|мастер-плане]] и подпланах
+[[docs/architecture/one-c/IMPLEMENTATION_PLAN|`one-c/`]], а проверенное
+состояние — в [[docs/quality/READINESS_1C|матрице готовности]].
 
 **Две оси версий, и их нельзя смешивать.** Схема стандарта — целое число, и
 миграции идут по цепочке `from_schema → to_schema`. Версия capability — SemVer,
