@@ -60,22 +60,32 @@ class GovernanceTests(unittest.TestCase):
         self.assertTrue(any("Admin always-bypass" in problem for problem in problems))
         self.assertTrue(any("non_fast_forward" in problem for problem in problems))
 
-    def test_github_token_scope_allows_redacted_bypass_only(self):
+    def test_github_token_scope_reports_redacted_bypass_as_unverified(self):
+        # A redacted field is not a violation, and it is not a verification
+        # either. Returning nothing made the nightly audit print "reviewed
+        # bypass" about a value it had never seen.
         metadata, ruleset, collaborators = self.state()
+        for redacted in ([], None):
+            if redacted is None:
+                ruleset.pop("bypass_actors", None)
+            else:
+                ruleset["bypass_actors"] = redacted
+            problems = checker.validate_state(
+                "NightMadMax/best-practices", metadata, ruleset, collaborators,
+                strict_actor_id=False,
+            )
+            self.assertEqual(1, len(problems), problems)
+            self.assertTrue(problems[0].startswith(checker.UNVERIFIED), problems)
+            # Unverified must not be reported as a violation.
+            self.assertNotIn("must keep", problems[0])
+
         ruleset["bypass_actors"] = []
-        self.assertEqual([], checker.validate_state(
-            "NightMadMax/best-practices", metadata, ruleset, collaborators,
-            strict_actor_id=False,
-        ))
-        self.assertTrue(checker.validate_state(
+        strict = checker.validate_state(
             "NightMadMax/best-practices", metadata, ruleset, collaborators,
             strict_actor_id=True,
-        ))
-        ruleset.pop("bypass_actors")
-        self.assertEqual([], checker.validate_state(
-            "NightMadMax/best-practices", metadata, ruleset, collaborators,
-            strict_actor_id=False,
-        ))
+        )
+        self.assertTrue(strict)
+        self.assertFalse([item for item in strict if item.startswith(checker.UNVERIFIED)], strict)
 
 
 if __name__ == "__main__":
