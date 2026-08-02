@@ -57,6 +57,7 @@ class Config:
     changelog_keep: int
     fixed_max_age_days: int
     stale_days: int
+    fixed_max_entries: int = 30
 
 
 @dataclass(frozen=True)
@@ -223,8 +224,15 @@ def archive_fixed_defects(
     archive_text: Optional[str],
     today: datetime.date,
     max_age_days: int,
+    max_entries: int = 0,
 ) -> Optional[tuple[str, str, int]]:
-    """Move ``Fixed`` rows older than ``max_age_days`` into the archive table.
+    """Move ``Fixed`` rows into the archive: too old, or too many.
+
+    Age alone left the section unbounded. A project that closes many defects in
+    one month keeps every one of them — this log stood at two hundred rows and
+    150 KB while the rule everyone quoted ("more than thirty") lived only in a
+    skill, with nothing to run it. ``max_entries`` makes that rule executable:
+    beyond it, the oldest rows move until the count fits, newest kept.
 
     Rows whose ``Fixed`` date cannot be parsed are left in place. Returns
     (new_defects, new_archive, moved_count) or None when nothing qualifies.
@@ -246,6 +254,17 @@ def archive_fixed_defects(
             moved_rows.append(line)
         else:
             keep_rows.append(line)
+
+    # Then the count. Only rows with a readable date may move: an unparsable one
+    # would be archived on position alone, and position is not evidence.
+    if max_entries > 0 and len(keep_rows) > max_entries:
+        datable = [line for line in keep_rows if row_date(line, FIXED_DATE_COLUMN) is not None]
+        surplus = len(keep_rows) - max_entries
+        oldest = sorted(datable, key=lambda line: row_date(line, FIXED_DATE_COLUMN))[:surplus]
+        chosen = set(map(id, oldest))
+        moved_rows.extend(oldest)
+        keep_rows = [line for line in keep_rows if id(line) not in chosen]
+
     if not moved_rows:
         return None
 
@@ -365,24 +384,39 @@ def plan_compression(cfg: Config) -> Plan:
             ))
         else:
             size_kb = len(changelog.encode("utf-8")) / KB
-            plan.notices.append(Notice(
-                "INFO", "changelog.size",
-                f"CHANGELOG.md is {size_kb:.0f} KB "
-                f"(limit {cfg.changelog_max_bytes // KB} KB); no split needed.",
-            ))
+            if len(changelog.encode("utf-8")) > cfg.changelog_max_bytes:
+                # Over the limit and nothing left to move: the releases that
+                # remain are the ones --changelog-keep protects. Saying "no
+                # split needed" here read as "within the limit", which is the
+                # opposite of the truth.
+                plan.notices.append(Notice(
+                    "WARN", "changelog.size",
+                    f"CHANGELOG.md is {size_kb:.0f} KB, over the "
+                    f"{cfg.changelog_max_bytes // KB} KB limit, but the newest "
+                    f"{cfg.changelog_keep} release(s) are kept by policy and nothing "
+                    "else can move. Lower --changelog-keep to split further.",
+                ))
+            else:
+                plan.notices.append(Notice(
+                    "INFO", "changelog.size",
+                    f"CHANGELOG.md is {size_kb:.0f} KB "
+                    f"(limit {cfg.changelog_max_bytes // KB} KB); no split needed.",
+                ))
 
     defects = read_text(root / DEFECTS)
     if defects is not None:
         archive = read_text(root / DEFECTS_ARCHIVE)
-        result = archive_fixed_defects(defects, archive, cfg.today, cfg.fixed_max_age_days)
+        result = archive_fixed_defects(defects, archive, cfg.today, cfg.fixed_max_age_days,
+                                       cfg.fixed_max_entries)
         if result is not None:
             new_defects, new_archive, moved = result
             plan.writes[root / DEFECTS] = new_defects
             plan.writes[root / DEFECTS_ARCHIVE] = new_archive
             plan.actions.append(Action(
                 "defects.archive",
-                f"Move {moved} Fixed defect(s) older than {cfg.fixed_max_age_days} "
-                f"days to {DEFECTS_ARCHIVE.as_posix()}.",
+                f"Move {moved} Fixed defect(s) to {DEFECTS_ARCHIVE.as_posix()}: "
+                f"older than {cfg.fixed_max_age_days} days, or beyond the newest "
+                f"{cfg.fixed_max_entries}.",
             ))
 
     plan.notices.extend(stale_frontmatter(root, cfg.today, cfg.stale_days))
@@ -430,6 +464,7 @@ def build_config(args: argparse.Namespace) -> Config:
         changelog_target_bytes=args.changelog_target_kb * KB,
         changelog_keep=args.changelog_keep,
         fixed_max_age_days=args.fixed_max_age_days,
+        fixed_max_entries=args.fixed_max_entries,
         stale_days=args.stale_days,
     )
 
@@ -443,6 +478,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--changelog-target-kb", type=int, default=24, help="Target CHANGELOG.md size after a split.")
     parser.add_argument("--changelog-keep", type=int, default=5, help="Releases always kept in CHANGELOG.md.")
     parser.add_argument("--fixed-max-age-days", type=int, default=90, help="Archive Fixed defects older than this.")
+    parser.add_argument("--fixed-max-entries", type=int, default=30,
+                        help="Keep at most this many Fixed defects; archive the oldest beyond it.")
     parser.add_argument("--stale-days", type=int, default=60, help="Warn when last_verified is older than this.")
     return parser
 

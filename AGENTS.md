@@ -50,8 +50,15 @@
 ## Repository Workflow
 
 - Use GitHub for version control and portability between computers.
-- After user-requested repository changes, commit and push to `origin/main` unless the user explicitly asks not to sync.
-- Ask before creating pull requests, releases, issues, changing remotes, or performing destructive history operations.
+- `main` is protected by the `Protect main` ruleset: a direct push is rejected,
+  and the only documented way around it is `--admin`, recorded as defect №190.
+  So a change lands through a branch and a pull request — that is the route, not
+  an exception to it.
+- After user-requested repository changes, commit to a branch and push that
+  branch, unless the user explicitly asks not to sync. Opening the pull request
+  is part of the same step; merging it is not.
+- Ask before merging a pull request, creating releases or issues, changing
+  remotes, or performing destructive history operations.
 - Keep paths relative and scripts portable across macOS and Windows.
 - Never run two agents at the same time in this working copy; parallel agents belong in separate git worktrees.
 

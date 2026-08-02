@@ -591,6 +591,22 @@ for candidate in sorted((repository / "scripts").glob("test-*.py")):
     if name not in index:
         failures.append(f"{name} is not listed in INDEX.md")
 
+# A capability skill that names a script of the standard must say where that
+# script lives: it is in the new-project-rules checkout, not in the created
+# project, and the project does not record the path (№215).
+CHECKOUT_CAVEAT = "new-project-rules"
+for skill_path in sorted(
+        repository.glob("templates/new-project/capabilities/*/.agents/skills/*/SKILL.md")):
+    if "upstream" in skill_path.parts:
+        continue
+    body = skill_path.read_text(encoding="utf-8")
+    names_script = any(
+        marker in body for marker in ("python3 scripts/", "python .\\scripts", "`scripts/"))
+    if names_script and CHECKOUT_CAVEAT not in body:
+        failures.append(
+            f"{skill_path.relative_to(repository).as_posix()} names a script of the standard "
+            "without saying it lives in the new-project-rules checkout")
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)

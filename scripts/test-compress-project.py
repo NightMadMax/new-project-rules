@@ -131,6 +131,26 @@ class DefectsTests(unittest.TestCase):
         self.assertIn("Пояснение к разделу.", new_defects)
         self.assertIn("## Won't Fix", new_defects)
 
+    def test_archives_by_count_when_the_section_outgrows_the_limit(self):
+        # Age alone left the section unbounded: a project that closes many
+        # defects in one month keeps every one of them, which is how this log
+        # reached two hundred rows while the rule everyone quoted lived only in
+        # a skill (№238). The newest are kept, and a row without a readable date
+        # is never chosen on position alone.
+        result = compress.archive_fixed_defects(
+            DEFECTS, DEFECTS_ARCHIVE, TODAY, max_age_days=10_000, max_entries=2)
+        self.assertIsNotNone(result)
+        new_defects, new_archive, moved = result
+        self.assertEqual(moved, 1)
+        self.assertNotIn("Старый", new_defects)
+        self.assertIn("Свежий", new_defects)
+        self.assertIn("Без даты", new_defects)
+
+    def test_count_limit_off_by_default_in_the_function(self):
+        self.assertIsNone(
+            compress.archive_fixed_defects(DEFECTS, DEFECTS_ARCHIVE, TODAY, max_age_days=10_000)
+        )
+
     def test_no_archive_target_is_not_created(self):
         self.assertIsNone(compress.archive_fixed_defects(DEFECTS, None, TODAY, max_age_days=90))
 
