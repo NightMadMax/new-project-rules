@@ -71,6 +71,7 @@ related:
 - [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|Финальный live-аудит связки NPR ↔ Best Practices]]
 - [[docs/reviews/REVIEW_2026-08-01_NPR|Ревью всего NPR пятью независимыми срезами]]
 - [[docs/reviews/REVIEW_2026-08-02_ARCHITECTURE|Архитектурное ревью 2026-08-02]]
+- [[docs/reviews/CODE_REVIEW_1c_2026-08-02|Код-ревью работы по дефектам №240 и №241]]
 - [[docs/reviews/archive/README|Архив промежуточных review]]
 
 ## Безопасность

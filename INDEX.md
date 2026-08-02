@@ -68,6 +68,7 @@
 | [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|NPR_BP_CLOSEOUT_REVIEW_2026-07-08.md]] | Финальный live-аудит и закрытие программы NPR ↔ Best Practices |
 | [[docs/reviews/REVIEW_2026-08-01_NPR|REVIEW_2026-08-01_NPR.md]] | Ревью всего NPR пятью независимыми срезами |
 | [[docs/reviews/REVIEW_2026-08-02_ARCHITECTURE|REVIEW_2026-08-02_ARCHITECTURE.md]] | Архитектурное ревью: проверка утверждений стандарта против кода |
+| [[docs/reviews/CODE_REVIEW_1c_2026-08-02|CODE_REVIEW_1c_2026-08-02.md]] | Код-ревью работы по дефектам №240 и №241: профили запуска, обработки, session lock |
 | [[docs/reviews/archive/README|Review archive]] | Промежуточные review завершённых фаз NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/READINESS_1C\|docs/quality/READINESS_1C.md]] | Матрица готовности capability `1c`: критерий, статус, доказательство |
