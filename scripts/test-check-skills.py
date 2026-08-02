@@ -561,6 +561,19 @@ with tempfile.TemporaryDirectory() as raw:
     if malformed_code != 1:
         failures.append("main(): a malformed manifest must exit 1")
 
+# A test nobody documented is a test nobody runs on purpose. test-standard-metrics
+# existed and ran in CI while being absent from both TESTING.md and INDEX.md, so
+# the pairing is asserted rather than remembered.
+repository = Path(__file__).resolve().parent.parent
+testing = (repository / "docs/quality/TESTING.md").read_text(encoding="utf-8")
+index = (repository / "INDEX.md").read_text(encoding="utf-8")
+for candidate in sorted((repository / "scripts").glob("test-*.py")):
+    name = candidate.name
+    if name not in testing:
+        failures.append(f"{name} is not documented in docs/quality/TESTING.md")
+    if name not in index:
+        failures.append(f"{name} is not listed in INDEX.md")
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)

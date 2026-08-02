@@ -6,7 +6,25 @@ param(
 $ErrorActionPreference = "Stop"
 
 if (-not $Path -or $Path.Count -eq 0) {
-    $Path = @(Get-ChildItem -LiteralPath $PSScriptRoot -Filter "*.ps1" -File | ForEach-Object { $_.FullName })
+    # Our own wrappers and the payload we ship. Checking only scripts/ left the
+    # sixty vendored .ps1 unparsed — the files a created project actually runs,
+    # and the ones nobody here would notice breaking. A vendored parse error is
+    # still an error: it means the release delivers a script that cannot run.
+    $roots = @(
+        $PSScriptRoot,
+        (Join-Path (Split-Path -Parent $PSScriptRoot) "templates")
+    )
+    $Path = @(
+        foreach ($root in $roots) {
+            if (Test-Path -LiteralPath $root) {
+                # -Force: the payload lives under .agents, and Get-ChildItem
+                # skips dot-directories without it — which is how sixty files
+                # stayed unparsed while the check reported success.
+                Get-ChildItem -LiteralPath $root -Filter "*.ps1" -File -Recurse -Force |
+                    ForEach-Object { $_.FullName }
+            }
+        }
+    )
 }
 
 $failed = $false
