@@ -414,7 +414,7 @@ ONE_C_ENUMS = {
 }
 ONE_C_PORTS = validate_project_support.ONE_C_PORTS
 ONE_C_REQUIRED = ("project_id", "environment_id", "folder", "configuration")
-ONE_C_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+ONE_C_ID_RE = validate_project_support.ONE_C_ID_RE
 DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
 
 

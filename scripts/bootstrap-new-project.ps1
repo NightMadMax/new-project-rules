@@ -64,6 +64,7 @@ if ($ManifestLines.Count -lt 2 -or $ManifestLines[0] -cne $ExpectedManifestHeade
 }
 $Artifacts = @($ManifestLines | ConvertFrom-Csv -Delimiter "`t")
 $SeenDestinations = @{}
+$SeenCapabilityDestinations = @{}
 $GeneratedDestinations = @(".editorconfig", ".gitattributes", ".gitignore", ".project-standard.json", "CLAUDE.md")
 foreach ($artifact in $Artifacts) {
     if (-not $ProfileRanks.ContainsKey($artifact.minimum_profile)) {
@@ -164,6 +165,13 @@ foreach ($artifact in $CapabilityArtifacts) {
     if ($SeenDestinations.ContainsKey($artifact.destination)) {
         throw "Capability destination conflicts with profile artifact '$($artifact.destination)'"
     }
+    # Two capabilities writing into one path: whoever installs second owns a
+    # file the first already recorded as its own, and the conflict only shows up
+    # at the next update (№249).
+    if ($SeenCapabilityDestinations.ContainsKey($artifact.destination)) {
+        throw "Duplicate capability destination '$($artifact.destination)'"
+    }
+    $SeenCapabilityDestinations[$artifact.destination] = $true
     if (-not (Test-Path -LiteralPath (Join-Path $Templates $artifact.source) -PathType Leaf)) {
         throw "Capability template not found for '$($artifact.destination)': $($artifact.source)"
     }

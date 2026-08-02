@@ -14,6 +14,7 @@ import hashlib
 import importlib.util
 import io
 import os
+import re
 import sys
 import tempfile
 from pathlib import Path
@@ -565,19 +566,48 @@ with tempfile.TemporaryDirectory() as raw:
 # had this shape — `--include-memory`, `--mode install`, a note command with no
 # executor. A promise the code cannot keep is worse than a missing feature,
 # because the reader plans around it.
+#
+# This used to be a list of the two flags that had already been found, which
+# closed those two and not the class (№246). Now every command line a skill
+# shows is read: the script it names is located, its own option strings are
+# collected, and a flag the script does not define is the finding. The script's
+# options come from its source rather than from running it — `--help` would
+# execute the file, and a test must not run the tools it is describing.
 repository = Path(__file__).resolve().parent.parent
-PHANTOM_FLAGS = ("--include-memory", "--mode install")
+COMMAND_RE = re.compile(
+    r"(?:python3?|py)\s+[\"']?(?P<script>(?:\.[\\/])?scripts[\\/][\w.-]+\.py)[\"']?(?P<tail>[^\n`]*)")
+FLAG_RE = re.compile(r"(?<![\w-])--[a-z][a-z0-9-]*")
+
+
+def script_flags(path: Path) -> set[str]:
+    """Every long option the script defines, read from its source."""
+    return set(FLAG_RE.findall(path.read_text(encoding="utf-8")))
+
+
 skill_files = sorted(repository.glob(".agents/skills/*/SKILL.md")) + sorted(
     repository.glob("templates/new-project/capabilities/*/.agents/skills/*/SKILL.md"))
+checked_commands = 0
 for skill_path in skill_files:
     if "upstream" in skill_path.parts:
         continue  # vendored text is upstream's to shape, not ours
+    where = skill_path.relative_to(repository).as_posix()
     body = skill_path.read_text(encoding="utf-8")
-    for flag in PHANTOM_FLAGS:
-        if flag in body:
-            failures.append(
-                f"{skill_path.relative_to(repository).as_posix()} names {flag}, "
-                "which no script implements")
+    for match in COMMAND_RE.finditer(body):
+        script = repository / match.group("script").lstrip("./\\").replace("\\", "/")
+        if not script.is_file():
+            failures.append(f"{where} names {match.group('script')}, which does not exist")
+            continue
+        checked_commands += 1
+        defined = script_flags(script)
+        for flag in FLAG_RE.findall(match.group("tail")):
+            if flag not in defined:
+                failures.append(
+                    f"{where} calls {script.name} with {flag}, which the script does not define")
+
+# A check that matched nothing would pass for the wrong reason: it has to be
+# able to say how many command lines it actually read.
+if checked_commands == 0:
+    failures.append("no skill command line was checked; the flag check verifies nothing")
 
 # A test nobody documented is a test nobody runs on purpose. test-standard-metrics
 # existed and ran in CI while being absent from both TESTING.md and INDEX.md, so

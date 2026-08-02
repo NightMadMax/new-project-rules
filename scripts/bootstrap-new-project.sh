@@ -197,10 +197,32 @@ capabilities_header="capability${tab}source${tab}destination${tab}root_purpose${
   exit 1
 }
 known_capabilities=""
+# Destinations are checked here and not only in the PowerShell adapter. Parity
+# tests compare the produced trees, and for a healthy manifest both trees are
+# identical — so a manifest check missing on one side is exactly what they
+# cannot see (№249). Two capabilities writing into one path is the same class:
+# whoever runs second owns a file the first one already recorded as its own.
+seen_capability_destinations='|'
 while IFS="$tab" read -r row_capability source artifact_destination root_purpose docs_section docs_label payload_class policy; do
   [ "$row_capability" = capability ] && continue
   known_capabilities="$known_capabilities$row_capability
 "
+  # Wrapped in slashes so the first and the last component are ordinary ones:
+  # the earlier spelling anchored the pattern to a leading slash and therefore
+  # matched `a/../b` but not `../b`.
+  case "/$artifact_destination/" in
+    */../*|*//*) echo "Unsafe capability destination '$artifact_destination'" >&2; exit 1 ;;
+  esac
+  case "$artifact_destination" in
+    /*|*:*|*\\*) echo "Unsafe capability destination '$artifact_destination'" >&2; exit 1 ;;
+  esac
+  case "$seen_capability_destinations" in
+    *"|$artifact_destination|"*)
+      echo "Duplicate capability destination '$artifact_destination'" >&2
+      exit 1
+      ;;
+  esac
+  seen_capability_destinations="$seen_capability_destinations$artifact_destination|"
   [ -f "$templates/$source" ] || { echo "Capability template not found: $source" >&2; exit 1; }
   case "$(printf '%s' "$payload_class" | tr -d '\r')" in
     ""|-|template|verbatim|binary) ;;
@@ -266,11 +288,20 @@ while IFS="$tab" read -r minimum source artifact_destination root_purpose docs_s
     exit 1
   }
   case "/$artifact_destination/" in
-    /*/../*|//*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
+    */../*|*//*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
+  esac
+  case "$artifact_destination" in
+    /*|*:*|*\\*) echo "Unsafe destination '$artifact_destination' in $manifest" >&2; exit 1 ;;
   esac
   case "$seen_destinations" in
     *"|$artifact_destination|"*)
       echo "Duplicate destination '$artifact_destination' in $manifest" >&2
+      exit 1
+      ;;
+  esac
+  case "$seen_capability_destinations" in
+    *"|$artifact_destination|"*)
+      echo "Capability destination conflicts with profile artifact '$artifact_destination'" >&2
       exit 1
       ;;
   esac

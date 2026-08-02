@@ -149,22 +149,47 @@ def run_bootstrap(contract: Path, workspace: Path, runner, label: str) -> None:
     check_project(destination, label)
 
 
-def run_unknown_class(contract: Path, workspace: Path, runner, label: str) -> None:
-    """An unknown class must stop the run instead of guessing a delivery mode."""
+def broken_row(destination: str, payload_class: str = "verbatim") -> str:
+    return "\t".join([
+        CAPABILITY, f"capabilities/{CAPABILITY}/payload/VERBATIM.md", destination,
+        "-", "-", "-", payload_class,
+    ])
+
+
+# What a doctored manifest must not get past either bootstrap, and the word the
+# message has to contain. These are checks of the manifest, so a parity test
+# comparing produced trees cannot stand in for them: with a healthy manifest
+# both trees are identical, which is how the shell adapter went without the
+# destination checks the PowerShell one had (№249).
+MANIFEST_REFUSALS = (
+    ("unknown payload class", lambda text: text.replace("\tverbatim\n", "\tmystery\n", 1), "payload class"),
+    ("escaping destination", lambda text: text + broken_row("../escape.md") + "\n", "destination"),
+    ("absolute destination", lambda text: text + broken_row("/tmp/escape.md") + "\n", "destination"),
+    ("destination twice", lambda text: text + broken_row("payload/VERBATIM.md") + "\n", "destination"),
+    ("destination of a profile artifact", lambda text: text + broken_row("README.md") + "\n", "destination"),
+)
+
+
+def run_manifest_refusal(contract: Path, workspace: Path, runner, label: str,
+                         name: str, doctor, word: str) -> None:
+    """A manifest the delivery cannot honour must stop the run, not be guessed at."""
     manifest = contract / "config" / "capabilities.tsv"
     original = manifest.read_bytes().decode("utf-8")
-    manifest.write_bytes(original.replace("\tverbatim\n", "\tmystery\n", 1).encode("utf-8"))
-    destination = workspace / f"rejected-{label}"
+    manifest.write_bytes(doctor(original).encode("utf-8"))
+    destination = workspace / f"rejected-{label}-{name.replace(' ', '-')}"
     try:
         result = runner(contract, destination)
         if result is None:
             return
         if result.returncode == 0:
-            failures.append(f"{label}: an unknown payload class was accepted")
-        if "payload class" not in (result.stderr + result.stdout):
-            failures.append(f"{label}: the unknown payload class was not explained")
+            failures.append(f"{label}: {name} was accepted")
+            return
+        if word not in (result.stderr + result.stdout):
+            failures.append(
+                f"{label}: {name} was rejected without naming '{word}': "
+                f"{(result.stderr + result.stdout).strip()[:200]}")
         if destination.exists() and any(destination.iterdir()):
-            failures.append(f"{label}: a rejected run left files behind")
+            failures.append(f"{label}: a run rejected for {name} left files behind")
     finally:
         manifest.write_bytes(original.encode("utf-8"))
 
@@ -177,7 +202,8 @@ def main() -> int:
         for runner, label in runners:
             run_bootstrap(contract, workspace, runner, label)
         for runner, label in runners:
-            run_unknown_class(contract, workspace, runner, label)
+            for name, doctor, word in MANIFEST_REFUSALS:
+                run_manifest_refusal(contract, workspace, runner, label, name, doctor, word)
 
     if failures:
         for failure in failures:

@@ -158,11 +158,17 @@ def build_plan(
             raise CapabilityArtifactsError(f"Unsupported policy '{policy}' for {target}")
         if payload_class not in artifacts_ledger.MANIFEST_PAYLOAD_CLASSES:
             raise CapabilityArtifactsError(f"Unknown payload class '{payload_class}' for {target}")
+        # One barrier, not two. The first of the two conditions that used to
+        # stand here compared an expression with itself — `parent` *is*
+        # `(project_root / target).parent`, and `.absolute().resolve()` is
+        # `.resolve()` — so it could never fire and only made the guard look
+        # doubled. What actually catches an escape is where the resolved parent
+        # lands relative to the project.
         parent = (project_root / target).parent
-        if parent.exists() and parent.resolve() != (project_root / target).parent.absolute().resolve():
-            raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
-        if parent.exists() and project_root.resolve() not in parent.resolve().parents and parent.resolve() != project_root.resolve():
-            raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
+        if parent.exists():
+            resolved_parent, resolved_root = parent.resolve(), project_root.resolve()
+            if resolved_parent != resolved_root and resolved_root not in resolved_parent.parents:
+                raise CapabilityArtifactsError(f"Target leaves the project through a symlink: {target}")
 
         path = project_root / target
         current = path.read_bytes() if path.is_file() else None

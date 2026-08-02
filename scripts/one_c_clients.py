@@ -144,6 +144,17 @@ def read_registry(root: Path) -> list[dict[str, str]]:
         if len(values) != len(header):
             raise ClientError(f"{REGISTRY}:{number} has {len(values)} fields against {len(header)} in the header")
         row = dict(zip(header, values))
+        for column in ("project_id", "environment_id"):
+            # Refused here, at the writer, and not only in the validator: these
+            # two become the server name and the TOML table header a few lines
+            # below, and a writer that cannot express a value must say so rather
+            # than encode it wrong. The same rule already governs the endpoint.
+            if not validate_project_support.ONE_C_ID_RE.fullmatch(row[column]):
+                raise ClientError(
+                    f"{REGISTRY}:{number} column '{column}' is '{row[column]}'; "
+                    f"a base identity must match {validate_project_support.ONE_C_ID_RE.pattern} "
+                    "because it becomes an MCP server name and a TOML table header"
+                )
         if row["mcp_enabled"] == "true":
             port = row["server_port"]
             # A base that says it exposes MCP but names no usable port would

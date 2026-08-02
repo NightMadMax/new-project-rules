@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 import sys
 from pathlib import Path
 
@@ -15,6 +16,13 @@ from pathlib import Path
 # validator and the client renderer, so widening it in one place produced a
 # base the validator accepted and the renderer silently dropped.
 ONE_C_PORTS = range(6003, 6013)
+# What a base identity may be spelled with, defined once for the same reason.
+# These two columns become an MCP server name and a TOML table header, so a
+# quote, a dot or a space in them produces a configuration file the client
+# cannot parse — including the part of it the user owns. The rule lived in the
+# validator only, and the validator is a separate run: the renderer wrote the
+# broken file whether or not anyone had validated first.
+ONE_C_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import artifacts_ledger  # noqa: E402

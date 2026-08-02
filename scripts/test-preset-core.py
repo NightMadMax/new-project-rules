@@ -167,9 +167,30 @@ core_rows = [
     for line in (ROOT / "config/capability-core.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
 ]
 declared = {row[0]: {"min_profile": row[1], "stack": row[2]} for row in core_rows}
+capability_rows = [
+    line.split("\t")
+    for line in (ROOT / "config/capabilities.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
+]
 note(
     declared == project_metadata.CAPABILITY_CORE,
     f"config/capability-core.tsv and CAPABILITY_CORE disagree: {declared} vs {project_metadata.CAPABILITY_CORE}",
+)
+
+# The three lists of capability names must be one list. `CAPABILITY_CORE` had a
+# comparison and `CAPABILITY_NAMES` had none, so bootstrap — which accepts what
+# the delivery manifest declares — and the validator — which accepts what this
+# set declares — could disagree, and the disagreement surfaces as a project that
+# is created and immediately invalid (№247).
+manifest_names = {row[0] for row in capability_rows if row and row[0]}
+note(
+    manifest_names == project_metadata.CAPABILITY_NAMES,
+    f"config/capabilities.tsv and CAPABILITY_NAMES disagree: "
+    f"{sorted(manifest_names)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
+)
+note(
+    set(declared) == project_metadata.CAPABILITY_NAMES,
+    f"config/capability-core.tsv and CAPABILITY_NAMES disagree: "
+    f"{sorted(declared)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
 )
 
 # A capability that indexes documentation needs a profile that has an index.
@@ -203,10 +224,6 @@ for surface in CAPABILITY_SURFACES:
         note(name in body, f"{surface} does not mention capability '{name}'")
 
 DOCS_INDEX_PROFILE = "software"
-capability_rows = [
-    line.split("\t")
-    for line in (ROOT / "config/capabilities.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
-]
 indexing = sorted({row[0] for row in capability_rows if len(row) > 4 and row[4] != "-"})
 note(indexing, "no capability declares a docs_section, so this invariant checks nothing")
 for name in indexing:

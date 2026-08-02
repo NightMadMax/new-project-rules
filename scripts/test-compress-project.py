@@ -93,9 +93,50 @@ class ChangelogTests(unittest.TestCase):
             compress.split_changelog(CHANGELOG, None, max_bytes=100_000, target_bytes=80_000, keep=1)
         )
 
-    def test_no_split_when_keep_covers_all(self):
+    # ASCII and deliberately regular, so a limit can be stated in bytes without
+    # counting UTF-8 by hand. The bodies are padded well past the length of the
+    # archive pointer, or that one sentence would decide every comparison.
+    ASCII_CHANGELOG = (
+        "# Log\n\n"
+        + "".join(f"## v1.{n}.0 - 2026-0{n}-01\n\n- release {n} {'x' * 500}\n\n" for n in (3, 2, 1))
+    )
+
+    def test_limit_outranks_keep(self):
+        """`keep` aims, the limit decides (№251).
+
+        This used to assert the opposite — that a `keep` covering every release
+        cancels the split — which left a project over the limit with no setting
+        at which it was in order, and the tool only able to warn about it.
+        """
+        head, releases = compress.split_h2_blocks(self.ASCII_CHANGELOG)
+        # The pointer to the archive is part of the file a split produces, so a
+        # limit stated without it would not be a limit this file can meet.
+        head = head.rstrip("\n") + "\n\n" + compress.CHANGELOG_ARCHIVE_POINTER + "\n"
+        one_release = len(head.encode("utf-8")) + len(releases[0].encode("utf-8"))
+        result = compress.split_changelog(
+            self.ASCII_CHANGELOG, None,
+            max_bytes=one_release, target_bytes=one_release, keep=9,
+        )
+        self.assertIsNotNone(result)
+        new_changelog, _, moved = result
+        self.assertEqual(moved, len(releases) - compress.KEEP_FLOOR)
+        self.assertLessEqual(len(new_changelog.encode("utf-8")), one_release)
+
+    def test_no_split_when_yielding_would_not_help(self):
+        """Archiving history has a cost; paying it without getting under the
+        limit is the worst outcome — the releases are gone and the warning
+        stays. Here the head alone is over the limit, so nothing can move."""
+        head, _ = compress.split_h2_blocks(self.ASCII_CHANGELOG)
+        self.assertIsNone(compress.split_changelog(
+            self.ASCII_CHANGELOG, None,
+            max_bytes=len(head.encode("utf-8")) - 1,
+            target_bytes=len(head.encode("utf-8")) - 1,
+            keep=9,
+        ))
+
+    def test_no_split_when_keep_covers_all_within_limit(self):
         self.assertIsNone(
-            compress.split_changelog(CHANGELOG, None, max_bytes=10, target_bytes=5, keep=9)
+            compress.split_changelog(CHANGELOG, None, max_bytes=10_000, target_bytes=5_000, keep=9)
         )
 
     def test_merges_into_existing_archive_newest_first(self):
