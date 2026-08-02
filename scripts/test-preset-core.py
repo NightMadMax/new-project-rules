@@ -179,6 +179,29 @@ note(
 # step, and the bootstrap rollback then removes the destination directory —
 # the user loses the directory, not just the capability. Checking the pair here
 # is what stops the fourth capability from rediscovering that.
+# A capability the user cannot find is a capability that does not exist.
+#
+# The name lives in eight places and nothing compared them, so `transcribe` was
+# missing from the README, from the skill that creates projects and from the
+# schema document — invisible on the very route where a capability is chosen.
+# These are the surfaces a person reads before choosing; the manifests are
+# already covered by the core check above.
+CAPABILITY_SURFACES = (
+    "README.md",
+    ".agents/skills/create-new-project/SKILL.md",
+    "docs/architecture/PROJECT_STANDARD_SCHEMA.md",
+    "docs/guides/CREATE_NEW_PROJECT.md",
+    "docs/guides/USE_THIS_PROJECT.md",
+)
+for surface in CAPABILITY_SURFACES:
+    path = ROOT / surface
+    note(path.is_file(), f"capability surface is missing: {surface}")
+    if not path.is_file():
+        continue
+    body = path.read_text(encoding="utf-8")
+    for name in sorted(project_metadata.CAPABILITY_NAMES):
+        note(name in body, f"{surface} does not mention capability '{name}'")
+
 DOCS_INDEX_PROFILE = "software"
 capability_rows = [
     line.split("\t")

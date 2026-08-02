@@ -21,6 +21,7 @@ import presets as preset_manifest
 import project_metadata
 import plan_migration as migration_planner
 import promotion_candidates
+import validate_project_support
 
 
 MIN_PYTHON = (3, 9)
@@ -411,7 +412,7 @@ ONE_C_ENUMS = {
     "is_production": {"true", "false"},
     "mcp_enabled": {"true", "false"},
 }
-ONE_C_PORTS = range(6003, 6013)
+ONE_C_PORTS = validate_project_support.ONE_C_PORTS
 ONE_C_REQUIRED = ("project_id", "environment_id", "folder", "configuration")
 ONE_C_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
