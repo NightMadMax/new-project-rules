@@ -69,6 +69,8 @@ related:
 - [[docs/quality/promotion-candidates/README|Файлы promotion candidates и генератор ID]]
 - [[docs/reviews/CODE_REVIEW_scripts_2026-06-28|Ревью скриптов от 2026-06-28]]
 - [[docs/reviews/NPR_BP_CLOSEOUT_REVIEW_2026-07-08|Финальный live-аудит связки NPR ↔ Best Practices]]
+- [[docs/reviews/REVIEW_2026-08-01_NPR|Ревью всего NPR пятью независимыми срезами]]
+- [[docs/reviews/REVIEW_2026-08-02_ARCHITECTURE|Архитектурное ревью 2026-08-02]]
 - [[docs/reviews/archive/README|Архив промежуточных review]]
 
 ## Безопасность
