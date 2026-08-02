@@ -27,6 +27,9 @@ GIT_IDENTITY = {
 # Get-Content/Set-Content style regression pass unnoticed. CRLF is here to catch
 # line-ending normalisation, including the one Git would apply on commit.
 PAYLOAD = b"<PROJECT_NAME> <YYYY-MM-DD>\r\n\xff\xfe\x00\x80 binary tail\r\n"
+# CRLF and no placeholder: nothing to substitute, and text processing would
+# still change the bytes the update handler compares against.
+PLAIN_TEMPLATE = b"# Plain\r\n\r\n- no placeholder here\r\n"
 failures: list[str] = []
 
 
@@ -51,6 +54,11 @@ def prepare(workspace: Path) -> Path:
     (templates / "payload" / "BINARY.bin").write_bytes(PAYLOAD)
     (templates / "payload" / "TEMPLATE.md").write_bytes(b"# <PROJECT_NAME>\n")
     (templates / "payload" / "DASH.md").write_bytes(b"# <PROJECT_NAME>\n")
+    # A template with nothing to substitute is delivered, then compared against
+    # this same source by the update handler. Passing it through text
+    # substitution changed its bytes on Windows — git-bash `sed` rewrites line
+    # endings — and every such file became a conflict on the first update.
+    (templates / "payload" / "PLAIN.md").write_bytes(PLAIN_TEMPLATE)
     executable = templates / "payload" / "tool.sh"
     executable.write_bytes(b"#!/bin/sh\necho tool\n")
     executable.chmod(0o755)
@@ -62,6 +70,7 @@ def prepare(workspace: Path) -> Path:
         ("payload/BINARY.bin", "payload/BINARY.bin", "binary"),
         ("payload/TEMPLATE.md", "payload/TEMPLATE.md", "template"),
         ("payload/DASH.md", "payload/DASH.md", "-"),
+        ("payload/PLAIN.md", "payload/PLAIN.md", "template"),
         ("payload/tool.sh", "payload/tool.sh", "verbatim"),
     ):
         rows.append("\t".join([
@@ -93,6 +102,14 @@ def check_project(project: Path, label: str) -> None:
             failures.append(f"{label}: {name} was not delivered")
         elif "<PROJECT_NAME>" in template.read_bytes().decode("utf-8"):
             failures.append(f"{label}: {name} placeholders were not substituted")
+
+    plain = project / "payload" / "PLAIN.md"
+    if not plain.is_file():
+        failures.append(f"{label}: a template without placeholders was not delivered")
+    elif plain.read_bytes() != PLAIN_TEMPLATE:
+        failures.append(
+            f"{label}: a template with nothing to substitute was rewritten in delivery; "
+            "the update handler compares it against the source byte for byte")
 
     tool = project / "payload" / "tool.sh"
     if not tool.is_file():

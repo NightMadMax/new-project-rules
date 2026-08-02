@@ -352,8 +352,18 @@ install_template() {
   source_file=$1
   target_file=$2
   mkdir -p "$(dirname "$destination/$target_file")"
-  sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g; s|<SCHEMA_VERSION>|$standard_version|g" \
-    "$templates/$source_file" > "$destination/$target_file"
+  # Substitution only where there is something to substitute. `sed` in git-bash
+  # rewrites line endings, so a template without placeholders arrived on Windows
+  # with different bytes from the source it was copied from — and the first
+  # capability update reported a conflict on a managed file nobody had touched.
+  # The condition is the one the update handler uses to decide whether a file is
+  # rendered, so delivery and comparison agree by construction.
+  if grep -q '<PROJECT_NAME>\|<YYYY-MM-DD>\|<SCHEMA_VERSION>' "$templates/$source_file"; then
+    sed "s|<PROJECT_NAME>|$escaped_name|g; s|<YYYY-MM-DD>|$today|g; s|<SCHEMA_VERSION>|$standard_version|g" \
+      "$templates/$source_file" > "$destination/$target_file"
+  else
+    cp "$templates/$source_file" "$destination/$target_file"
+  fi
 }
 
 # Byte-exact delivery: vendored payload and binaries must arrive unchanged, so

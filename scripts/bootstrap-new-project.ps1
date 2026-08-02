@@ -222,7 +222,18 @@ function Install-Template {
     $targetPath = Join-Path $Destination $Target
     $targetDirectory = Split-Path -Parent $targetPath
     New-Item -ItemType Directory -Force $targetDirectory | Out-Null
-    $content = Get-Content -Raw -Encoding utf8 (Join-Path $Templates $Source)
+    $sourcePath = Join-Path $Templates $Source
+    $content = Get-Content -Raw -Encoding utf8 $sourcePath
+    # Substitution only where there is something to substitute. Reading a file
+    # as text and writing it back is not byte-preserving, so a template without
+    # placeholders arrived with different bytes from the source it was copied
+    # from, and the first capability update reported a conflict on a managed
+    # file nobody had touched. The condition is the one the update handler uses
+    # to decide whether a file is rendered, so delivery and comparison agree.
+    if ($content -notmatch "<PROJECT_NAME>|<YYYY-MM-DD>|<SCHEMA_VERSION>") {
+        Copy-Item -LiteralPath $sourcePath -Destination $targetPath -Force
+        return
+    }
     $content = $content.Replace("<PROJECT_NAME>", $ProjectName).Replace("<YYYY-MM-DD>", $Today).Replace("<SCHEMA_VERSION>", $StandardVersion)
     Write-Utf8NoBom $targetPath $content
 }
