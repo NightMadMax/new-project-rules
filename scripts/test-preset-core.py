@@ -172,6 +172,33 @@ note(
     f"config/capability-core.tsv and CAPABILITY_CORE disagree: {declared} vs {project_metadata.CAPABILITY_CORE}",
 )
 
+# A capability that indexes documentation needs a profile that has an index.
+#
+# `docs/README.md` first appears at `software`. A capability with a non-empty
+# `docs_section` installed below it writes every file, fails on the indexing
+# step, and the bootstrap rollback then removes the destination directory —
+# the user loses the directory, not just the capability. Checking the pair here
+# is what stops the fourth capability from rediscovering that.
+DOCS_INDEX_PROFILE = "software"
+capability_rows = [
+    line.split("\t")
+    for line in (ROOT / "config/capabilities.tsv").read_text(encoding="utf-8").rstrip("\n").split("\n")[1:]
+]
+indexing = sorted({row[0] for row in capability_rows if len(row) > 4 and row[4] != "-"})
+note(indexing, "no capability declares a docs_section, so this invariant checks nothing")
+for name in indexing:
+    core = project_metadata.CAPABILITY_CORE.get(name)
+    note(core is not None, f"capability '{name}' indexes docs but declares no core row")
+    if core is None:
+        continue
+    note(
+        project_metadata.PROFILE_RANKS[core["min_profile"]]
+        >= project_metadata.PROFILE_RANKS[DOCS_INDEX_PROFILE],
+        f"capability '{name}' has a docs_section but min_profile '{core['min_profile']}', "
+        f"which is below '{DOCS_INDEX_PROFILE}' where docs/README.md appears",
+    )
+
+
 with tempfile.TemporaryDirectory() as raw:
     workspace = Path(raw)
     for label, runner, arguments in (
