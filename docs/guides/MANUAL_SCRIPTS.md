@@ -326,6 +326,26 @@ endpoint передаётся в проекции клиентов:
 Без manifest endpoint остаётся нерешённым — подставленный адрес выглядел бы
 установленным и отказал бы при первом вызове.
 
+### Session lock живой базы 1С
+
+Обычно этим распоряжается skill `select-1c-project`. Вручную:
+
+```sh
+python3 scripts/one_c_session.py --root ../my-project acquire --base erp/dev \
+  --confirmed-by "<вызов и что он ответил>" --switch-read off --switch-confirmed "<вызов>"
+python3 scripts/one_c_session.py --root ../my-project require --base erp/dev
+python3 scripts/one_c_session.py --root ../my-project require --base erp/dev --write
+python3 scripts/one_c_session.py --root ../my-project release
+```
+
+Замок говорит, какую базу этой сессии разрешено трогать и чем это подтверждено.
+`--confirmed-by` — вызов, доказавший идентичность: порт сам по себе не говорит,
+какая база за ним стоит. Управляемому приложению нужны ещё два аргумента:
+состояние переключателя записи (`--switch-read on|off` — ровно одно из двух
+слов) и вызов, который его прочитал. Записи требуются `--write-mode
+approved-write` и `--backup-confirmed`; production для записи не открывается
+никаким подтверждением. Отказ печатается с `[REFUSED]` и ненулевым кодом.
+
 ### Выгрузка исходников 1С в XML
 
 Открыть агента в папке проекта-правил и попросить: «подготовь XML-выгрузку базы

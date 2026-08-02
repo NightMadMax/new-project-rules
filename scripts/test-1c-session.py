@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import subprocess
 import sys
 import tempfile
 import time
@@ -68,14 +69,14 @@ with tempfile.TemporaryDirectory() as raw:
             "a lock without the call that proved the identity must be refused")
 
     # --- production is never implied ---------------------------------------
-    refuses(lambda: session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", switch_confirmed="get_write_switch: off"),
+    refuses(lambda: session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", switch_read="off", switch_confirmed="get_write_switch: off"),
             "production", "production must not be selectable without a named confirmation")
-    lock = session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", switch_confirmed="get_write_switch: off", production_confirmed=True)
+    lock = session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", switch_read="off", switch_confirmed="get_write_switch: off", production_confirmed=True)
     note(lock["production_confirmed"] is True, "the confirmation must be recorded, not just accepted")
     session.invalidate(root)
 
     # --- the ordinary path --------------------------------------------------
-    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: off")
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="off", switch_confirmed="get_write_switch: off")
     held = session.require(root, REGISTRY, system="nt")
     note(held["project_id"] == "erp", f"a confirmed base must be usable: {held}")
     note(session.require(root, REGISTRY, system="nt", identity="erp/dev")["environment_id"] == "dev",
@@ -100,30 +101,30 @@ with tempfile.TemporaryDirectory() as raw:
 
     # --- a lock that nobody has spoken to since -----------------------------
     stale = time.time() - session.LOCK_TTL_SECONDS - 60
-    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: off", now=stale)
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="off", switch_confirmed="get_write_switch: off", now=stale)
     refuses(lambda: session.require(root, REGISTRY, system="nt"), "expired",
             "a lock older than a working session must be re-confirmed")
 
     # --- selecting again drops the previous confirmation ---------------------
-    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: off")
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="off", switch_confirmed="get_write_switch: off")
     session.invalidate(root)
     refuses(lambda: session.require(root, REGISTRY, system="nt"), "no session lock",
             "invalidation must leave nothing behind to fall back on")
 
     # --- an approved write needs a backup that was actually checked ----------
-    refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: off",
+    refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="off", switch_confirmed="get_write_switch: off",
                                     write_mode="approved-write"),
             "backup", "an approved write without a checked backup must be refused")
 
     # --- and it is never taken on production, confirmed or not ---------------
-    refuses(lambda: session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", switch_confirmed="get_write_switch: off",
+    refuses(lambda: session.acquire(root, PROD, confirmed_by="get_metadata: ERP prod", switch_read="off", switch_confirmed="get_write_switch: off",
                                     production_confirmed=True, write_mode="approved-write",
                                     backup_confirmed="erp-prod-2026-07-31.dt"),
             "production", "an approved write on production must be refused outright")
 
     # --- the ordinary approved write ----------------------------------------
     lock = session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
-                           switch_confirmed="get_write_switch: on",
+                           switch_read="on", switch_confirmed="get_write_switch: on",
                            write_mode="approved-write",
                            backup_confirmed="erp-dev-2026-07-31.dt, проверена восстановлением")
     note("erp-dev-2026-07-31.dt" in lock["backup_confirmed"],
@@ -152,14 +153,31 @@ with tempfile.TemporaryDirectory() as raw:
             "a managed base must not be locked without reading the switch")
     refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
                                     switch_confirmed="переключатель проверен"),
-            "which state was read",
-            "a confirmation that names no state is a confirmation of nothing")
+            "must be exactly",
+            "evidence of a call is not a statement of the state it read")
+    # The state is stated, never parsed out of the evidence. This sentence
+    # denies the switch was turned on, and the word-matching that used to stand
+    # here read it as "on" and opened an approved write (№254).
     refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
-                                    switch_confirmed="get_write_switch: on"),
+                                    switch_read="I did not turn it on",
+                                    switch_confirmed="get_write_switch: off",
+                                    write_mode="approved-write",
+                                    backup_confirmed="erp-dev-2026-07-31.dt"),
+            "must be exactly",
+            "a sentence must not be accepted where a state is required")
+    # ...and a plainly correct answer in words is refused as a state rather than
+    # guessed at: `on` is a preposition, and guessing is what has to stop.
+    refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
+                                    switch_read="the switch on the panel reads off",
+                                    switch_confirmed="get_write_switch: off"),
+            "must be exactly",
+            "a state is one of two words, not a sentence to be interpreted")
+    refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
+                                    switch_read="on", switch_confirmed="get_write_switch: on"),
             "needs it off",
             "analysis on a base whose switch is on is not analysis")
     refuses(lambda: session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
-                                    switch_confirmed="get_write_switch: off",
+                                    switch_read="off", switch_confirmed="get_write_switch: off",
                                     write_mode="approved-write",
                                     backup_confirmed="erp-dev-2026-07-31.dt"),
             "needs it on",
@@ -174,24 +192,24 @@ with tempfile.TemporaryDirectory() as raw:
     # A lock that lost its switch read authorises nothing, analysis included:
     # that is exactly the state the criterion is about.
     session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
-                    switch_confirmed="get_write_switch: off")
+                    switch_read="off", switch_confirmed="get_write_switch: off")
     stripped = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
-    stripped.pop("switch_confirmed")
+    stripped.pop("switch_read")
     session.lock_path(root).write_bytes(json.dumps(stripped).encode("utf-8"))
     refuses(lambda: session.require(root, REGISTRY, system="nt"), "no read of the write switch",
             "a managed lock without the switch read must not authorise even analysis")
 
     # A lock whose recorded state disagrees with its mode is stale, not usable.
     session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev",
-                    switch_confirmed="get_write_switch: off")
+                    switch_read="off", switch_confirmed="get_write_switch: off")
     flipped = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
-    flipped["switch_confirmed"] = "get_write_switch: on"
+    flipped["switch_read"] = "on"
     session.lock_path(root).write_bytes(json.dumps(flipped).encode("utf-8"))
     refuses(lambda: session.require(root, REGISTRY, system="nt"), "while the lock is in",
             "a switch read that contradicts the lock mode must be refused")
 
     # --- a lock written before the rule existed is not grandfathered ---------
-    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: on", write_mode="approved-write",
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="on", switch_confirmed="get_write_switch: on", write_mode="approved-write",
                     backup_confirmed="erp-dev-2026-07-31.dt")
     without_backup = json.loads(session.lock_path(root).read_bytes().decode("utf-8"))
     without_backup.pop("backup_confirmed")
@@ -202,20 +220,73 @@ with tempfile.TemporaryDirectory() as raw:
     # --- the runtime half is Windows, the repository half is not -------------
     # Half of criterion 18 used to have no executor at all: the rule that live
     # base operations are blocked elsewhere was a sentence in a plan.
-    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: off")
+    session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="off", switch_confirmed="get_write_switch: off")
     refuses(lambda: session.require(root, REGISTRY, system="posix"), "только на Windows",
             "a live-base operation must be refused off Windows")
     note(session.require(root, REGISTRY, system="nt")["project_id"] == "erp",
          "the same lock must work on Windows")
     # And the refusal is about the runtime alone: the lock itself is a file in
     # the repository, and taking it is how a review on macOS prepares the work.
-    lock = session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_confirmed="get_write_switch: off")
+    lock = session.acquire(root, DEV, confirmed_by="get_metadata: ERP dev", switch_read="off", switch_confirmed="get_write_switch: off")
     note(lock["project_id"] == "erp", "taking a lock must not depend on the platform")
 
     # --- an unreadable lock is not a lock ------------------------------------
     session.lock_path(root).write_bytes(b"{not json")
     refuses(lambda: session.require(root, REGISTRY, system="nt"), "no session lock",
             "a damaged lock must not be treated as a confirmation")
+
+# --- the executor can be executed (№243) ------------------------------------
+#
+# The module implemented the lock and nothing could call it: no entry point, no
+# wrapper, and no skill naming it. A rule whose executor cannot be run is the
+# rule the module was written to replace.
+
+REGISTRY_HEADER = (
+    "project_id\tenvironment_id\tfolder\tconfiguration\tplatform_version\tcompatibility_mode\t"
+    "application_kind\tsupport_mode\tsource_format\tedt_workspace\tedt_profile\tserver_port\t"
+    "is_production\tmcp_enabled\towner\n"
+)
+REGISTRY_ROW = "erp\tdev\tsrc\tERP\t8.3.27\t-\tmanaged\ton-support\tedt\t-\t-\t6003\tfalse\ttrue\tme\n"
+
+
+def cli(root: Path, *arguments: str):
+    return subprocess.run(
+        [sys.executable, str(SCRIPTS / "one_c_session.py"), "--root", str(root), *arguments],
+        capture_output=True, text=True,
+    )
+
+
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw)
+    (root / "config").mkdir()
+    (root / "config/1c-projects.tsv").write_bytes((REGISTRY_HEADER + REGISTRY_ROW).encode("utf-8"))
+
+    note(cli(root, "show").returncode != 0, "show without a lock must not report success")
+
+    taken = cli(root, "acquire", "--base", "erp/dev", "--confirmed-by", "get_metadata: ERP dev",
+                "--switch-read", "off", "--switch-confirmed", "get_write_switch: off")
+    note(taken.returncode == 0, f"the CLI must be able to take a lock: {taken.stderr[:200]}")
+    note(session.lock_path(root).is_file(), "acquire wrote no lock file")
+
+    # A state the CLI does not know is refused by the parser, before any file is
+    # touched: `--switch-read` takes one of two words and nothing else.
+    sentence = cli(root, "acquire", "--base", "erp/dev", "--confirmed-by", "call",
+                   "--switch-read", "I did not turn it on", "--switch-confirmed", "call")
+    note(sentence.returncode != 0, "a sentence must not be accepted as a switch state")
+
+    unknown = cli(root, "acquire", "--base", "ghost/dev", "--confirmed-by", "call",
+                  "--switch-read", "off", "--switch-confirmed", "call")
+    note(unknown.returncode != 0, "a base outside the registry must be refused")
+    note("registry" in unknown.stderr, f"the refusal must say why: {unknown.stderr[:200]}")
+
+    writing = cli(root, "require", "--base", "erp/dev", "--write")
+    note(writing.returncode != 0, "a write against an analysis lock must be refused")
+    note("[REFUSED]" in writing.stderr, f"a refusal must be recognisable: {writing.stderr[:200]}")
+
+    note(cli(root, "release").returncode == 0, "release must succeed")
+    note(not session.lock_path(root).exists(), "release left the lock behind")
+    note(cli(root, "require").returncode != 0, "require without a lock must refuse")
+
 
 if failures:
     for failure in failures:

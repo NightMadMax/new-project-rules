@@ -64,10 +64,35 @@ def passport(**overrides) -> dict:
         ],
         "dependencies": [{"name": "Node.js", "class": "conditional", "reason": "md-to-docx"}],
         "mcp_roles": [{"role": "syntax", "provider_id": "1c-syntax-checker-mcp", "tier": "initial"}],
-        "binaries": [{"name": "toolkit-read-only.epf", "sha256": "b" * 64, "application_kind": "ordinary"}],
+        "binaries": [{"name": BINARY_TARGET, "sha256": BINARY_DIGEST, "application_kind": "ordinary"}],
     }
     base.update(overrides)
     return base
+
+
+BINARY_PAYLOAD = b"\x00epf payload\n"
+BINARY_DIGEST = hashlib.sha256(BINARY_PAYLOAD).hexdigest()
+BINARY_TARGET = "toolkit-read-only.epf"
+BINARY_SOURCE = "capabilities/1c/toolkit/toolkit-read-only.epf"
+CAPABILITIES_HEADER = (
+    "capability\tsource\tdestination\troot_purpose\tdocs_section\tdocs_label\tpayload_class\tpolicy\n"
+)
+
+
+def write_binary_delivery(root: Path, payload: bytes = BINARY_PAYLOAD) -> None:
+    """The delivery row and the file a passport binary is checked against.
+
+    A hash the project trusts has to be the hash of something; without the file
+    on the other side of it the record is a number nobody compares (№255).
+    """
+    (root / "config").mkdir(parents=True, exist_ok=True)
+    (root / "config/capabilities.tsv").write_bytes((
+        CAPABILITIES_HEADER
+        + f"1c\t{BINARY_SOURCE}\t{BINARY_TARGET}\t-\t-\t-\tbinary\tmanaged\n"
+    ).encode("utf-8"))
+    source = root / "templates/new-project" / BINARY_SOURCE
+    source.parent.mkdir(parents=True, exist_ok=True)
+    source.write_bytes(payload)
 
 
 def write_release(root: Path, document: dict, rows: list[dict[str, str]], fix_id: bool = True) -> None:
@@ -176,8 +201,33 @@ ledger_case("bad source digest", [row(source_sha256="abc")], "source_sha256 must
 with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
     rows = [row()]
+    write_binary_delivery(root)
     write_release(root, passport(), rows)
     note(not release.check_release(root), f"a consistent release must pass: {release.check_release(root)}")
+
+    # --- the recorded hash of a binary is checked against bytes (№255) -------
+    #
+    # A project is told it may trust a Toolkit build by the SHA-256 in the
+    # passport, and nothing compared the two: release_id covers the passport and
+    # the ledger, and the scaffold test compares delivery against the source. A
+    # rebuilt processor whose hash was not updated passed every gate.
+    write_binary_delivery(root, payload=b"\x00rebuilt\n")
+    stale = release.check_release(root)
+    note(any("recorded hash" in finding for finding in stale),
+         f"a rebuilt binary whose hash was not updated must block: {stale}")
+    write_binary_delivery(root)
+
+    # Declared and undelivered, then delivered and undeclared: the same gap read
+    # from either side. The second is the one that hands a project an executable
+    # the passport says nothing about.
+    write_release(root, passport(binaries=[
+        {"name": "ghost.epf", "sha256": "c" * 64, "application_kind": "ordinary"}]), rows)
+    both = release.check_release(root)
+    note(any("not delivered by any manifest row" in finding for finding in both),
+         f"a passport binary with no delivery row must block: {both}")
+    note(any("not recorded in the passport" in finding for finding in both),
+         f"a delivered binary the passport omits must block: {both}")
+    write_release(root, passport(), rows)
 
     first = release.read_release(root)["release_id"]
     write_release(root, passport(), rows)
@@ -294,6 +344,7 @@ with tempfile.TemporaryDirectory() as raw:
         {"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": head},
         {"name": "best-practices", "repository": "NightMadMax/best-practices", "commit": "2" * 40},
     ])
+    write_binary_delivery(root)
     write_release(root, pinned, rows)
 
     check = subprocess.run(
@@ -368,6 +419,7 @@ for case, files, expect_zero in (
         practices.mkdir()
         practices_head = git_staging(practices, files)
 
+        write_binary_delivery(root)
         write_release(root, passport(sources=[
             {"name": "ai_rules_1c", "repository": "comol/ai_rules_1c", "commit": upstream_head},
             {"name": "best-practices", "repository": "NightMadMax/best-practices", "commit": practices_head},

@@ -575,7 +575,12 @@ with tempfile.TemporaryDirectory() as raw:
 # execute the file, and a test must not run the tools it is describing.
 repository = Path(__file__).resolve().parent.parent
 COMMAND_RE = re.compile(
-    r"(?:python3?|py)\s+[\"']?(?P<script>(?:\.[\\/])?scripts[\\/][\w.-]+\.py)[\"']?(?P<tail>[^\n`]*)")
+    r"(?:python3?|py)\s+[\"']?(?P<script>(?:\.[\\/])?scripts[\\/][\w.-]+\.py)[\"']?"
+    # A shell command wrapped with trailing backslashes is one command, and
+    # reading only its first line would check the flags nobody got wrong.
+    # The continuation alternative goes first: a character class that also
+    # matches the backslash would swallow it and stop at the newline.
+    r"(?P<tail>(?:\\\n|[^\n`])*)")
 FLAG_RE = re.compile(r"(?<![\w-])--[a-z][a-z0-9-]*")
 
 

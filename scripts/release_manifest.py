@@ -363,12 +363,75 @@ def compute_release_id(passport: dict, rows: Iterable[dict[str, str]]) -> str:
     return digest.hexdigest()
 
 
+def binary_sources(contract_root: Path, capability: str) -> dict[str, Path]:
+    """Where each delivered binary comes from, keyed by its target path.
+
+    The passport names binaries by where they land in a project; the file they
+    are built from is named by the delivery manifest. Reading the pair here is
+    what lets the recorded hash be checked against bytes instead of trusted.
+    """
+    sources: dict[str, Path] = {}
+    path = contract_root / "config" / "capabilities.tsv"
+    if not path.is_file():
+        # A staging root that carries only a passport has nothing to deliver.
+        # A passport that declares binaries there is checked below and fails on
+        # the source it names, so absence is not a way past this check.
+        return sources
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ReleaseError(f"Cannot read config/capabilities.tsv: {exc}") from exc
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    for row in reader:
+        if row.get("capability") != capability or row.get("payload_class") != "binary":
+            continue
+        sources[row["destination"]] = contract_root / "templates" / "new-project" / row["source"]
+    return sources
+
+
+def check_binaries(contract_root: Path, passport: dict) -> list[Finding]:
+    """A hash the project trusts has to be the hash of what is shipped.
+
+    The passport recorded a SHA-256 for each Toolkit build and nothing ever
+    compared it with the file: `release_id` covers the passport and the ledger,
+    the scaffold test compares delivery against the source, and neither of those
+    notices a rebuilt processor whose hash was not updated (№255). The whole
+    point of the record is that a project may trust the build by it.
+    """
+    findings: list[Finding] = []
+    sources = binary_sources(contract_root, passport["capability"])
+    for binary in passport["binaries"]:
+        name = binary.get("name")
+        source = sources.get(name)
+        if source is None:
+            findings.append(Finding(
+                BLOCKED, f"binary '{name}' is in the passport and not delivered by any manifest row"))
+            continue
+        try:
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+        except OSError as exc:
+            findings.append(Finding(BLOCKED, f"binary '{name}' cannot be read: {exc}"))
+            continue
+        if digest != binary.get("sha256"):
+            findings.append(Finding(
+                BLOCKED,
+                f"binary '{name}' does not match its recorded hash: the file is {digest}",
+                stamped=True,
+            ))
+    for name in sorted(set(sources) - {binary.get("name") for binary in passport["binaries"]}):
+        # Delivered and unrecorded is the same gap read from the other side: the
+        # project receives an executable the passport says nothing about.
+        findings.append(Finding(BLOCKED, f"binary '{name}' is delivered and not recorded in the passport"))
+    return findings
+
+
 def check_release(contract_root: Path) -> list[Finding]:
     """Everything the build must be able to answer before publishing."""
     findings: list[Finding] = []
     try:
         passport = read_release(contract_root)
         rows = read_artifacts(contract_root, {source["name"] for source in passport["sources"]})
+        findings.extend(check_binaries(contract_root, passport))
     except ReleaseError as error:
         return [Finding(BLOCKED, str(error))]
 

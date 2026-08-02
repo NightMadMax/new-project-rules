@@ -17,11 +17,16 @@ the current conversation, and the lock records that it was given.
 
 from __future__ import annotations
 
+import argparse
+import csv
+import io
 import json
 import os
-import re
+import sys
 import time
 from pathlib import Path
+
+REGISTRY = "config/1c-projects.tsv"
 
 STATE_DIRECTORY = ".1c-state"
 LOCK_NAME = "session-lock.json"
@@ -31,10 +36,19 @@ LOCK_TTL_SECONDS = 12 * 60 * 60
 REQUIRED_FIELDS = ("project_id", "environment_id", "server_port", "application_kind",
                    "is_production", "confirmed_by", "write_mode", "created_at")
 WRITE_MODES = ("analysis", "approved-write")
-# How a switch confirmation names the state it read. The words are matched, not
-# guessed: a confirmation that says neither is a confirmation of nothing.
+# The two things a managed base needs, kept apart on purpose. The state is the
+# fact and it is stated, not parsed; the confirmation is the evidence — the call
+# and what it answered — and it stays free text.
+#
+# They used to be one free-text field, read by looking for the words `on` and
+# `off` in it. "I did not turn it on" was therefore read as the switch being on
+# and opened an approved write, while "the switch on the panel reads off" was
+# refused because `on` is a preposition. The shortest string that passed was
+# the bare word — which carries no evidence of any call at all, the opposite of
+# what the field was for (№254).
 SWITCH_OFF = "off"
 SWITCH_ON = "on"
+SWITCH_STATES = (SWITCH_OFF, SWITCH_ON)
 
 
 class SessionError(Exception):
@@ -67,25 +81,21 @@ def identity_of(row: dict) -> str:
     return f"{row['project_id']}/{row['environment_id']}"
 
 
-def switch_state(confirmation: str) -> bool | None:
-    """True when the confirmation says the switch was on, False when off.
+def switch_state(state: str) -> bool | None:
+    """True for `on`, False for `off`, None for anything else.
 
-    None means it says neither, which is the case worth refusing: a sentence
-    that mentions the switch without naming its state reads like evidence and
-    carries none. Matched on whole words so "off" inside another word does not
-    decide the answer.
+    Anything else includes a sentence about the switch: a state is one of two
+    words, and a lock that has to infer which one it was given is a lock that
+    can infer wrongly.
     """
-    words = re.findall(r"[a-z]+", confirmation.lower())
-    said_on = SWITCH_ON in words
-    said_off = SWITCH_OFF in words
-    if said_on == said_off:
-        return None
-    return said_on
+    value = state.strip().lower()
+    return {SWITCH_ON: True, SWITCH_OFF: False}.get(value)
 
 
 def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "analysis",
             production_confirmed: bool = False, backup_confirmed: str = "",
-            switch_confirmed: str = "", now: float | None = None) -> dict:
+            switch_read: str = "", switch_confirmed: str = "",
+            now: float | None = None) -> dict:
     """Record a base whose identity has just been proved by a call.
 
     `confirmed_by` is what proved it — the call and what it answered. An empty
@@ -97,13 +107,13 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
     turns a mistaken write into a lost day. And production is refused outright:
     a confirmation may select a production base for reading, never for writing.
 
-    `switch_confirmed` is what a managed application has instead of a barrier in
-    the artifact. On an ordinary application the mode is the build that runs:
-    a read-only build cannot write, and the hash tells the builds apart. A
-    managed base has one processor and a switch in the Toolkit UI, so the mode
-    is a runtime fact, and the only honest way to know it is to ask. The value
-    records the call and its answer; deriving it from a file would be a guess
-    about state that changes without touching any file.
+    A managed application has no barrier in the artifact. On an ordinary one the
+    mode is the build that runs: a read-only build cannot write, and the hash
+    tells the builds apart. A managed base has one processor and a switch in the
+    Toolkit UI, so the mode is a runtime fact, and the only honest way to know it
+    is to ask. `switch_read` is the answer — `on` or `off`, stated — and
+    `switch_confirmed` is the call that produced it. Deriving either from a file
+    would be a guess about state that changes without touching any file.
     """
     if not confirmed_by:
         raise SessionError("a lock needs the call that proved the identity, not a claim")
@@ -127,11 +137,11 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
                 "in the Toolkit UI, so the lock needs the call that read its state and what it "
                 "answered — for analysis that the switch is off, for an approved write that it is on"
             )
-        state = switch_state(switch_confirmed)
+        state = switch_state(switch_read)
         if state is None:
             raise SessionError(
-                "the switch confirmation must say which state was read; "
-                f"'{switch_confirmed}' names neither {SWITCH_OFF} nor {SWITCH_ON}"
+                f"the switch state must be exactly '{SWITCH_OFF}' or '{SWITCH_ON}', not "
+                f"'{switch_read}': a state that has to be read out of a sentence can be read wrong"
             )
         if state != (write_mode == "approved-write"):
             wanted = "on" if write_mode == "approved-write" else "off"
@@ -154,6 +164,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
         "write_mode": write_mode,
         "production_confirmed": bool(production_confirmed),
         "backup_confirmed": backup_confirmed,
+        "switch_read": switch_read.strip().lower(),
         "switch_confirmed": switch_confirmed,
         "created_at": now if now is not None else time.time(),
     }
@@ -215,9 +226,8 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
     # that writing is impossible. A lock written before this rule existed has no
     # such evidence, and being old is not a reason to skip a precondition.
     if row.get("application_kind") == "managed":
-        confirmation = lock.get("switch_confirmed", "")
-        state = switch_state(confirmation) if confirmation else None
-        if state is None:
+        state = switch_state(lock.get("switch_read", ""))
+        if state is None or not lock.get("switch_confirmed"):
             raise SessionError(
                 "the lock carries no read of the write switch, and a managed base has no "
                 "read-only build to fall back on; take the lock again naming the call and its answer"
@@ -243,3 +253,103 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
                 "the lock carries no checked backup; take the lock again naming the copy and its date"
             )
     return lock
+
+
+# --- entry point ------------------------------------------------------------
+#
+# Without one, this module was a rule with no executor twice over: the skills
+# described the lock, the module implemented it, and nothing connected the two
+# (№243). A skill can now run `acquire` and `require`, and a refusal is an exit
+# code rather than a paragraph the next session may or may not read.
+
+
+def registry_rows(root: Path) -> list[dict[str, str]]:
+    path = root / REGISTRY
+    if not path.is_file():
+        raise SessionError(f"{REGISTRY} is missing: there is no registry to check the lock against")
+    try:
+        text = path.read_bytes().decode("utf-8-sig")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise SessionError(f"Cannot read {REGISTRY}: {exc}") from exc
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
+    rows = []
+    for row in reader:
+        if None in row or any(value is None for value in row.values()):
+            continue
+        rows.append({key: (value or "") for key, value in row.items()})
+    return rows
+
+
+def find_row(rows: list[dict[str, str]], identity: str) -> dict[str, str]:
+    for row in rows:
+        if identity_of(row) == identity:
+            return row
+    known = ", ".join(identity_of(row) for row in rows) or "—"
+    raise SessionError(f"{identity} is not in the registry; known bases: {known}")
+
+
+def build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--root", default=".", help="project root")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    take = sub.add_parser("acquire", help="record a base whose identity a call has just proved")
+    take.add_argument("--base", required=True, help="project_id/environment_id")
+    take.add_argument("--confirmed-by", required=True,
+                      help="the call that proved the identity and what it answered")
+    take.add_argument("--write-mode", choices=WRITE_MODES, default="analysis")
+    take.add_argument("--production-confirmed", action="store_true")
+    take.add_argument("--backup-confirmed", default="",
+                      help="which copy was checked and when; required for an approved write")
+    take.add_argument("--switch-read", choices=SWITCH_STATES, default="",
+                      help="state of the Toolkit write switch, for a managed base")
+    take.add_argument("--switch-confirmed", default="",
+                      help="the call that read the switch and what it answered")
+
+    check = sub.add_parser("require", help="the lock this operation may act on, or a refusal")
+    check.add_argument("--base", default=None, help="the base the operation means to touch")
+    check.add_argument("--write", action="store_true", help="the operation writes")
+
+    sub.add_parser("release", help="drop the lock: a new selection, an error, a restarted client")
+    sub.add_parser("show", help="print the current lock without judging it")
+    return parser
+
+
+def main(argv: list[str] | None = None) -> int:
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+    args = build_parser().parse_args(argv)
+    root = Path(args.root).resolve()
+    try:
+        if args.command == "acquire":
+            row = find_row(registry_rows(root), args.base)
+            lock = acquire(
+                root, row, confirmed_by=args.confirmed_by, write_mode=args.write_mode,
+                production_confirmed=args.production_confirmed,
+                backup_confirmed=args.backup_confirmed,
+                switch_read=args.switch_read, switch_confirmed=args.switch_confirmed,
+            )
+            print(f"Locked {identity_of(lock)} in {lock['write_mode']} mode.")
+            return 0
+        if args.command == "require":
+            lock = require(root, registry_rows(root), identity=args.base, write=args.write)
+            print(f"{identity_of(lock)} — {lock['write_mode']}, confirmed by: {lock['confirmed_by']}")
+            return 0
+        if args.command == "release":
+            invalidate(root)
+            print("Lock released.")
+            return 0
+        lock = read_lock(root)
+        if lock is None:
+            print("No session lock.")
+            return 1
+        print(json.dumps(lock, ensure_ascii=False, indent=2))
+        return 0
+    except SessionError as error:
+        print(f"[REFUSED] {error}", file=sys.stderr)
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -190,6 +190,40 @@ with tempfile.TemporaryDirectory() as raw:
     note(ordinary["профиль запуска erp/dev"].status == "OK",
          f"a complete profile must be found: {ordinary}")
 
+    # --- naming a processor is not starting one (№253) -----------------------
+    #
+    # The check used to stop at "there is a /Execute", so a profile pointing at
+    # a placeholder nobody substitutes reported that nothing was required. The
+    # path is data, and data that names a file the project does not have is the
+    # finding, not the reassurance.
+    def profile(startup: str) -> dict:
+        (root / "configurations/launch/erp-dev.launch").write_bytes(
+            f'<launch><stringAttribute key="ATTR_CLIENT_TYPE" value="ordinary"/>'
+            f'<stringAttribute key="ATTR_STARTUP_OPTION" value="{startup}"/></launch>'.encode("utf-8"))
+        return {row.component: row for row in doctor.ordinary_rows(root, doctor.registry_rows(root))}
+
+    placeholder = profile("/Execute &quot;&lt;PROJECT_ROOT&gt;/configurations/toolkit/T.epf&quot;")
+    note(placeholder["профиль запуска erp/dev"].status == "SKIP",
+         f"a profile starting a path that does not resolve must not pass: {placeholder}")
+
+    missing = profile("/Execute &quot;configurations/toolkit/T.epf&quot;")
+    note(missing["профиль запуска erp/dev"].status == "SKIP",
+         f"a profile starting a file the project lacks must not pass: {missing}")
+
+    (root / "configurations/toolkit").mkdir(parents=True, exist_ok=True)
+    (root / "configurations/toolkit/T.epf").write_bytes(b"\x00binary\n")
+    present = profile("/Execute &quot;configurations/toolkit/T.epf&quot;")
+    note(present["профиль запуска erp/dev"].status == "OK",
+         f"a profile starting a delivered processor must pass: {present}")
+    note("configurations/toolkit/T.epf" in present["профиль запуска erp/dev"].detail,
+         f"the report must name what gets started: {present}")
+
+    # A machine-specific path is the defect the placeholder replaced, and it is
+    # no more startable anywhere else than the placeholder is.
+    absolute = profile("/Execute &quot;D:/build/toolkit/T.epf&quot;")
+    note(absolute["профиль запуска erp/dev"].status == "SKIP",
+         f"an absolute path belongs to one machine and must not pass: {absolute}")
+
 # --- a port that is taken on this machine ------------------------------------
 # Milestone W found 6003 — the port the rule hands to the first base — already
 # listened on by the platform, and nothing reported it.

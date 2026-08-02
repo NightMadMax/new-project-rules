@@ -190,12 +190,19 @@ with tempfile.TemporaryDirectory() as raw:
 
         # A profile that starts a client without starting the processor leaves
         # the Toolkit to be opened by hand, which is what criterion 7 is about.
+        # Naming a build that is not delivered is the same emptiness one step
+        # later, so the name is checked against what the project actually has.
+        # Whether the path in front of that name resolves is defect №252 and is
+        # reported by `doctor-1c`, which is where a path can be checked against
+        # the project it belongs to.
         for relative in LAUNCH_SEEDS:
             body = (project / relative).read_text(encoding="utf-8")
             if "http-debug" in relative:
                 continue
             note("ATTR_STARTUP_OPTION" in body and "/Execute" in body,
                  f"{relative} must start a processor, not only a client")
+            note(any(name in body for name in TOOLKIT_PROCESSORS),
+                 f"{relative} starts no Toolkit build this project carries")
 
         # A profile that starts a processor the project does not carry points at
         # nothing. Delivery is checked by bytes, because a binary that arrives

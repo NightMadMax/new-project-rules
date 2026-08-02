@@ -163,12 +163,17 @@ for row in rows:
         for name in evidence:
             check_test(where, name)
     elif row["status"] == "частично":
-        # Partly checked means two claims, and both have to be backed.
-        note(len(evidence) == 2, f"{where}: 'частично' needs a test and a defect, got '{row['evidence']}'")
-        if len(evidence) == 2:
-            check_test(where, evidence[0])
-            note(evidence[1].lstrip("№") in open_defects(),
-                 f"{where}: names defect {evidence[1]}, which is not open in DEFECTS.md")
+        # Partly checked means two claims, and both have to be backed: what is
+        # already proved, and what is not yet. The checked half may take more
+        # than one test — criterion 7 has an ordinary and a managed side — so
+        # the defect is the last item and everything before it is evidence.
+        note(len(evidence) >= 2,
+             f"{where}: 'частично' needs at least one test and a defect, got '{row['evidence']}'")
+        if len(evidence) >= 2:
+            for name in evidence[:-1]:
+                check_test(where, name)
+            note(evidence[-1].lstrip("№") in open_defects(),
+                 f"{where}: names defect {evidence[-1]}, which is not open in DEFECTS.md")
     elif row["status"] == "не выполнено":
         note(evidence[0].lstrip("№") in open_defects(),
              f"{where}: names defect {evidence[0]}, which is not open in DEFECTS.md")
