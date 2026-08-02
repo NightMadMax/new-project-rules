@@ -32,6 +32,9 @@ def gh_json(path: str):
     return json.loads(result.stdout)
 
 
+UNVERIFIED = "UNVERIFIED: "
+
+
 def validate_state(repository, metadata, ruleset, collaborators, strict_actor_id=True) -> List[str]:
     policy = POLICIES[repository]
     owner = str(cast_mapping(metadata.get("owner")).get("login", ""))
@@ -42,14 +45,20 @@ def validate_state(repository, metadata, ruleset, collaborators, strict_actor_id
         problems.append("Protect main ruleset must be active")
     bypass = ruleset.get("bypass_actors")
     expected_ids = {5} if strict_actor_id else {5, None}
+    # GITHUB_TOKEN redacts bypass actors, so an empty list under that scope says
+    # nothing about the ruleset. Treating it as a pass was the old behaviour and
+    # it made the nightly audit report a bypass it had never looked at: not a
+    # violation, but not a verification either. It is reported as unverified.
     bypass_redacted = not strict_actor_id and not bypass
-    bypass_ok = bypass_redacted or (
+    if bypass_redacted:
+        problems.append(UNVERIFIED + "bypass actors are redacted under this token scope; "
+                        "the reviewed Admin always-bypass was not checked")
+    elif not (
         isinstance(bypass, list) and len(bypass) == 1 and isinstance(bypass[0], dict)
         and bypass[0].get("actor_type") == "RepositoryRole"
         and bypass[0].get("bypass_mode") == "always"
         and bypass[0].get("actor_id") in expected_ids
-    )
-    if not bypass_ok:
+    ):
         problems.append("ruleset must keep the reviewed Admin always-bypass")
     rules = [item for item in ruleset.get("rules", []) if isinstance(item, dict)]
     rule_types = {str(item.get("type")) for item in rules}
@@ -102,12 +111,20 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             problems = audit(repository, strict_actor_id=not args.github_token_scope)
         except (OSError, subprocess.CalledProcessError, json.JSONDecodeError) as error:
             problems = [f"cannot query GitHub API: {error}"]
+        unverified = [item for item in problems if item.startswith(UNVERIFIED)]
+        problems = [item for item in problems if not item.startswith(UNVERIFIED)]
+        for item in unverified:
+            print(f"NOTE [{repository}]: {item[len(UNVERIFIED):]}")
         if problems:
             failed = True
             for problem in problems:
                 print(f"ERROR [{repository}]: {problem}")
         else:
-            print(f"OK [{repository}]: active ruleset, reviewed bypass, sole owner-admin")
+            # The success line lists what was actually checked. Claiming a
+            # reviewed bypass that the token scope hid is the defect itself.
+            checked = "active ruleset, sole owner-admin" if unverified else \
+                "active ruleset, reviewed bypass, sole owner-admin"
+            print(f"OK [{repository}]: {checked}")
     return 1 if failed else 0
 
 

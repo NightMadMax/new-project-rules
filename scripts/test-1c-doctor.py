@@ -72,13 +72,18 @@ with tempfile.TemporaryDirectory() as raw:
             "DEFAULT_PASSWORD=hunter2",
             "API_TOKEN=abcdef123456",
             "CONNECTION=Srvr=host;Ref=erp;",  # noscan - фикстура: сканер обязан её видеть, репозиторий - нет
+            # Keys that carry a credential without carrying a marker word in the
+            # value: these were printed whole while the check looked at the line.
+            "DB_PWD=swordfish",
+            "ONEC_CREDENTIAL=letmein",
+            "BASE_LOGIN=admin",
             "EMPTY_SECRET=",
             "VERIFICATION_DEPTH=full",
         ]).encode("utf-8")
     )
     lines = doctor.settings(root)
     joined = "\n".join(lines)
-    for value in ("hunter2", "abcdef123456", "host", "erp"):
+    for value in ("hunter2", "abcdef123456", "host", "erp", "swordfish", "letmein", "admin"):
         note(value not in joined, f"the value '{value}' must never reach the report: {joined}")
     note(any(line.startswith("DEFAULT_PASSWORD") and doctor.MASK in line for line in lines),
          f"a set secret must be reported as set: {lines}")
@@ -86,6 +91,11 @@ with tempfile.TemporaryDirectory() as raw:
          f"an empty secret must be reported as unset: {lines}")
     note(any(line == "VERIFICATION_DEPTH=full" for line in lines),
          f"an ordinary setting must survive unchanged: {lines}")
+    # The decision is made on the key, so a key that names a credential is
+    # masked even when nothing in its value looks like one.
+    for key in ("DB_PWD", "ONEC_CREDENTIAL", "BASE_LOGIN"):
+        note(any(line.startswith(key) and doctor.MASK in line for line in lines),
+             f"{key} names a credential and must be reported as set, not printed: {lines}")
     note(not any(line.startswith("#") for line in lines), "comments are not settings")
 
     # --- every row says what it means and what to do -------------------------
@@ -202,6 +212,47 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as holder:
     holder.bind(("127.0.0.1", 0))
     holder.listen(1)
     note(doctor.occupied(holder.getsockname()[1]), "a bound port must be seen as occupied")
+
+# The listener that matters binds every interface — the 1C platform on 6003 does
+# — and a probe that only asked 127.0.0.1 called such a port free.
+with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as holder:
+    holder.bind(("", 0))
+    holder.listen(1)
+    note(doctor.occupied(holder.getsockname()[1]),
+         "a port held on every interface must be seen as occupied")
+
+# The check above cannot fail on POSIX: binding 0.0.0.0 already conflicts with a
+# loopback probe there, so it would pass on the broken implementation too — the
+# defect is specific to the Windows stack. What discriminates everywhere is
+# which addresses the probe actually asks about, so that is asserted directly.
+asked: list[str] = []
+
+
+class RecordingSocket:
+    def __init__(self, *arguments, **keywords) -> None:
+        pass
+
+    def __enter__(self) -> "RecordingSocket":
+        return self
+
+    def __exit__(self, *arguments) -> bool:
+        return False
+
+    def setsockopt(self, *arguments) -> None:
+        pass
+
+    def bind(self, address) -> None:
+        asked.append(address[0])
+
+
+original_socket = socket.socket
+socket.socket = RecordingSocket
+try:
+    doctor.occupied(6003)
+finally:
+    socket.socket = original_socket
+note("" in asked,
+     f"the probe must ask about every interface, not only loopback: {asked}")
 
 # --- the provider is reported, never started ---------------------------------
 
