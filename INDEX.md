@@ -189,11 +189,13 @@
 | `scripts/test-skills.sh` | Контракт skills и правил: делегирует `check_skills.py` (macOS/Linux) |
 | `scripts/test-skills.ps1` | Контракт skills и правил: делегирует `check_skills.py` (Windows) |
 | `scripts/test-check-skills.py` | Юнит-тесты `check_skills.py` на временных фикстурах |
+| `scripts/test-standard-metrics.py` | Проверка метрик стандарта: размеры документов и пороги компрессии |
 | `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
 | `scripts/test-powershell-environment.ps1` | Regression test изоляции HOME/Git environment между PowerShell suites |
 | `scripts/check-action-pins.py` | Запрет mutable external Action references |
 | `scripts/test-supply-chain.py` | Regression tests Action SHA/Docker digest policy |
 | `scripts/best_practices_manifest.py` | Writer schema 2 preferences для Best Practices consumer manifest |
+| `scripts/test-best-practices-contract.py` | Проверка контракта соседней базы Best Practices |
 | `scripts/test-best-practices-manifest.py` | Regression tests consumer manifest writer |
 | `scripts/test-best-practices-e2e.py` | Cross-repo E2E NPR writer ↔ pinned BP loader/report |
 | `scripts/check_github_governance.py` | Read-only audit rulesets и единственного owner-admin |
