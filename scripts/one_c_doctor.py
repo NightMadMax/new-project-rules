@@ -49,7 +49,17 @@ ALLOWLIST = (
 ALLOWED_GLOBS = ("configurations/launch/*.launch",)
 # What an `ordinary` launch profile must carry (decision 1.16).
 CLIENT_TYPE_ATTRIBUTE = "ATTR_CLIENT_TYPE"
-SECRET_MARKERS = ("password", "passwd", "token", "secret", "key", "srvr=", "ref=")
+# Matched against the key name, not the whole line. Deciding by line content
+# meant a key named DB_PWD or BASE_LOGIN carried no marker and was printed
+# whole, while an ordinary setting whose value happened to contain "key" was
+# masked for no reason.
+SECRET_NAME_MARKERS = (
+    "password", "passwd", "pwd", "pass", "secret", "token", "key", "credential",
+    "login", "user", "auth",
+)
+# Matched against the value: a connection string carries the server and the
+# base regardless of what the key is called.
+SECRET_VALUE_MARKERS = ("srvr=", "ref=")
 MASK = "задан"
 
 
@@ -89,13 +99,17 @@ def mask(line: str) -> str:
     existed in memory next to the code that prints it, and one forgotten branch
     is enough.
     """
-    lowered = line.lower()
-    if not any(marker in lowered for marker in SECRET_MARKERS):
-        return line
     name, separator, value = line.partition("=")
     if not separator:
         name, separator, value = line.partition(":")
-    if not separator or not value.strip():
+    if not separator:
+        # No key, no value: nothing to mask and nothing to disclose.
+        return line
+    secret = (any(marker in name.lower() for marker in SECRET_NAME_MARKERS)
+              or any(marker in value.lower() for marker in SECRET_VALUE_MARKERS))
+    if not secret:
+        return line
+    if not value.strip():
         return f"{name.strip()}: не задан"
     return f"{name.strip()}: {MASK}"
 
@@ -273,13 +287,25 @@ def occupied(port: int) -> bool:
     this base can start its server here.
     """
     import socket
+    import sys
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            probe.bind(("127.0.0.1", port))
-        except OSError:
-            return True
+    # Every interface, then loopback. A server that matters here binds
+    # 0.0.0.0 — the 1C platform on 6003 does — and probing only 127.0.0.1
+    # reported such a port free, which is exactly the case the check exists for.
+    # The reverse also happens: a loopback-only listener leaves 0.0.0.0
+    # bindable on some stacks, so both are asked and either one answers "taken".
+    for address in ("", "127.0.0.1"):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            if sys.platform == "win32":
+                # SO_REUSEADDR on Windows lets a bind succeed over a socket that
+                # is actively bound — the probe would report free while the
+                # platform listens. SO_EXCLUSIVEADDRUSE is the option that
+                # refuses instead.
+                probe.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+            try:
+                probe.bind((address, port))
+            except OSError:
+                return True
     return False
 
 
