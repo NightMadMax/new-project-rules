@@ -44,6 +44,13 @@ MANAGED = (
 # Three Toolkit builds exist and three profiles start them, differing in exactly
 # one line. Shipping two described a project that does not exist: the write
 # level is chosen by which build runs, so a missing profile is a missing level.
+# The debug profile is a fourth file and not a fourth Toolkit profile — it
+# starts no processor.
+TOOLKIT_PROCESSORS = (
+    "MCP_Toolkit_Ordinary_ReadOnly.epf",
+    "MCP_Toolkit_Ordinary.epf",
+    "MCP_Toolkit_Ordinary_Privileged.epf",
+)
 LAUNCH_SEEDS = (
     "configurations/launch/toolkit.launch",
     "configurations/launch/toolkit-write.launch",
@@ -189,6 +196,17 @@ with tempfile.TemporaryDirectory() as raw:
                 continue
             note("ATTR_STARTUP_OPTION" in body and "/Execute" in body,
                  f"{relative} must start a processor, not only a client")
+
+        # A profile that starts a processor the project does not carry points at
+        # nothing. Delivery is checked by bytes, because a binary that arrives
+        # substituted is a binary that will not open (№241).
+        for name in TOOLKIT_PROCESSORS:
+            processor = project / "configurations/toolkit" / name
+            note(processor.is_file(), f"scaffold is missing the Toolkit build {name}")
+            if processor.is_file():
+                source = ROOT / "templates/new-project/capabilities/1c/toolkit" / name
+                note(processor.read_bytes() == source.read_bytes(),
+                     f"{name} was altered on delivery; a binary must arrive byte for byte")
 
         for name in DEVELOP_REFERENCES:
             note((project / f".agents/skills/develop-1c/references/{name}.md").is_file(),

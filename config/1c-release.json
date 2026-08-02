@@ -1,5 +1,21 @@
 {
-  "binaries": [],
+  "binaries": [
+    {
+      "application_kind": "ordinary",
+      "name": "configurations/toolkit/MCP_Toolkit_Ordinary.epf",
+      "sha256": "758e070ca878d9aedca302df81ec85db30248ce7ffb930230e97d3815880b304"
+    },
+    {
+      "application_kind": "ordinary",
+      "name": "configurations/toolkit/MCP_Toolkit_Ordinary_Privileged.epf",
+      "sha256": "d1dcdec1d6a5169f2695c95a7dbe73e6977d4ace99b2bab78e2bc4c2dca4007d"
+    },
+    {
+      "application_kind": "ordinary",
+      "name": "configurations/toolkit/MCP_Toolkit_Ordinary_ReadOnly.epf",
+      "sha256": "0ea52a2f482a882d6a1e1fde4eb81d9e1b14068dbbf7c0223963971c7ff666d6"
+    }
+  ],
   "capability": "1c",
   "dependencies": [
     {
@@ -106,7 +122,7 @@
       "tier": "optional-disabled"
     }
   ],
-  "release_id": "5f84111e0b48023f7fdd91c1bfd1668981766631bfd55484757ae01559a7be36",
+  "release_id": "4653ec4af5289966c1aa1d2a46e7dc116ab0fc5368bff5183f571a6c69588efe",
   "schema_version": 1,
   "sources": [
     {
@@ -120,5 +136,5 @@
       "repository": "NightMadMax/best-practices"
     }
   ],
-  "version": "0.5.0"
+  "version": "0.6.0"
 }
