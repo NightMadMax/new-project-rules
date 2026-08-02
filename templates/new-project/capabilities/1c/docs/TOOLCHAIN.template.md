@@ -40,8 +40,13 @@ SHA-256 каждой поставляемой обработки. Несовпа
 включая чтение: у обычного приложения только хеш отличает read-only сборку от
 write-enabled.
 
-| Обработка | Тип приложения | SHA-256 |
+| Обработка | Режим | SHA-256 |
 |---|---|---|
+| `configurations/toolkit/MCP_Toolkit_Ordinary_ReadOnly.epf` | только чтение | `0ea52a2f482a882d6a1e1fde4eb81d9e1b14068dbbf7c0223963971c7ff666d6` |
+| `configurations/toolkit/MCP_Toolkit_Ordinary.epf` | чтение и запись | `758e070ca878d9aedca302df81ec85db30248ce7ffb930230e97d3815880b304` |
+| `configurations/toolkit/MCP_Toolkit_Ordinary_Privileged.epf` | привилегированная запись | `d1dcdec1d6a5169f2695c95a7dbe73e6977d4ace99b2bab78e2bc4c2dca4007d` |
+
+Все три занимают порт `6003`, поэтому одновременно открыта только одна.
 
 Секреты, токены, строки соединения и абсолютные машинные пути сюда не
 записываются.

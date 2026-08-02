@@ -48,7 +48,7 @@ related:
 | 4 | Базы не ограничены портами; до десяти на `6003`–`6012` | тест | `scripts/test-one-c-scaffold.py` |
 | 5 | Каждый tracked-файл upstream имеет строку ledger | тест | `scripts/test-1c-upstream-routing.py` |
 | 6 | Release и миграция доставляют managed, сохраняют seed, ловят drift | тест | `scripts/test-capability-artifacts.py` |
-| 7 | Режим `analysis`: read-only сборка на `ordinary`, подтверждённый переключатель записи на `managed` | отложено | решение 1.16 |
+| 7 | Режим `analysis`: read-only сборка на `ordinary`, подтверждённый переключатель записи на `managed` | частично | `scripts/test-one-c-scaffold.py`, №240 |
 | 8 | Live-base skill отказывается без session lock | тест | `scripts/test-1c-session.py` |
 | 9 | Fixture write без базы и подтверждения отказывает | тест | `scripts/test-1c-session.py` |
 | 10 | Required/conditional/optional разделены и названы в документации | тест | `scripts/test-1c-setup.py`, `scripts/test-1c-readiness.py` |
@@ -76,7 +76,7 @@ related:
 
 ## Итог
 
-Из 31 критерия: `тест` — 30, `частично` — 0, `Windows` — 0, `не выполнено` — 0, `отложено` — 1.
+Из 31 критерия: `тест` — 30, `частично` — 1, `Windows` — 0, `не выполнено` — 0, `отложено` — 0.
 Счёт сверяется с таблицей машинно: цифра в итоге — это то место, где такой
 документ врёт первым.
 

@@ -49,6 +49,8 @@ ALLOWLIST = (
 ALLOWED_GLOBS = ("configurations/launch/*.launch",)
 # What an `ordinary` launch profile must carry (decision 1.16).
 CLIENT_TYPE_ATTRIBUTE = "ATTR_CLIENT_TYPE"
+# What makes a profile start the Toolkit instead of only the client.
+STARTUP_OPTION_ATTRIBUTE = "ATTR_STARTUP_OPTION"
 # Matched against the key name, not the whole line. Deciding by line content
 # meant a key named DB_PWD or BASE_LOGIN carried no marker and was printed
 # whole, while an ordinary setting whose value happened to contain "key" was
@@ -214,8 +216,10 @@ def edt_rows(root: Path, discover=None) -> list[Row]:
 def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
     """The plugin and the launch profiles — a requirement of `ordinary` only.
 
-    For a managed application neither exists, so their absence is not a finding:
-    reporting it would teach people that a correct environment has open items.
+    A managed base has no Toolkit build of ours: its write barrier is the switch
+    in the Toolkit UI, confirmed by a call rather than by a file. Reporting a
+    missing profile there would teach people that a correct environment has open
+    items.
     """
     ordinary = [row for row in rows if row.get("application_kind") == "ordinary"]
     if not ordinary:
@@ -239,9 +243,17 @@ def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
             # Decision 1.16: the attribute is checked for `ordinary` and only
             # there. A profile without it starts the base as the wrong client,
             # and the file being present says nothing about that.
-            if CLIENT_TYPE_ATTRIBUTE in read(root, relative):
+            body = read(root, relative)
+            if CLIENT_TYPE_ATTRIBUTE in body:
+                # A Toolkit profile also has to start the build; the HTTP-debug
+                # profile deliberately has no `/Execute` and is not judged by it.
+                started = STARTUP_OPTION_ATTRIBUTE in body and "/Execute" in body
                 result.append(Row(f"профиль запуска {identity}", "OK",
-                                  f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан", "ничего не требуется"))
+                                  f"{relative}, {CLIENT_TYPE_ATTRIBUTE} задан"
+                                  + (", автозапуск обработки задан" if started else
+                                     ", без автозапуска обработки"),
+                                  "ничего не требуется" if started else
+                                  "клиент стартует, Toolkit открывается вручную"))
             else:
                 result.append(Row(f"профиль запуска {identity}", "SKIP",
                                   f"{relative} без {CLIENT_TYPE_ATTRIBUTE}",

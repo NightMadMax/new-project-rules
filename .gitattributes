@@ -11,3 +11,8 @@ STANDARD_VERSION text eol=lf
 # those bytes, so git must not touch its line endings. The rules above would
 # check out the ~60 upstream .ps1 files as CRLF and every hash would miss.
 templates/new-project/capabilities/1c/upstream/** -text
+
+# Built Toolkit processors: byte-exact payload whose hash the release records,
+# and which a project trusts by that hash. `text=auto` would leave it to
+# detection; defect 196 is what detection costs when it is wrong.
+templates/new-project/capabilities/1c/toolkit/** -text
