@@ -37,10 +37,17 @@ if ! "$python_command" "$script_dir/check_skills.py" --root "$root"; then
 fi
 
 reflect_skill="$root/.agents/skills/reflect-and-record/SKILL.md"
-check_required_literals "$reflect_skill" \
-  'файл можно изменить в текущей' \
-  'новым процессам/сессиям' \
-  'перебором нескольких неудачных вариантов'
+# One source for both pairs: the lists were written out in each test, which is
+# how they drifted apart.
+literals_file="$script_dir/lib/skill-literals.txt"
+old_ifs=$IFS
+IFS='
+'
+set -f
+# shellcheck disable=SC2046
+check_required_literals "$reflect_skill" $(grep -v '^#' "$literals_file" | grep -v '^$')
+set +f
+IFS=$old_ifs
 if grep -Fq 'не в середине' "$reflect_skill"; then
   echo "FAIL: reflect-and-record retains the retired mid-session edit prohibition" >&2
   fail=$((fail + 1))

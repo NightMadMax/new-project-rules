@@ -33,17 +33,30 @@ if ($LASTEXITCODE -ne 0) { $Failures++ }
 
 # The same four literals the shell pair checks. One of them was checked here and
 # three were not, so the PowerShell verdict could be green on a file the shell
-# verdict rejected — a parity test that does not test parity.
-$reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
-Test-RequiredLiterals -File $reflectSkill -Literals @(
-    'instruction changes apply to new processes/sessions',
-    'файл можно изменить в текущей',
-    'новым процессам/сессиям',
-    'перебором нескольких неудачных вариантов'
+# verdict rejected -- a parity test that does not test parity.
+# The literals come from one file both pairs read. Writing them out in each test
+# is what let the two drift apart, and Cyrillic in a .ps1 source does not survive
+# Windows PowerShell 5.1, which reads a file without a BOM as ANSI -- the parse
+# error this test hit in CI.
+$literalsFile = Join-Path $PSScriptRoot "lib/skill-literals.txt"
+$requiredLiterals = @(
+    Get-Content -Encoding UTF8 $literalsFile |
+        Where-Object { $_ -and -not $_.StartsWith("#") }
 )
+if ($requiredLiterals.Count -eq 0) {
+    Write-Host "FAIL: $literalsFile lists no literals"
+    $Failures++
+}
+
+$reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
+Test-RequiredLiterals -File $reflectSkill -Literals $requiredLiterals
 # The retired prohibition must stay retired: its return would quietly reinstate
-# a rule the project decided against.
-if ((Get-Content -Raw -Encoding UTF8 $reflectSkill).Contains('не в середине')) {
+# a rule the project decided against. Built from code points so this source
+# stays ASCII-only.
+$retired = -join ([char]0x043D, [char]0x0435, [char]0x0020, [char]0x0432,
+    [char]0x0020, [char]0x0441, [char]0x0435, [char]0x0440, [char]0x0435,
+    [char]0x0434, [char]0x0438, [char]0x043D, [char]0x0435)
+if ((Get-Content -Raw -Encoding UTF8 $reflectSkill).Contains($retired)) {
     Write-Host "FAIL: reflect-and-record retains the retired mid-session edit prohibition"
     $Failures++
 }
