@@ -306,6 +306,26 @@ for path in sorted((ROOT / adaptations_module.ADAPTATIONS_DIRECTORY).glob("*.jso
     note(declared["decision"].startswith("S."), f"{path.name}: must reference the plan decision")
     note(len(declared["reason"]) > 40, f"{path.name}: the reason must say what would break")
 
+# A path git wrote in UTF-8 must come back as that path. With
+# `core.quotePath=false` git emits raw bytes, so text mode used to decode them
+# with the locale encoding: on a machine that is not UTF-8 the name came back
+# mangled, and a mangled name looks both missing from the checkout and
+# unexpected in it. The name below is the cheapest way to state that.
+with tempfile.TemporaryDirectory() as raw:
+    staging = Path(raw)
+    named = staging / "content/rules/Правила-разработки.md"
+    named.parent.mkdir(parents=True, exist_ok=True)
+    named.write_bytes("rules\n".encode("utf-8"))
+    subprocess.run(["git", "-C", str(staging), "init", "-q"], check=True)
+    subprocess.run(["git", "-C", str(staging), "add", "-A"], check=True, capture_output=True)
+    subprocess.run(
+        ["git", "-C", str(staging), "-c", "user.name=t", "-c", "user.email=t@example.com",
+         "commit", "-qm", "staging"], check=True, capture_output=True,
+    )
+    listed = importer.tracked_files(staging)
+    note(listed == ["content/rules/Правила-разработки.md"],
+         f"a UTF-8 path must survive listing unchanged: {listed}")
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)

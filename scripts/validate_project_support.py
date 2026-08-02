@@ -11,6 +11,11 @@ import io
 import sys
 from pathlib import Path
 
+# The Toolkit port range, defined once. It was written out in both the
+# validator and the client renderer, so widening it in one place produced a
+# base the validator accepted and the renderer silently dropped.
+ONE_C_PORTS = range(6003, 6013)
+
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import artifacts_ledger  # noqa: E402
 

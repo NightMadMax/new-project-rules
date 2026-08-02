@@ -58,13 +58,21 @@ def read_routing(contract_root: Path) -> list[dict[str, str]]:
 
 
 def tracked_files(staging: Path) -> list[str]:
+    """Paths as git wrote them: UTF-8 bytes, decoded as UTF-8.
+
+    `core.quotePath=false` makes git emit raw bytes instead of escapes, so the
+    decoding is ours to choose. Letting text mode pick the locale encoding meant
+    a non-ASCII name came back mangled on a machine that is not UTF-8, and a
+    mangled name looks both missing from the checkout and unexpected in it.
+    """
     result = subprocess.run(
         ["git", "-C", str(staging), "-c", "core.quotePath=false", "ls-files", "-z"],
-        capture_output=True, text=True,
+        capture_output=True,
     )
     if result.returncode != 0:
-        raise release.ReleaseError(f"cannot list staging: {result.stderr.strip()}")
-    return sorted(name for name in result.stdout.split("\0") if name)
+        raise release.ReleaseError(
+            f"cannot list staging: {result.stderr.decode('utf-8', 'replace').strip()}")
+    return sorted(name for name in result.stdout.decode("utf-8").split("\0") if name)
 
 
 def blob(staging: Path, path: str) -> bytes:

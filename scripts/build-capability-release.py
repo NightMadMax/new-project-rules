@@ -27,11 +27,15 @@ import release_manifest as release  # noqa: E402
 def git_output(staging: Path, *arguments: str) -> str:
     result = subprocess.run(
         ["git", "-C", str(staging), "-c", "core.quotePath=false", *arguments],
-        capture_output=True, text=True,
+        capture_output=True,
     )
     if result.returncode != 0:
-        raise release.ReleaseError(f"git {' '.join(arguments)} failed in staging: {result.stderr.strip()}")
-    return result.stdout
+        raise release.ReleaseError(
+            f"git {' '.join(arguments)} failed in staging: "
+            f"{result.stderr.decode('utf-8', 'replace').strip()}")
+    # UTF-8, not the locale: `core.quotePath=false` hands us raw bytes, and a
+    # locale-decoded path is a path that matches nothing.
+    return result.stdout.decode("utf-8")
 
 
 def tracked_files(staging: Path) -> list[str]:

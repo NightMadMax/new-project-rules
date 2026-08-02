@@ -29,6 +29,20 @@ REGISTRY_FIELDS = (
 )
 failures: list[str] = []
 
+# The Toolkit range is one object, not two equal literals. Written out in both
+# the validator and the renderer, widening it in one place produced a base the
+# validator accepted and the renderer silently dropped.
+import validate_project_support  # noqa: E402
+
+if clients.PORTS is not validate_project_support.ONE_C_PORTS:
+    failures.append(
+        "the port range must come from validate_project_support, not be repeated: "
+        f"{clients.PORTS} vs {validate_project_support.ONE_C_PORTS}"
+    )
+validator_source = (ROOT / "scripts/validate-project.py").read_text(encoding="utf-8")
+if "ONE_C_PORTS = range(" in validator_source:
+    failures.append("validate-project.py must read the port range, not restate it")
+
 
 def note(condition: bool, message: str) -> None:
     if not condition:

@@ -42,7 +42,8 @@ related:
 - `schema_version` — положительное целое, не release version.
 - `profile` — `minimal`, `software`, `operated` или `all`.
 - `capabilities` — независимые от профиля подключаемые возможности. Сейчас поддерживаются
-  `jira-confluence` и `1c`; пустой массив означает, что capability не
+  `jira-confluence`, `1c` и `transcribe`; пустой массив означает, что
+  capability не
   выбрана. Возможности дополняют профиль и не меняют его состав.
 - `capability_releases` — установленные release capability: ключ равен ID
   capability из `capabilities`, значение содержит только `version` (SemVer) и
