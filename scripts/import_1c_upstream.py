@@ -259,7 +259,22 @@ def materialize(contract_root: Path, staging: Path, rows: list[dict[str, str]]) 
         "payload_class": payload_class(row),
         "policy": "managed" if row["ownership"] == "project-managed" else "seed",
     } for row in installed]
-    return {"delivery": delivery, "written": written, "manifests": manifests}
+    # A file the delivery no longer produces must leave the payload with it.
+    # Writing without pruning left five openspec duplicates behind when their
+    # route was corrected: dead files that nothing installs and nothing explains,
+    # which read as part of the delivery to anyone opening the directory.
+    kept = {payload_root / name for name in written}
+    removed: list[str] = []
+    for candidate in sorted(payload_root.rglob("*")):
+        if candidate.is_file() and candidate not in kept:
+            candidate.unlink()
+            removed.append(candidate.relative_to(payload_root).as_posix())
+    for directory in sorted(payload_root.rglob("*"), reverse=True):
+        if directory.is_dir() and not any(directory.iterdir()):
+            directory.rmdir()
+
+    return {"delivery": delivery, "written": written, "manifests": manifests,
+            "removed": removed}
 
 
 def write_delivery(contract_root: Path, result: dict[str, object]) -> None:
@@ -342,6 +357,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Wrote payload: {len(result['written'])} files, "
               f"{len(result['delivery'])} delivery rows, "
               f"{len(result['manifests'])} vendored skill manifest(s).")
+        if result["removed"]:
+            print(f"Removed {len(result['removed'])} stale payload file(s): "
+                  f"{', '.join(result['removed'][:5])}"
+                  f"{' …' if len(result['removed']) > 5 else ''}")
     return 0
 
 

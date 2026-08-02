@@ -41,5 +41,6 @@ content/skills/powershell-windows/**	-	copy	-	project-managed	.agents/skills/{pa
 content/skills/prompt-enhancer/**	-	copy	-	project-managed	.agents/skills/{path}	S.9.9
 content/skills/transcribe/**	-	route	general-transcribe-plan	provider-only	-	S.9.10
 content/skills/v8unpack-cf/**	-	copy	-	project-managed	.agents/skills/{path}	S.9.11
+openspec/README.md	-	adapt	openspec-readme-pointer	project-seed	openspec/README.md	S.10
 openspec/**	-	copy	-	project-seed	openspec/{tail}	S.10
 tools/refresh-openspec-bundle.ps1	-	route	maintainer-refresh	provider-only	-	S.1

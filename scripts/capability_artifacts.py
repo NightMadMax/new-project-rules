@@ -53,6 +53,9 @@ class Operation:
     desired_hash: Optional[str] = None
     installed_hash: Optional[str] = None
     detail: str = ""
+    # Set only for a seed created from a template: the values the project states
+    # about itself, resolved when the plan was built rather than at write time.
+    substitution: Optional[tuple[tuple[str, str], ...]] = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +93,31 @@ def read_ledger(project_root: Path) -> dict:
 
 def installed_entries(ledger: dict, owner: str) -> dict[str, dict]:
     return {entry["target"]: entry for entry in ledger["artifacts"] if entry["owner"] == owner}
+
+
+def project_substitution(project_root: Path) -> dict[str, str]:
+    """Placeholder values a project already states about itself.
+
+    Read rather than invented: the name and the schema come from the project
+    metadata, and the date is today. A value that cannot be read comes back
+    empty so the caller refuses instead of writing a guess into a file.
+    """
+    import datetime
+
+    metadata_path = project_root / ".project-standard.json"
+    metadata: dict = {}
+    if metadata_path.is_file():
+        try:
+            loaded = json.loads(metadata_path.read_bytes().decode("utf-8"))
+            metadata = loaded if isinstance(loaded, dict) else {}
+        except (ValueError, UnicodeDecodeError):
+            metadata = {}
+    schema = metadata.get("schema_version")
+    return {
+        "<PROJECT_NAME>": str(metadata.get("project_name") or project_root.resolve().name),
+        "<SCHEMA_VERSION>": str(schema) if isinstance(schema, int) and schema > 0 else "",
+        "<YYYY-MM-DD>": datetime.date.today().isoformat(),
+    }
 
 
 def needs_rendering(source: Path, payload_class: str) -> bool:
@@ -142,15 +170,27 @@ def build_plan(
         ledger_class = artifacts_ledger.manifest_class_to_ledger(payload_class)
         rendered = needs_rendering(source, payload_class)
 
+        substitution = None
         if rendered and current is None:
-            # Only bootstrap can fill the placeholders; creating the file here
-            # would deliver "<PROJECT_NAME>" literally.
-            conflicts.append(f"{target}: is created by bootstrap and is missing from the project")
-            continue
+            # Adding a capability to an existing project lands here for every
+            # seed template, and refusing meant a capability could only ever be
+            # chosen at creation. The values are not bootstrap's secret: the
+            # project states its own name and schema, and the date is today. The
+            # placeholder set stays the one above, so there is no second
+            # definition of what a placeholder is.
+            substitution = project_substitution(project_root)
+            missing = [name for name, value in substitution.items() if not value]
+            if missing:
+                conflicts.append(
+                    f"{target}: needs {', '.join(sorted(missing))}, which this project does not state; "
+                    "run the project validator first")
+                continue
 
         if policy == "seed":
             if current is None:
                 action, detail = "create", "seed created once"
+                if substitution is not None:
+                    detail = "seed created once, rendered from project metadata"
             elif record is None:
                 action, detail = "adopt", "seed already present, recording it"
             else:
@@ -158,6 +198,7 @@ def build_plan(
             operations.append(Operation(
                 target, action, policy, ledger_class, owner, source, None,
                 record["hash"] if record else None, detail,
+                tuple(substitution.items()) if substitution and action == "create" else None,
             ))
             continue
 
@@ -261,11 +302,25 @@ def apply_plan(project_root: Path, plan: Plan) -> None:
                     created_directories.append(path.parent)
                 path.parent.mkdir(parents=True, exist_ok=True)
                 staged_path = _staged_name(path)
-                shutil.copyfile(operation.source, staged_path)
-                # A seed carries no recorded hash, so verify against the source.
-                expected = operation.desired_hash or digest_bytes(operation.source.read_bytes())
-                if digest_bytes(staged_path.read_bytes()) != expected:
-                    raise CapabilityArtifactsError(f"Staged copy of {operation.target} does not match the release")
+                if operation.substitution:
+                    body = operation.source.read_bytes()
+                    for placeholder, value in operation.substitution:
+                        body = body.replace(placeholder.encode("utf-8"), value.encode("utf-8"))
+                    staged_path.write_bytes(body)
+                    # A rendered seed cannot match the source hash — that is the
+                    # point of rendering — so the check is that nothing is left
+                    # unsubstituted.
+                    for placeholder in PLACEHOLDERS:
+                        if placeholder in body:
+                            raise CapabilityArtifactsError(
+                                f"{operation.target}: {placeholder.decode('utf-8')} remains after rendering")
+                else:
+                    shutil.copyfile(operation.source, staged_path)
+                    # A seed carries no recorded hash, so verify against the source.
+                    expected = operation.desired_hash or digest_bytes(operation.source.read_bytes())
+                    if digest_bytes(staged_path.read_bytes()) != expected:
+                        raise CapabilityArtifactsError(
+                            f"Staged copy of {operation.target} does not match the release")
                 staged.append((staged_path, path))
 
         for operation in plan.operations:

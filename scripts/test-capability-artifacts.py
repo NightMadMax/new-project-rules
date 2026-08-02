@@ -386,6 +386,32 @@ def _(root: Path, project: Path) -> None:
         pass
 
 
+@scenario("capability added to an existing project")
+def _(root: Path, project: Path) -> None:
+    # A seed template used to be refused here, so a capability could only ever
+    # be chosen while creating the project (№223). The values are read from the
+    # project, not invented: name and schema from its own metadata, date today.
+    (project / ".project-standard.json").write_bytes(
+        json.dumps({"project_name": "demo", "schema_version": 5}).encode("utf-8"))
+    artifacts = release(root, {"USER-RULES.md": "# Правила <PROJECT_NAME>\n".encode("utf-8")},
+                        payload_class="template", policy="seed")
+    plan = module.build_plan(project, "1c", artifacts)
+    note(plan.status == "ready", f"a seed template must be creatable: {plan.status}, {plan.conflicts}")
+    module.apply_plan(project, plan)
+    body = (project / "USER-RULES.md").read_text(encoding="utf-8")
+    note("demo" in body and "<PROJECT_NAME>" not in body, f"the seed was not rendered: {body!r}")
+
+
+@scenario("a project that does not state its schema refuses rather than guesses")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"AGENTS.md": b"schema=<SCHEMA_VERSION>\n"},
+                        payload_class="template", policy="seed")
+    plan = module.build_plan(project, "1c", artifacts)
+    note(plan.status != "ready", "a missing value must not be written as a guess")
+    note(any("SCHEMA_VERSION" in item for item in plan.conflicts),
+         f"the conflict must name the value it lacks: {plan.conflicts}")
+
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)

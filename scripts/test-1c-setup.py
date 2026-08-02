@@ -405,6 +405,13 @@ with tempfile.TemporaryDirectory() as raw:
                                  runner=Runner(), discover=Detector())
     note(summary["status"] == "ready" and steps[0].result == "already",
          f"a human saying 'использовать' is the only evidence there can be: {steps}, {summary}")
+    # …and the prompt must offer that answer, or it is an answer nobody can give
+    # (№222). Detection cannot see a `manual` component, so "not found" is its
+    # normal state rather than a reason to hide the only usable option.
+    manual_component = components.load(human)[0]
+    offered = components.options(manual_component, found=False)
+    note(components.FOUND_OPTIONS[0] in offered,
+         f"a manual component must offer confirmation among its answers: {offered}")
 
     # A component that belongs to another platform is not counted against this
     # one: on macOS the Windows-only tools are not missing, they are irrelevant.

@@ -35,9 +35,15 @@ MANAGED = (
     "configurations/CLAUDE.md",
     "config/1c-mcp-catalog.json",
     ".dev.env.example",
+    "docs/operations/EDT_SETUP.md",
+)
+# The launch profiles ask for values only the user has — the EDT project, the
+# platform installation, the built EPF. Filling them in is the point of the
+# file, and as managed artifacts that edit became drift that stopped the whole
+# capability transaction (the class of №207).
+LAUNCH_SEEDS = (
     "configurations/launch/toolkit.launch",
     "configurations/launch/ordinary-http-debug.launch",
-    "docs/operations/EDT_SETUP.md",
 )
 SKILLS = (
     "develop-1c", "doctor-1c", "setup-1c-environment", "select-1c-project",
@@ -121,7 +127,7 @@ with tempfile.TemporaryDirectory() as raw:
     elif result.returncode != 0:
         failures.append(f"bootstrap failed: {result.stderr.strip()[:300]}")
     else:
-        for relative in MANAGED + SEED:
+        for relative in MANAGED + SEED + LAUNCH_SEEDS:
             note((project / relative).is_file(), f"scaffold is missing {relative}")
 
         # Placeholders belong to seeds, which bootstrap renders; a managed file
