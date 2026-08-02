@@ -41,8 +41,13 @@ MANAGED = (
 # platform installation, the built EPF. Filling them in is the point of the
 # file, and as managed artifacts that edit became drift that stopped the whole
 # capability transaction (the class of №207).
+# Three Toolkit builds exist and three profiles start them, differing in exactly
+# one line. Shipping two described a project that does not exist: the write
+# level is chosen by which build runs, so a missing profile is a missing level.
 LAUNCH_SEEDS = (
     "configurations/launch/toolkit.launch",
+    "configurations/launch/toolkit-write.launch",
+    "configurations/launch/toolkit-privileged.launch",
     "configurations/launch/ordinary-http-debug.launch",
 )
 SKILLS = (
@@ -175,6 +180,15 @@ with tempfile.TemporaryDirectory() as raw:
                  f"scaffold is missing the vendored skill {skill}")
             note((project / f".claude/skills/{skill}/SKILL.md").is_file(),
                  f"scaffold is missing the Claude bridge for vendored {skill}")
+
+        # A profile that starts a client without starting the processor leaves
+        # the Toolkit to be opened by hand, which is what criterion 7 is about.
+        for relative in LAUNCH_SEEDS:
+            body = (project / relative).read_text(encoding="utf-8")
+            if "http-debug" in relative:
+                continue
+            note("ATTR_STARTUP_OPTION" in body and "/Execute" in body,
+                 f"{relative} must start a processor, not only a client")
 
         for name in DEVELOP_REFERENCES:
             note((project / f".agents/skills/develop-1c/references/{name}.md").is_file(),

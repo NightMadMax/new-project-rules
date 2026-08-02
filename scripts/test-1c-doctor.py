@@ -148,6 +148,9 @@ for component, name in (("EDT-MCP", "EDT-MCP"),
          f"{component}: the diagnosis must read the key the catalog declares, not a copy")
 
 # --- the plugin and the launch profile belong to `ordinary` only -------------
+#
+# Three Toolkit builds exist and three profiles start them, all ordinary. A
+# managed base has no build of ours, so no profile row is expected for it.
 
 with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
@@ -157,7 +160,7 @@ with tempfile.TemporaryDirectory() as raw:
     managed = doctor.ordinary_rows(root, doctor.registry_rows(root))
     note(all(row.status == "OK" for row in managed),
          f"for a managed base the absent plugin must not be a finding: {managed}")
-    note(len(managed) == 1, f"a managed-only registry needs no per-base profile rows: {managed}")
+    note(len(managed) == 1, f"a managed base has no Toolkit build of ours to profile: {managed}")
 
     (root / "config/1c-projects.tsv").write_bytes(
         (header + "erp\tdev\tordinary\terp-dev\n").encode("utf-8"))
@@ -169,7 +172,7 @@ with tempfile.TemporaryDirectory() as raw:
     note(ordinary["профиль запуска erp/dev"].status == "SKIP",
          "a launch profile that is not there must be reported")
 
-    (root / "configurations/launch").mkdir(parents=True)
+    (root / "configurations/launch").mkdir(parents=True, exist_ok=True)
     (root / "configurations/launch/erp-dev.launch").write_bytes(b"<launch/>")
     (root / ".dev.env").write_bytes(b"EDT_ORDINARY_PLUGIN=1.2.0\n")
     ordinary = {row.component: row for row in doctor.ordinary_rows(root, doctor.registry_rows(root))}

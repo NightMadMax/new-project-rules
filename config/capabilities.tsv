@@ -20,6 +20,8 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confl
 1c	capabilities/1c/configurations/CLAUDE.template.md	configurations/CLAUDE.md	-	-	-	template	managed
 1c	capabilities/1c/1c-mcp-catalog.template.json	config/1c-mcp-catalog.json	-	-	-	template	managed
 1c	capabilities/1c/launch/toolkit.template.launch	configurations/launch/toolkit.launch	-	-	-	template	seed
+1c	capabilities/1c/launch/toolkit-write.template.launch	configurations/launch/toolkit-write.launch	-	-	-	template	seed
+1c	capabilities/1c/launch/toolkit-privileged.template.launch	configurations/launch/toolkit-privileged.launch	-	-	-	template	seed
 1c	capabilities/1c/launch/ordinary-http-debug.template.launch	configurations/launch/ordinary-http-debug.launch	-	-	-	template	seed
 1c	capabilities/1c/docs/TOOLCHAIN.template.md	docs/operations/TOOLCHAIN.md	Инструменты 1С и их проверенные версии	Operations	Toolchain	template	seed
 1c	capabilities/1c/docs/EDT_SETUP.template.md	docs/operations/EDT_SETUP.md	Порядок настройки EDT и профили запуска	Operations	EDT setup	template	managed
