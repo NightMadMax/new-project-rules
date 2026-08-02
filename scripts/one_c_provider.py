@@ -30,6 +30,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 
 SCRIPTS = Path(__file__).resolve().parent
@@ -105,6 +106,14 @@ def read_manifest(path: Path) -> dict[str, dict]:
         url = entry.get("url", "")
         if not identity or not url:
             raise ProviderError("provider manifest holds a server without an id or a url")
+        # The endpoint is written into client configuration files, so it is
+        # checked as input rather than trusted as data: a quote or a newline in
+        # a URL let the manifest append its own TOML table — and decide which
+        # program the client starts as an MCP server.
+        if not usable_endpoint(url):
+            raise ProviderError(
+                f"provider manifest: url of '{identity}' is not a plain http(s) endpoint: {url[:60]}"
+            )
         tools = entry.get("tools", [])
         if not isinstance(tools, list):
             raise ProviderError(f"provider manifest: tools of '{identity}' must be a list")
@@ -112,9 +121,40 @@ def read_manifest(path: Path) -> dict[str, dict]:
             # Silently keeping the last one would register whichever endpoint
             # happened to be written second.
             raise ProviderError(f"provider manifest describes '{identity}' twice")
+        health = entry.get("health", url)
+        # The health check has to answer about the server being registered. A
+        # health address on another host proves the wrong thing: something is
+        # alive somewhere, and the endpoint that gets written is unverified.
+        if not usable_endpoint(health) or authority(health) != authority(url):
+            raise ProviderError(
+                f"provider manifest: health of '{identity}' does not belong to its url; "
+                "the check would prove nothing about the endpoint being registered"
+            )
         described[identity] = {"url": url, "tools": [name for name in tools if isinstance(name, str)],
-                               "health": entry.get("health", url)}
+                               "health": health}
     return described
+
+
+def authority(url: str) -> str:
+    """Scheme, host and port — what makes two addresses the same server."""
+    parsed = urlsplit(url)
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}"
+
+
+def usable_endpoint(url: object) -> bool:
+    """Whether this string may be handed to a client as an endpoint.
+
+    Two different questions used to be confused: the manifest declared `health`
+    and `url` separately, the check ran against the first and the registration
+    used the second. So a valid health address could escort an arbitrary `url`
+    into `.codex/config.toml`, where the block is assembled by concatenation —
+    one quote and a newline are enough to add a table naming any command.
+    """
+    if not isinstance(url, str) or not url.strip():
+        return False
+    if any(character in url for character in ('"', "'", "\\", "\r", "\n", "\t", " ")):
+        return False
+    return url.split(":", 1)[0].lower() in ("http", "https")
 
 
 def docker(arguments: list[str], runner=None) -> str:

@@ -137,12 +137,20 @@ with tempfile.TemporaryDirectory() as raw:
 
 # --- every key the catalog reads has a declared place to be written ----------
 
-template = (ROOT / "templates/new-project/capabilities/1c/dev.env.template").read_bytes().decode("utf-8")
+# "Shipped" has to mean shipped: the manifest decides what a project gets, and
+# the file that carried these keys was in the checkout but in no row of it — so
+# the diagnosis asked for keys absent from every example the project received.
+manifest = (ROOT / "config/capabilities.tsv").read_bytes().decode("utf-8")
+examples = [row.split("\t") for row in manifest.splitlines()[1:]
+            if row.startswith("1c\t") and ".dev.env" in row.split("\t")[2]]
+note(examples, "no .dev.env example is delivered to the project at all")
+delivered = "\n".join((ROOT / "templates/new-project" / row[1]).read_bytes().decode("utf-8", "replace")
+                      for row in examples)
 guide = (ROOT / "templates/new-project/capabilities/1c/docs/EDT_SETUP.template.md").read_bytes().decode("utf-8")
 for component in shipped:
     if component.scheme == "env":
-        note(f"{component.target}=" in template,
-             f"{component.name}: key {component.target} is read but is in no shipped .dev.env template")
+        note(f"{component.target}=" in delivered,
+             f"{component.name}: key {component.target} is read but is in no delivered .dev.env example")
         note(component.target in guide,
              f"{component.name}: key {component.target} is nowhere in the user documentation")
 

@@ -288,6 +288,16 @@ def render_codex_config(existing: str, projected: list[dict]) -> str:
         if entry["unresolved"]:
             lines.append(f"# {entry['name']}: не подключён — {entry['unresolved']}")
             continue
+        # Second barrier, at the writer. The provider already refuses an
+        # endpoint that is not a plain http(s) URL, but this block is assembled
+        # by concatenation: one quote and a newline in a value would close the
+        # string and open a table naming any command as an MCP server. A writer
+        # that cannot express a value must refuse it, not encode it wrong.
+        if any(character in entry["url"] for character in ('"', "\\", "\r", "\n")):
+            raise ClientError(
+                f"{entry['name']}: endpoint contains a character that cannot appear in TOML: "
+                f"{entry['url'][:60]}"
+            )
         lines.append("")
         lines.append(f"[mcp_servers.{entry['name'].replace('-', '_')}]")
         lines.append(f'url = "{entry["url"]}"')

@@ -13,9 +13,18 @@ PROFILE_NAMES = set(PROFILE_RANKS)
 # config/capability-core.tsv for the shell and PowerShell bootstrap; a test
 # keeps the two in step. The operational half of a 1C project (environments,
 # databases, diagnostics) has no place in a lighter profile.
-CAPABILITY_CORE = {"1c": {"min_profile": "operated", "stack": "1c"}}
+CAPABILITY_CORE = {
+    "1c": {"min_profile": "operated", "stack": "1c"},
+    # These two carry no mandatory stack, but they do carry documents with a
+    # docs section — and a docs section needs `docs/README.md`, which appears at
+    # `software`. Without the minimum here, `minimal` + capability wrote every
+    # file, failed while indexing, and the rollback removed the destination.
+    "jira-confluence": {"min_profile": "software", "stack": "-"},
+    "transcribe": {"min_profile": "software", "stack": "-"},
+}
 CAPABILITY_MIN_PROFILE = {name: core["min_profile"] for name, core in CAPABILITY_CORE.items()}
-CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()}
+CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()
+                             if core["stack"] != "-"}
 CAPABILITY_NAMES = {"jira-confluence", "1c", "transcribe"}
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")

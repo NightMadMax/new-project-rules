@@ -190,9 +190,17 @@ jobs:
           ref: 247597bd9bd18b21d55eddf38bd0ed846d063b74
           path: .external/best-practices
           persist-credentials: false
+      # `bash` on every platform, including Windows: the default there is
+      # `pwsh -command`, which returns the code of the last line only. The
+      # contract check could fail and the job stay green — and this job is a
+      # required check, so branch protection would rest on a step that cannot
+      # go red. The same trap is worked around with an explicit $LASTEXITCODE
+      # loop in the powershell job above; here the shell itself fixes it.
       - name: Verify pinned checkout and consumer E2E
+        shell: bash
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
+          set -e
           python scripts/check_best_practices_contract.py --best-practices-root .external/best-practices
           python scripts/test-best-practices-e2e.py --best-practices-root .external/best-practices

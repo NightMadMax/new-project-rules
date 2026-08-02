@@ -163,12 +163,16 @@ class ValidatorTests(unittest.TestCase):
         self.assertIn("metadata.schema", finding_codes(findings))
 
     def test_capability_release_record_is_validated(self):
-        project = self.make_project("minimal")
+        # `software`, not `minimal`: a capability whose artifacts declare a docs
+        # section needs `docs/README.md`, so the core raises the profile. On
+        # `minimal` the metadata would be invalid for that reason alone, and this
+        # test is about the release record.
+        project = self.make_project("software")
         path = project / ".project-standard.json"
         version = validator.load_standard_version(ROOT)
         migrations = [row.migration_id for row in validator.migration_planner.read_migrations(ROOT, version) if row.target == "project"]
         metadata = validator.project_metadata.build_legacy_metadata(
-            version, "minimal", "NightMadMax/new-project-rules", "0" * 40, migrations,
+            version, "software", "NightMadMax/new-project-rules", "0" * 40, migrations,
         )
         metadata["capabilities"] = ["jira-confluence"]
         metadata["capability_releases"] = {"jira-confluence": {"version": "1.0", "release_id": "0" * 64}}
