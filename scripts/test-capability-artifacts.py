@@ -471,6 +471,50 @@ def _(root: Path, project: Path) -> None:
          "the ledger recorded an install that was rolled back")
 
 
+# --- what the install writes into files it does not own ---------------------
+
+install_spec = importlib.util.spec_from_file_location("capability_install", SCRIPTS / "capability_install.py")
+assert install_spec and install_spec.loader
+install = importlib.util.module_from_spec(install_spec)
+sys.modules["capability_install"] = install
+install_spec.loader.exec_module(install)
+
+ROW = {"destination": "docs/ops/A.md", "root_purpose": "-", "docs_section": "Ops", "docs_label": "A"}
+ROOT_ROW = {"destination": "A.md", "root_purpose": "Назначение", "docs_section": "-", "docs_label": "-"}
+
+note(install.docs_index_document("# Docs\n\n## Ops\n\n- [[docs/ops/A|A]]\n", [ROW]) is None,
+     "an entry that is already there must not be added twice")
+note(install.index_document("# Index\n\n| [[A|A.md]] | x |\n", [ROOT_ROW]) is None,
+     "a root document already linked must not be listed twice")
+
+into_section = install.docs_index_document("# Docs\n\n## Ops\n\n- [[docs/ops/B|B]]\n\n## Other\n\n- [[c|c]]\n", [ROW])
+note(into_section.count("## Ops") == 1, f"a second heading must not be created: {into_section!r}")
+note(into_section.index("docs/ops/A") < into_section.index("## Other"),
+     f"the entry must land inside its own section: {into_section!r}")
+
+new_section = install.docs_index_document("# Docs\n\n## Other\n\n- [[c|c]]\n", [ROW])
+note("## Ops" in new_section and new_section.endswith("\n"),
+     f"a missing section must be created: {new_section!r}")
+
+# These files belong to the project. A project created on Windows holds CRLF,
+# and adding one line is not a reason to re-end every other one.
+crlf = install.docs_index_document("# Docs\r\n\r\n## Ops\r\n\r\n- [[docs/ops/B|B]]\r\n", [ROW])
+note("\n" not in crlf.replace("\r\n", ""), f"CRLF must survive an inserted entry: {crlf!r}")
+crlf_index = install.index_document("# Index\r\n\r\n| a | b |\r\n", [ROOT_ROW])
+note("\n" not in crlf_index.replace("\r\n", ""), f"CRLF must survive an appended row: {crlf_index!r}")
+
+# A declined stack is a decision the user already made; the install reports it
+# instead of overruling it.
+try:
+    install.practices_document({"preferences": {"global": "ask", "sections": {"1c": "optout"}}}, "1c")
+    failures.append("a declined practice stack must block the install")
+except install.InstallError:
+    pass
+connected = install.practices_document({"preferences": {"global": "ask", "sections": {}}}, "1c")
+note(connected is not None and b'"1c": "ask"' in connected,
+     f"a missing stack must be connected as 'ask': {connected!r}")
+
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)

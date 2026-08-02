@@ -31,6 +31,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # The Windows console is not UTF-8 by default, and a plan names paths and
+    # explains itself. Without this the tool can die on its own report.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, "reconfigure"):
+            stream.reconfigure(encoding="utf-8", errors="replace")
+
     args = build_parser().parse_args(argv)
     project = Path(args.project).resolve()
     contract = Path(args.contract_root).resolve()

@@ -78,8 +78,19 @@ def link_target(destination: str) -> str:
     return destination[:-3] if destination.endswith(".md") else destination
 
 
+def newline_of(text: str) -> str:
+    """The line ending the file already uses.
+
+    These files belong to the project, and adding a line is not a reason to
+    rewrite every other one: a project created on Windows may hold CRLF, and a
+    whole-file re-ending would read as a change nobody made.
+    """
+    return "\r\n" if "\r\n" in text else "\n"
+
+
 def index_document(current: str, rows: list[dict[str, str]]) -> str | None:
     """`INDEX.md` with the capability's root documents listed, or None if unchanged."""
+    end = newline_of(current)
     added = []
     for row in rows:
         if row["root_purpose"] == "-":
@@ -87,10 +98,10 @@ def index_document(current: str, rows: list[dict[str, str]]) -> str | None:
         link = link_target(row["destination"])
         if f"[[{link}" in current or f"[[{link}" in "".join(added):
             continue
-        added.append(f"| [[{link}|{row['destination']}]] | {row['root_purpose']} |\n")
+        added.append(f"| [[{link}|{row['destination']}]] | {row['root_purpose']} |{end}")
     if not added:
         return None
-    body = current if current.endswith("\n") else current + "\n"
+    body = current if current.endswith(("\n", "\r")) else current + end
     return body + "".join(added)
 
 
@@ -101,6 +112,7 @@ def docs_index_document(current: str, rows: list[dict[str, str]]) -> str | None:
     the same name splits the index, and a reader then trusts whichever half they
     saw first — the rule bootstrap follows, kept identical here.
     """
+    end = newline_of(current)
     text = current
     changed = False
     for row in rows:
@@ -114,19 +126,18 @@ def docs_index_document(current: str, rows: list[dict[str, str]]) -> str | None:
         lines = text.splitlines()
         if heading in lines:
             start = lines.index(heading)
-            end = start + 1
-            while end < len(lines) and not lines[end].startswith("## "):
-                end += 1
+            stop = start + 1
+            while stop < len(lines) and not lines[stop].startswith("## "):
+                stop += 1
             last = start
-            for position in range(start + 1, end):
+            for position in range(start + 1, stop):
                 if lines[position].startswith("- "):
                     last = position
-            insert_at = last + 1 if last > start else start + 2
-            lines.insert(insert_at, entry)
-            text = "\n".join(lines) + "\n"
+            lines.insert(last + 1 if last > start else start + 2, entry)
+            text = end.join(lines) + end
         else:
-            body = text if text.endswith("\n") else text + "\n"
-            text = f"{body}\n{heading}\n\n{entry}\n"
+            body = text if text.endswith(("\n", "\r")) else text + end
+            text = f"{body}{end}{heading}{end}{end}{entry}{end}"
         changed = True
     return text if changed else None
 
