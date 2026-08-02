@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 
@@ -30,6 +31,10 @@ LOCK_TTL_SECONDS = 12 * 60 * 60
 REQUIRED_FIELDS = ("project_id", "environment_id", "server_port", "application_kind",
                    "is_production", "confirmed_by", "write_mode", "created_at")
 WRITE_MODES = ("analysis", "approved-write")
+# How a switch confirmation names the state it read. The words are matched, not
+# guessed: a confirmation that says neither is a confirmation of nothing.
+SWITCH_OFF = "off"
+SWITCH_ON = "on"
 
 
 class SessionError(Exception):
@@ -62,9 +67,25 @@ def identity_of(row: dict) -> str:
     return f"{row['project_id']}/{row['environment_id']}"
 
 
+def switch_state(confirmation: str) -> bool | None:
+    """True when the confirmation says the switch was on, False when off.
+
+    None means it says neither, which is the case worth refusing: a sentence
+    that mentions the switch without naming its state reads like evidence and
+    carries none. Matched on whole words so "off" inside another word does not
+    decide the answer.
+    """
+    words = re.findall(r"[a-z]+", confirmation.lower())
+    said_on = SWITCH_ON in words
+    said_off = SWITCH_OFF in words
+    if said_on == said_off:
+        return None
+    return said_on
+
+
 def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "analysis",
             production_confirmed: bool = False, backup_confirmed: str = "",
-            now: float | None = None) -> dict:
+            switch_confirmed: str = "", now: float | None = None) -> dict:
     """Record a base whose identity has just been proved by a call.
 
     `confirmed_by` is what proved it — the call and what it answered. An empty
@@ -75,6 +96,14 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
     taken — because "there is a backup somewhere" is exactly the belief that
     turns a mistaken write into a lost day. And production is refused outright:
     a confirmation may select a production base for reading, never for writing.
+
+    `switch_confirmed` is what a managed application has instead of a barrier in
+    the artifact. On an ordinary application the mode is the build that runs:
+    a read-only build cannot write, and the hash tells the builds apart. A
+    managed base has one processor and a switch in the Toolkit UI, so the mode
+    is a runtime fact, and the only honest way to know it is to ask. The value
+    records the call and its answer; deriving it from a file would be a guess
+    about state that changes without touching any file.
     """
     if not confirmed_by:
         raise SessionError("a lock needs the call that proved the identity, not a claim")
@@ -91,6 +120,25 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
                 "an approved write needs the backup that was checked — which copy and when; "
                 "'there is a backup' is a belief, not a precondition"
             )
+    if row.get("application_kind") == "managed":
+        if not switch_confirmed:
+            raise SessionError(
+                "a managed base has no read-only build to stand behind: the write switch lives "
+                "in the Toolkit UI, so the lock needs the call that read its state and what it "
+                "answered — for analysis that the switch is off, for an approved write that it is on"
+            )
+        state = switch_state(switch_confirmed)
+        if state is None:
+            raise SessionError(
+                "the switch confirmation must say which state was read; "
+                f"'{switch_confirmed}' names neither {SWITCH_OFF} nor {SWITCH_ON}"
+            )
+        if state != (write_mode == "approved-write"):
+            wanted = "on" if write_mode == "approved-write" else "off"
+            raise SessionError(
+                f"the switch was read as {'on' if state else 'off'}, but {write_mode} needs it {wanted}: "
+                "the mode is what the base is in, not what the lock would like it to be"
+            )
     if row.get("is_production") == "true" and not production_confirmed:
         raise SessionError(
             f"{identity_of(row)} is production: it is never selected implicitly, "
@@ -106,6 +154,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
         "write_mode": write_mode,
         "production_confirmed": bool(production_confirmed),
         "backup_confirmed": backup_confirmed,
+        "switch_confirmed": switch_confirmed,
         "created_at": now if now is not None else time.time(),
     }
     directory = state_directory(root)
@@ -160,6 +209,24 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
             f"{locked} changed its port since it was confirmed "
             f"({lock.get('server_port') or 'none'} → {row.get('server_port') or 'none'}); confirm it again"
         )
+
+    # A managed base carries its mode in the runtime, so a lock without the read
+    # switch state authorises nothing — not even analysis, whose whole claim is
+    # that writing is impossible. A lock written before this rule existed has no
+    # such evidence, and being old is not a reason to skip a precondition.
+    if row.get("application_kind") == "managed":
+        confirmation = lock.get("switch_confirmed", "")
+        state = switch_state(confirmation) if confirmation else None
+        if state is None:
+            raise SessionError(
+                "the lock carries no read of the write switch, and a managed base has no "
+                "read-only build to fall back on; take the lock again naming the call and its answer"
+            )
+        if state != (lock.get("write_mode") == "approved-write"):
+            raise SessionError(
+                f"the switch was read as {'on' if state else 'off'} while the lock is in "
+                f"{lock.get('write_mode')} mode; confirm the base again"
+            )
 
     if write:
         if lock.get("write_mode") != "approved-write":
