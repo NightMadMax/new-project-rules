@@ -40,6 +40,32 @@ class ManifestError(Exception):
     """The capability manifest cannot be read."""
 
 
+def manifest_rows(contract_root: Path, capability: str) -> list[dict[str, str]]:
+    """Every declared row of one capability, columns unchanged.
+
+    `release_artifacts` answers "what is delivered"; the install also has to
+    answer "where is it indexed", and that lives in the same rows.
+    """
+    path = contract_root / MANIFEST
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise ManifestError(f"Cannot read {MANIFEST}: {exc}") from exc
+
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    if tuple(reader.fieldnames or ()) != EXPECTED_FIELDS:
+        raise ManifestError(f"Unexpected header in {MANIFEST}")
+    rows = []
+    for number, row in enumerate(reader, start=2):
+        if None in row or any(value is None for value in row.values()):
+            raise ManifestError(f"{MANIFEST}:{number} does not match the header")
+        if row["capability"] == capability:
+            rows.append(dict(row))
+    if not rows:
+        raise ManifestError(f"No artifacts declared for capability '{capability}'")
+    return rows
+
+
 def release_artifacts(contract_root: Path, capability: str) -> list[tuple[str, Path, str, str]]:
     """Return (target, source, payload_class, policy) for one capability."""
     path = contract_root / MANIFEST

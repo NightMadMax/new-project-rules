@@ -332,6 +332,73 @@ with tempfile.TemporaryDirectory() as raw:
         note(wrong_case_shell.returncode != 0, "shell: capability names must be case-sensitive")
 
 
+# --- a capability can be added after the project exists (№242, №244) --------
+#
+# The tool used to write the files and stop there, so the validator reported the
+# capability as *removed* right after it had been installed, and the only way
+# out was editing metadata by hand. What makes this a test of the scenario and
+# not of the handler is the last line: the project has to still be valid.
+
+with tempfile.TemporaryDirectory() as raw:
+    destination = Path(raw) / "added"
+    result = run_shell(destination, "software")
+    if result is not None and result.returncode == 0:
+        added = subprocess.run(
+            [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
+             "--project", str(destination), "--capability", "jira-confluence", "--apply", "--yes"],
+            capture_output=True, text=True,
+        )
+        note(added.returncode == 0, f"adding a capability must succeed: {added.stderr[-300:]}")
+        if added.returncode == 0:
+            data = metadata_of(destination)
+            note(data["capabilities"] == ["jira-confluence"],
+                 f"the capability was not recorded in metadata: {data['capabilities']}")
+            docs_index = (destination / "docs/README.md").read_text(encoding="utf-8")
+            note("docs/jira/STATUS_MODEL" in docs_index,
+                 "the delivered documents were not linked from docs/README.md")
+            check = subprocess.run(
+                [sys.executable, str(SCRIPTS / "validate-project.py"),
+                 "--root", str(destination), "--report-only"],
+                capture_output=True, text=True,
+            )
+            note("0 error(s)" in check.stdout,
+                 f"a project must stay valid after a capability is added: {check.stdout[-300:]}")
+
+    # A capability whose floor the project does not meet cannot be installed by
+    # copying files: what is missing belongs to the profile.
+    low = Path(raw) / "too-light"
+    result = run_shell(low, "minimal")
+    if result is not None and result.returncode == 0:
+        refused = subprocess.run(
+            [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
+             "--project", str(low), "--capability", "transcribe", "--apply", "--yes"],
+            capture_output=True, text=True,
+        )
+        note(refused.returncode != 0, "a capability below its profile floor must be refused")
+        note("profile" in refused.stderr, f"the refusal must name the profile: {refused.stderr[:200]}")
+        note(not (low / "docs/operations/TRANSCRIBE.md").exists(),
+             "a refused install left files behind")
+
+
+# --- the installed release is recorded (№244) -------------------------------
+
+with tempfile.TemporaryDirectory() as raw:
+    destination = Path(raw) / "release-record"
+    result = run_shell(destination, "minimal", "--preset", "1c")
+    if result is not None and result.returncode == 0:
+        subprocess.run(
+            [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
+             "--project", str(destination), "--capability", "1c", "--apply", "--yes"],
+            capture_output=True, text=True,
+        )
+        passport = json.loads((ROOT / "config/1c-release.json").read_text(encoding="utf-8"))
+        recorded = metadata_of(destination).get("capability_releases", {}).get("1c")
+        note(
+            recorded == {"version": passport["version"], "release_id": passport["release_id"]},
+            f"the installed release must be recorded, got {recorded}",
+        )
+
+
 # --- the ledger is independent evidence of what was installed --------------
 
 with tempfile.TemporaryDirectory() as raw:

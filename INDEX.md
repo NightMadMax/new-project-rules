@@ -121,6 +121,7 @@
 | `scripts/check_skills.py` | Проверка skills по `config/skills.tsv`: canonical-триада и vendored payload по hash |
 | `scripts/artifacts_ledger.py` | Контракт и валидация ledger `.project-standard-artifacts.json` |
 | `scripts/capability_artifacts.py` | Транзакционные план и применение артефактов capability |
+| `scripts/capability_install.py` | Запись capability в metadata, индексы и стек практик проекта |
 | `scripts/presets.py` | Раскрытие preset в профиль, capability и стеки |
 | `scripts/release_manifest.py` | Контракт release capability: паспорт, ledger артефактов, `release_id` |
 | `scripts/build-capability-release.py` | Сборка и проверка release против локального staging |

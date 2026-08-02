@@ -412,6 +412,65 @@ def _(root: Path, project: Path) -> None:
          f"the conflict must name the value it lacks: {plan.conflicts}")
 
 
+# --- the record travels with the files (№242) -------------------------------
+
+
+@scenario("project records ride in the same transaction as the artifacts")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"docs/GUIDE.md": b"guide\n"})
+    plan = module.build_plan(project, "1c", artifacts)
+    plan = module.with_documents(plan, [("INDEX.md", b"# Index\n\n| a | b |\n")])
+    note(plan.status == "ready", f"documents must be work to do: {plan.status}")
+    note("record: 1" in plan.summary(), f"the summary must count records: {plan.summary()}")
+    module.apply_plan(project, plan)
+    note((project / "INDEX.md").read_bytes() == b"# Index\n\n| a | b |\n", "the record was not written")
+    note((project / "docs/GUIDE.md").is_file(), "the artifact was not written")
+    # The project owns these files, so the capability must not claim them.
+    targets = {entry["target"] for entry in ledger_of(project)["artifacts"]}
+    note("INDEX.md" not in targets, f"a project record must not enter the ledger: {targets}")
+
+
+@scenario("a record with nothing to deliver is still an install")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"docs/GUIDE.md": b"guide\n"})
+    module.apply_plan(project, module.build_plan(project, "1c", artifacts))
+    plan = module.build_plan(project, "1c", artifacts)
+    note(plan.status == "up_to_date", f"a second run must be a no-op: {plan.status}")
+    plan = module.with_documents(plan, [(".project-standard.json", b"{}\n")])
+    note(plan.status == "ready",
+         "a capability whose files are in place and whose record is not is not up to date")
+
+
+@scenario("a document that is also an artifact is refused")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"INDEX.md": b"owned\n"})
+    plan = module.build_plan(project, "1c", artifacts)
+    try:
+        module.with_documents(plan, [("INDEX.md", b"other\n")])
+        failures.append("one file cannot be both owned and recorded")
+    except module.CapabilityArtifactsError:
+        pass
+
+
+@scenario("a failing record rolls the artifacts back with it")
+def _(root: Path, project: Path) -> None:
+    artifacts = release(root, {"docs/GUIDE.md": b"guide\n"})
+    plan = module.build_plan(project, "1c", artifacts)
+    # A file where the record expects a directory: the write fails, and the
+    # question is whether the files that already landed come back out.
+    (project / "notes").write_bytes(b"not a directory\n")
+    plan = module.with_documents(plan, [("notes/INDEX.md", b"# Index\n")])
+    try:
+        module.apply_plan(project, plan)
+        failures.append("a record that cannot be written must fail the install")
+    except module.CapabilityArtifactsError:
+        pass
+    note(not (project / "docs/GUIDE.md").exists(),
+         "the artifacts stayed behind after the record failed")
+    note(not (project / module.LEDGER_NAME).exists(),
+         "the ledger recorded an install that was rolled back")
+
+
 if failures:
     for failure in failures:
         print(f"FAIL: {failure}", file=sys.stderr)
