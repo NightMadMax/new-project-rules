@@ -1,0 +1,15 @@
+{
+  "source_path": "openspec/README.md",
+  "decision": "S.10",
+  "reason": "Upstream points the reader at AGENT-INSTALL.md, which this standard routes as provider-only and never delivers: in a created project the link resolves to nothing. A broken pointer in the first line of a delivered README is worse than no pointer, because it tells an agent to go somewhere before doing anything else. The replacement names the owner this standard actually ships, and the anchor is the whole line, so a reworded instruction upstream stops the build for review. The second mention names upstream's installer and its phase, neither of which exists here; a reader following it looks for a process that never runs.",
+  "replacements": [
+    {
+      "find": "> **AI agents:** if you need to install or update project rules, go to [`AGENT-INSTALL.md`](../AGENT-INSTALL.md). This file is a human-oriented overview of the OpenSpec workspace.",
+      "replace": "> **AI agents:** rules are installed and updated by the capability release of this standard, not from inside this folder. This file is a human-oriented overview of the OpenSpec workspace."
+    },
+    {
+      "find": "This folder is bundled by the `1c-rules` installer (see `AGENT-INSTALL.md`,\nphase **Place / Shared OpenSpec scaffold**) so every project that installs\n`1c-rules` starts with a ready-to-use OpenSpec layout.",
+      "replace": "This folder is delivered by the capability release of this standard, so every\nproject that selects the `1c` capability starts with a ready-to-use OpenSpec\nlayout."
+    }
+  ]
+}

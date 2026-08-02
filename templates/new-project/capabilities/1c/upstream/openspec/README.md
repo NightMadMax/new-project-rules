@@ -1,14 +1,14 @@
 # OpenSpec
 
-> **AI agents:** if you need to install or update project rules, go to [`AGENT-INSTALL.md`](../AGENT-INSTALL.md). This file is a human-oriented overview of the OpenSpec workspace.
+> **AI agents:** rules are installed and updated by the capability release of this standard, not from inside this folder. This file is a human-oriented overview of the OpenSpec workspace.
 
 Spec-driven development workspace for this project, structured per the
 [Fission-AI/OpenSpec](https://github.com/Fission-AI/OpenSpec) v1.0+ workflow
 (OPSX, artifact-guided).
 
-This folder is bundled by the `1c-rules` installer (see `AGENT-INSTALL.md`,
-phase **Place / Shared OpenSpec scaffold**) so every project that installs
-`1c-rules` starts with a ready-to-use OpenSpec layout. The installer copies
+This folder is delivered by the capability release of this standard, so every
+project that selects the `1c` capability starts with a ready-to-use OpenSpec
+layout. The installer copies
 files in **skip-if-exists** mode — your existing specs and change proposals
 are never overwritten.
 

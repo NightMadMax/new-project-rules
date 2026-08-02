@@ -143,6 +143,14 @@ def options(component: Component, found: bool) -> list[str]:
     """
     if found:
         return list(FOUND_OPTIONS)
+    # `detect: manual` means detection cannot see this component by design, so
+    # "not found" is its normal state and the only evidence available is the
+    # person in front of the machine. Offering only install-or-skip meant a
+    # required component nobody can detect could never be confirmed, and a fully
+    # configured machine never reached `ready` — while `apply` has always
+    # accepted this answer.
+    if component.scheme == "manual":
+        return [FOUND_OPTIONS[0], *MISSING_OPTIONS[1:]]
     if component.command.strip():
         automatic = f"{MISSING_OPTIONS[0]}: {component.command}"
     else:
