@@ -64,17 +64,28 @@ SPOKEN = [Piece(0.0, 4.0, " Первая фраза "), Piece(4.0, 9.5, "Вто�
 with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
     paths = transcribe.output_paths(root, "Встреча")
-    note(set(paths) == {"transcript", "summary", "detailed"}, f"unexpected outputs: {list(paths)}")
+    note(set(paths) == {"transcript"}, f"unexpected outputs: {list(paths)}")
     note(paths["transcript"].name == "Встреча - transcript.md", f"unexpected name: {paths['transcript'].name}")
     note(paths["transcript"].parent == root / "Transcript" / "Встреча",
          f"unexpected directory: {paths['transcript'].parent}")
+    # The extension follows the chosen format: JSON written into a .md name is a
+    # file no tool opens correctly (№213).
+    for fmt in transcribe.FORMATS:
+        chosen = transcribe.output_paths(root, "Встреча", fmt)["transcript"]
+        note(chosen.suffix == f".{fmt}", f"{fmt}: written as {chosen.name}")
+    try:
+        transcribe.output_paths(root, "Встреча", "docx")
+        note(False, "an unknown format must be refused before anything is written")
+    except transcribe.TranscribeError:
+        pass
     # The documentation of the skill promises exactly these names, and the
     # upstream script wrote different ones — so the promise is checked against
     # the code rather than against a second copy of the promise.
     skill = (SKILL / "SKILL.md").read_bytes().decode("utf-8")
     for pattern in transcribe.OUTPUTS.values():
-        note(pattern.replace("{name}", "<имя>") in skill,
-             f"the skill does not document the name it writes: {pattern}")
+        documented = pattern.replace("{name}", "<имя>").replace("{suffix}", "md")
+        note(documented in skill,
+             f"the skill does not document the name it writes: {documented}")
 
 # --- an empty transcription is a failure, not an empty file (№104) -----------
 

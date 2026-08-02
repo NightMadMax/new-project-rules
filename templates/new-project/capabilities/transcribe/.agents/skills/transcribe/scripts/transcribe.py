@@ -35,11 +35,15 @@ from pathlib import Path
 # The one place the result names are decided. The upstream script wrote Russian
 # names while its own documentation promised English ones — a contract nobody
 # could rely on, in either language.
-OUTPUTS = {
-    "transcript": "{name} - transcript.md",
-    "summary": "{name} - summary.md",
-    "detailed": "{name} - detailed.md",
-}
+# What this script writes, and nothing else. `summary` and `detailed` were
+# listed here and never produced: the script has no summarizer, and the skill
+# says plainly that the AI client writes the summary from the finished
+# transcript. Declaring outputs nobody writes made the contract unusable in the
+# other direction — a caller waiting for three files waits forever.
+#
+# The suffix follows --format, because a JSON document written into a .md name
+# is a file no tool opens correctly.
+OUTPUTS = {"transcript": "{name} - transcript.{suffix}"}
 OUTPUT_DIRECTORY = "Transcript"
 SCREENSHOTS = "screenshots"
 FORMATS = ("md", "txt", "json")
@@ -221,9 +225,12 @@ def write_atomically(files: dict[Path, str]) -> None:
                 staging.unlink()
 
 
-def output_paths(root: Path, name: str) -> dict[str, Path]:
+def output_paths(root: Path, name: str, fmt: str = "md") -> dict[str, Path]:
+    if fmt not in FORMATS:
+        raise TranscribeError(f"неизвестный формат '{fmt}'; допустимы {', '.join(FORMATS)}")
     directory = root / OUTPUT_DIRECTORY / name
-    return {key: directory / pattern.format(name=name) for key, pattern in OUTPUTS.items()}
+    return {key: directory / pattern.format(name=name, suffix=fmt)
+            for key, pattern in OUTPUTS.items()}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -246,7 +253,7 @@ def main(argv: list[str] | None = None) -> int:
     source = Path(arguments.source).expanduser()
     name = source.stem
     root = Path(arguments.output_dir).expanduser().resolve()
-    paths = output_paths(root, name)
+    paths = output_paths(root, name, arguments.format)
     frames_directory = paths["transcript"].parent / SCREENSHOTS
 
     try:

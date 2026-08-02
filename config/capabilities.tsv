@@ -248,3 +248,13 @@ transcribe	capabilities/transcribe/.agents/skills/transcribe/agents/openai.yaml	
 transcribe	capabilities/transcribe/.agents/skills/transcribe/scripts/transcribe.py	.agents/skills/transcribe/scripts/transcribe.py	-	-	-	verbatim	managed
 transcribe	capabilities/transcribe/.claude/skills/transcribe/SKILL.md	.claude/skills/transcribe/SKILL.md	-	-	-	template	managed
 transcribe	capabilities/transcribe/TRANSCRIBE.template.md	docs/operations/TRANSCRIBE.md	Локальная расшифровка записей: зависимости, режимы, границы	Operations	Расшифровка записей	template	seed
+1c	capabilities/1c/.claude/skills/1c-metadata-manage/SKILL.md	.claude/skills/1c-metadata-manage/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/caveman/SKILL.md	.claude/skills/caveman/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/handoff/SKILL.md	.claude/skills/handoff/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/img-grid-analysis/SKILL.md	.claude/skills/img-grid-analysis/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/mcp-1c-tools/SKILL.md	.claude/skills/mcp-1c-tools/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/md-to-docx/SKILL.md	.claude/skills/md-to-docx/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/mermaid-diagrams/SKILL.md	.claude/skills/mermaid-diagrams/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/powershell-windows/SKILL.md	.claude/skills/powershell-windows/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/prompt-enhancer/SKILL.md	.claude/skills/prompt-enhancer/SKILL.md	-	-	-	template	managed
+1c	capabilities/1c/.claude/skills/v8unpack-cf/SKILL.md	.claude/skills/v8unpack-cf/SKILL.md	-	-	-	template	managed
