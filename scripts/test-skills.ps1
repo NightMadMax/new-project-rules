@@ -31,10 +31,22 @@ if ($null -eq $Python) {
 & $Python.Source (Join-Path $PSScriptRoot "check_skills.py") --root $Root
 if ($LASTEXITCODE -ne 0) { $Failures++ }
 
+# The same four literals the shell pair checks. One of them was checked here and
+# three were not, so the PowerShell verdict could be green on a file the shell
+# verdict rejected — a parity test that does not test parity.
 $reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
 Test-RequiredLiterals -File $reflectSkill -Literals @(
-    'instruction changes apply to new processes/sessions'
+    'instruction changes apply to new processes/sessions',
+    'файл можно изменить в текущей',
+    'новым процессам/сессиям',
+    'перебором нескольких неудачных вариантов'
 )
+# The retired prohibition must stay retired: its return would quietly reinstate
+# a rule the project decided against.
+if ((Get-Content -Raw -Encoding UTF8 $reflectSkill).Contains('не в середине')) {
+    Write-Host "FAIL: reflect-and-record retains the retired mid-session edit prohibition"
+    $Failures++
+}
 
 $requiredHeadings = @("## Knowledge Promotion", "## Defect Tracking")
 $sharedRuleLiterals = @(
@@ -65,6 +77,12 @@ foreach ($file in @(
 }
 
 $agentsTemplate = Join-Path $Root "templates/new-project/AGENTS.template.md"
+# A hardcoded schema in the managed marker ships a template that claims a
+# version it was not rendered for.
+if (-not (Get-Content -Raw -Encoding UTF8 $agentsTemplate).Contains('new-project-rules:begin schema=<SCHEMA_VERSION>')) {
+    Write-Host "FAIL: AGENTS.template.md managed marker must use the <SCHEMA_VERSION> placeholder, not a hardcoded schema"
+    $Failures++
+}
 foreach ($file in @((Join-Path $Root "AGENTS.md"), $agentsTemplate)) {
     $text = Get-Content -Raw -Encoding UTF8 $file
     $compactCount = ([regex]::Matches($text, [regex]::Escape('project_doc_max_bytes'))).Count
