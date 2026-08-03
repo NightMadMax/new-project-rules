@@ -10,7 +10,7 @@ import re
 import shutil
 import subprocess
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Sequence
+from typing import Dict, List, Mapping, Optional, Sequence, Tuple
 
 
 SHA_RE = re.compile(r"^[0-9a-f]{40}$")
@@ -203,18 +203,31 @@ def verify_checkout(data: Mapping[str, object], root: Path) -> List[str]:
     return problems
 
 
-def verify_latest_commit(data: Mapping[str, object], latest_commit: str) -> List[str]:
+def verify_latest_commit(data: Mapping[str, object], latest_commit: str) -> Tuple[List[str], List[str]]:
+    """Problems and notes, kept apart.
+
+    A pin that is behind main is not a fault: refreshing it is a deliberate
+    maintainer act, and this repository already decided that class for its other
+    upstream — "a red build here would teach people to ignore it". Worse, the
+    two repositories pin *each other*, so treating behind-main as a failure
+    makes them unable to be current at the same time: refreshing either pin
+    advances that repository's main and puts the other one behind. The loop has
+    no end, and the report is red throughout it.
+
+    A pin that does not resolve, or whose interface files moved under it, stays
+    an error — that is the failure this watcher exists for.
+    """
     problems = validate_contract(data)
     if problems:
-        return problems
+        return problems, []
     if not SHA_RE.fullmatch(latest_commit):
-        return ["Best Practices main did not resolve to a full commit SHA"]
+        return ["Best Practices main did not resolve to a full commit SHA"], []
     if latest_commit != data["source_commit"]:
-        return [
+        return [], [
             f"Best Practices pin {data['source_commit']} is behind main {latest_commit}; "
-            "review the BP diff and update the pin explicitly"
+            "review the BP diff and update the pin explicitly when it matters"
         ]
-    return []
+    return [], []
 
 
 def resolve_remote_main(data: Mapping[str, object]) -> str:
@@ -256,13 +269,18 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         else validate_contract(data)
     )
     problems.extend(problem for problem in checkout_problems if problem not in problems)
+    notes: List[str] = []
     if args.check_latest and not problems:
         try:
             latest_commit = resolve_remote_main(data)
         except RuntimeError as exc:
             problems.append(str(exc))
         else:
-            problems.extend(verify_latest_commit(data, latest_commit))
+            drift_problems, drift_notes = verify_latest_commit(data, latest_commit)
+            problems.extend(drift_problems)
+            notes.extend(drift_notes)
+    for note in notes:
+        print(f"NOTE: {note}")
     for problem in problems:
         print(f"ERROR: {problem}")
     if problems:
