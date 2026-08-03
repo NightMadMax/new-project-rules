@@ -441,6 +441,47 @@ def _(root: Path, project: Path) -> None:
          "a capability whose files are in place and whose record is not is not up to date")
 
 
+@scenario("a project record edited after planning stops the apply")
+def _(root: Path, project: Path) -> None:
+    # These bodies are built *from* the current file — one line added to an
+    # index — so applying an old plan silently discards whatever the user wrote
+    # in between. Capability files stop the transaction on exactly this; the
+    # records they ride with did not.
+    artifacts = release(root, {"docs/GUIDE.md": b"guide\n"})
+    (project / "INDEX.md").write_bytes(b"# Index\n\n| a | b |\n")
+    plan = module.build_plan(project, "1c", artifacts)
+    plan = module.with_documents(plan, [("INDEX.md", b"# Index\n\n| a | b |\n| new | row |\n")], project)
+    (project / "INDEX.md").write_bytes(b"# Index\n\n| a | b |\n| the user wrote this |\n")
+    try:
+        module.apply_plan(project, plan)
+        failures.append("a record edited between plan and apply must not be overwritten")
+    except module.CapabilityArtifactsError as error:
+        note("changed after planning" in str(error), f"the refusal must say why: {error}")
+    note(b"the user wrote this" in (project / "INDEX.md").read_bytes(),
+         "the edit must survive the refused apply")
+    note(not (project / "docs/GUIDE.md").exists(),
+         "a refused apply must leave no artifacts behind")
+
+
+@scenario("adopting a file that changed after planning is refused")
+def _(root: Path, project: Path) -> None:
+    # Adopt records the release hash for a file bootstrap already delivered.
+    # Without a precondition it recorded that hash for whatever the file had
+    # become in between — a state the project was never in.
+    artifacts = release(root, {"docs/GUIDE.md": b"guide\n"})
+    (project / "docs").mkdir(parents=True, exist_ok=True)
+    (project / "docs/GUIDE.md").write_bytes(b"guide\n")
+    plan = module.build_plan(project, "1c", artifacts)
+    note(any(operation.action == "adopt" for operation in plan.operations),
+         f"matching bytes must plan as adopt: {[o.action for o in plan.operations]}")
+    (project / "docs/GUIDE.md").write_bytes(b"edited by the user\n")
+    try:
+        module.apply_plan(project, plan)
+        failures.append("adopting a file that changed after planning must be refused")
+    except module.CapabilityArtifactsError as error:
+        note("changed after planning" in str(error), f"the refusal must say why: {error}")
+
+
 @scenario("a document that is also an artifact is refused")
 def _(root: Path, project: Path) -> None:
     artifacts = release(root, {"INDEX.md": b"owned\n"})
@@ -502,6 +543,32 @@ crlf = install.docs_index_document("# Docs\r\n\r\n## Ops\r\n\r\n- [[docs/ops/B|B
 note("\n" not in crlf.replace("\r\n", ""), f"CRLF must survive an inserted entry: {crlf!r}")
 crlf_index = install.index_document("# Index\r\n\r\n| a | b |\r\n", [ROOT_ROW])
 note("\n" not in crlf_index.replace("\r\n", ""), f"CRLF must survive an appended row: {crlf_index!r}")
+
+# Presence was tested with the bare prefix `[[<link>`, so every link counted as
+# present once a longer one starting with it was there. `DEFECTS_ARCHIVE` hid
+# `DEFECTS` from both the installer and the validator, which asked the same
+# wrong question — the entry was never added and never reported missing.
+prefixed = install.docs_index_document(
+    "# Docs\n\n## Ops\n\n- [[docs/ops/A_ARCHIVE|Архив]]\n", [ROW])
+note(prefixed is not None and "[[docs/ops/A|A]]" in prefixed,
+     f"a longer link must not hide a shorter one: {prefixed!r}")
+prefixed_index = install.index_document("# Index\n\n| [[A_ARCHIVE|x]] | y |\n", [ROOT_ROW])
+note(prefixed_index is not None and "[[A|A.md]]" in prefixed_index,
+     f"a longer root link must not hide a shorter one: {prefixed_index!r}")
+
+# A file mixing endings must keep each line as it was: rejoining with one
+# chosen ending turned a single CRLF line into a whole-file rewrite.
+mixed = install.docs_index_document("# Docs\r\n\n## Ops\n\n- [[docs/ops/B|B]]\n", [ROW])
+note(mixed.startswith("# Docs\r\n\n## Ops\n"),
+     f"lines that were not touched must keep their endings: {mixed!r}")
+# splitlines() also treats a form feed as a break and drops it on rejoin.
+form_feed = install.docs_index_document(
+    "# Docs\n\n## Ops\n\n- [[docs/ops/B|B]]\n\x0cbreak\n", [ROW])
+note("\x0c" in form_feed, f"a form feed must survive an inserted entry: {form_feed!r}")
+
+note(install.docs_index_document(
+        "# Docs\n\n## Ops\n\n- [[docs/ops/A_ARCHIVE|Архив]]\n- [[docs/ops/A|A]]\n", [ROW]) is None,
+     "adding the same entry twice must still be a no-op")
 
 # A declined stack is a decision the user already made; the install reports it
 # instead of overruling it.

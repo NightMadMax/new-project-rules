@@ -52,7 +52,7 @@ def main(argv: list[str] | None = None) -> int:
         # applied is what lets a project that cannot host this capability be
         # refused while nothing has been written yet.
         plan = capability_artifacts.with_documents(
-            plan, capability_install.documents(project, contract, args.capability))
+            plan, capability_install.documents(project, contract, args.capability), project)
     except (capability_artifacts.CapabilityArtifactsError, support.ManifestError,
             capability_install.InstallError) as error:
         print(f"Cannot plan: {error}", file=sys.stderr)

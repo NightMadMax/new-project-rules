@@ -92,7 +92,12 @@ def read(root: Path, relative: str) -> str:
     if not path.is_file():
         return ""
     try:
-        return path.read_bytes().decode("utf-8", errors="replace")
+        # `utf-8-sig`, like every other reader of these files: the registry is
+        # edited in a spreadsheet, which writes a BOM. Decoding without it left
+        # the mark on the first header cell, so `project_id` was a key nobody
+        # looked up and every base in the report lost its name while the
+        # registry itself was pronounced fine.
+        return path.read_bytes().decode("utf-8-sig", errors="replace")
     except OSError:
         return ""
 
@@ -110,10 +115,12 @@ def mask(line: str) -> str:
     if not separator:
         # No key, no value: nothing to mask and nothing to disclose.
         return line
-    secret = (any(marker in name.lower() for marker in SECRET_NAME_MARKERS)
-              or any(marker in value.lower() for marker in SECRET_VALUE_MARKERS))
-    if not secret:
-        return line
+    # Every value, not just the ones a marker list recognised. The report says
+    # values are not read, and the previous rule made that true only of keys
+    # named like credentials: an EDT workspace and the provider manifest went
+    # out as full machine paths — the same paths the rest of the diagnosis takes
+    # care to hide. A marker list can only ever be behind the names a project
+    # invents.
     if not value.strip():
         return f"{name.strip()}: не задан"
     return f"{name.strip()}: {MASK}"
@@ -149,10 +156,17 @@ def registry_rows(root: Path) -> list[dict[str, str]]:
         return []
     header = lines[0].split("\t")
     rows = []
-    for line in lines[1:]:
+    for number, line in enumerate(lines[1:], start=2):
         values = line.split("\t")
         if len(values) == len(header):
             rows.append(dict(zip(header, values)))
+        else:
+            # A dropped row used to disappear from the diagnosis in silence,
+            # which reads as "this base is fine" rather than "this base was not
+            # looked at". The row is still not guessed at — it is named.
+            rows.append({"project_id": f"<строка {number}>", "environment_id": "?",
+                         "status": "unreadable",
+                         "notes": f"в строке {len(values)} колонок вместо {len(header)}"})
     return rows
 
 

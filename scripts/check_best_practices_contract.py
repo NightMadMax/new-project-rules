@@ -122,7 +122,7 @@ def verify_npr_decision(data: Mapping[str, object], root: Path) -> List[str]:
 
 def _git(root: Path, *args: str) -> str:
     result = subprocess.run(
-        ["git", *args], cwd=root, check=True, capture_output=True, text=True
+        ["git", *args], cwd=root, check=True, capture_output=True, text=True, encoding="utf-8"
     )
     return result.stdout.strip()
 
@@ -225,7 +225,7 @@ def resolve_remote_main(data: Mapping[str, object]) -> str:
     result = subprocess.run(
         [git, "ls-remote", "--exit-code", f"https://github.com/{repository}.git", "refs/heads/main"],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8",
         timeout=30,
     )
     if result.returncode != 0 or not result.stdout.strip():

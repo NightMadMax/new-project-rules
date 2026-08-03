@@ -29,7 +29,7 @@ def remote_head(repository: str) -> str | None:
     try:
         result = subprocess.run(
             ["git", "ls-remote", f"https://github.com/{repository}.git", "HEAD"],
-            capture_output=True, text=True, timeout=60,
+            capture_output=True, text=True, encoding="utf-8", timeout=60,
             env={**os.environ, "GIT_TERMINAL_PROMPT": "0"},
         )
     except (subprocess.TimeoutExpired, OSError):

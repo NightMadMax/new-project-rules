@@ -26,7 +26,7 @@ def read_base(root: Path, identity: str) -> dict[str, str]:
     path = root / REGISTRY
     if not path.is_file():
         raise SourceError(f"{REGISTRY} not found in {root}")
-    rows = list(csv.DictReader(io.StringIO(path.read_bytes().decode("utf-8-sig")), delimiter="\t"))
+    rows = list(csv.DictReader(io.StringIO(path.read_bytes().decode("utf-8-sig")), delimiter="\t", quoting=csv.QUOTE_NONE))
     for row in rows:
         if f"{row.get('project_id')}/{row.get('environment_id')}" == identity:
             return row

@@ -2,7 +2,7 @@
 type: architecture
 status: active
 owner: project
-last_verified: 2026-07-07
+last_verified: 2026-08-03
 source_of_truth: repository
 related:
   - "[[PROJECT]]"

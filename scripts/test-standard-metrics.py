@@ -7,7 +7,7 @@ class MetricsTests(unittest.TestCase):
   path=Path(root)/"p"/"docs/quality"; path.mkdir(parents=True)
   (path/"STANDARD_ADOPTION.json").write_text('{"schema_version":1,"created_at":"2026-07-10","first_green_at":null,"first_green_self_service":null,"interventions":[]}')
   return path.parents[1]
- def invoke(self,*args): return subprocess.run([sys.executable,str(SCRIPT),*args],capture_output=True,text=True)
+ def invoke(self,*args): return subprocess.run([sys.executable,str(SCRIPT),*args],capture_output=True,text=True, encoding="utf-8")
  def test_records_and_reports(self):
   with tempfile.TemporaryDirectory() as root:
    p=self.project(root); self.assertEqual(self.invoke("--project",str(p),"--record-first-green","--self-service","true").returncode,0)

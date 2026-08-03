@@ -42,6 +42,7 @@
 | [[docs/guides/VALIDATE_AND_DIAGNOSE|VALIDATE_AND_DIAGNOSE.md]] | Read-only validator, doctor и exit codes |
 | [[docs/guides/SYNC_GLOBAL_AGENTS|SYNC_GLOBAL_AGENTS.md]] | Managed-block states, secret-safe check и diff глобальных правил |
 | [[docs/guides/PLAN_MIGRATIONS|PLAN_MIGRATIONS.md]] | Read-only project/global migration plans и preconditions |
+| [[docs/guides/COMPRESS_PROJECT|COMPRESS_PROJECT.md]] | Три уровня компрессии проекта: механическая, консолидация docs, память агентов |
 | [[docs/architecture/ARCHITECTURE|ARCHITECTURE.md]] | Архитектура переносимого набора |
 | [[docs/architecture/BEST_PRACTICES_CONTRACT|BEST_PRACTICES_CONTRACT.md]] | Pinned compatibility contract NPR ↔ Best Practices и процедура обновления |
 | [[docs/architecture/PROJECT_STANDARD_SCHEMA|PROJECT_STANDARD_SCHEMA.md]] | Schema `.project-standard.json` и provenance invariants |
@@ -61,6 +62,7 @@
 | [[docs/research/AGENT_COMMUNITY_PRACTICES_2026|AGENT_COMMUNITY_PRACTICES_2026.md]] | Community-практики Claude Code/Codex и кандидаты на внедрение |
 | [[docs/research/PROJECT_AUDIT_2026-07-03|PROJECT_AUDIT_2026-07-03.md]] | Повторный глубокий аудит: adversarial standardization checks, CI, portability и readiness |
 | [[docs/research/BEST_PRACTICES_INTEGRATION|BEST_PRACTICES_INTEGRATION.md]] | Решения по интеграции базы Best Practices в create-new-project |
+| [[docs/research/PROJECT_COMPRESSION_PLAN|PROJECT_COMPRESSION_PLAN.md]] | План компрессии проекта: уровни, пороги и что выполняет агент |
 | [[docs/research/NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06|NPR_BP_KNOWLEDGE_ARCHITECTURE_2026-07-06.md]] | Архитектура знаний между new-project-rules и Best Practices: дублирование, маршрутизация, SSOT |
 | [[docs/research/GENERAL_TRANSCRIBE_SKILL_PLAN|GENERAL_TRANSCRIBE_SKILL_PLAN.md]] | План общего skill transcribe (реализован): локальный Whisper, outputs, зависимости и проверки |
 | [[docs/research/archive/README|Research archive]] | Устаревшие аудиты и завершённые исследования NPR ↔ Best Practices |
@@ -69,6 +71,7 @@
 | [[docs/reviews/REVIEW_2026-08-01_NPR|REVIEW_2026-08-01_NPR.md]] | Ревью всего NPR пятью независимыми срезами |
 | [[docs/reviews/REVIEW_2026-08-02_ARCHITECTURE|REVIEW_2026-08-02_ARCHITECTURE.md]] | Архитектурное ревью: проверка утверждений стандарта против кода |
 | [[docs/reviews/CODE_REVIEW_1c_2026-08-02|CODE_REVIEW_1c_2026-08-02.md]] | Код-ревью работы по дефектам №240 и №241: профили запуска, обработки, session lock |
+| [[docs/reviews/REVIEW_2026-08-03_AUDIT|REVIEW_2026-08-03_AUDIT.md]] | Харвест и код-ревью стандарта и Best Practices: дефекты №258–281 и решения о границах |
 | [[docs/reviews/archive/README|Review archive]] | Промежуточные review завершённых фаз NPR ↔ Best Practices |
 | [[docs/quality/TESTING|TESTING.md]] | Матрица и команды проверки скриптов |
 | [[docs/quality/READINESS_1C\|docs/quality/READINESS_1C.md]] | Матрица готовности capability `1c`: критерий, статус, доказательство |

@@ -324,7 +324,12 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[ERROR] {error}", file=sys.stderr)
         return 2
     print(render(rows))
-    # A provider that is not deployed yet is not a broken project.
+    # A provider that is not deployed yet is not a broken project, so absence
+    # stays 0. A deployed provider whose every role answers FAIL is a different
+    # answer, and returning 0 for both made the exit code unable to tell them
+    # apart — a caller checking it was told "fine" about a failing health check.
+    if rows and all(row.status == "FAIL" for row in rows):
+        return 1
     return 0
 
 

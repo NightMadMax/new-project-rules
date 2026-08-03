@@ -404,7 +404,7 @@ with tempfile.TemporaryDirectory() as raw:
     project = make_project(Path(raw), (base_row(),))
     report = subprocess.run(
         [sys.executable, str(SCRIPTS / "render-1c-clients.py"), "--root", str(project)],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
     note(report.returncode == 1, "a pending change must be a non-zero exit")
     note(not (project / clients.MCP_CONFIG).exists(), "a report must not write anything")

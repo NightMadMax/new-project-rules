@@ -19,6 +19,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      # TOOLS.md and MIN_PYTHON declare 3.9 as the supported minimum, and until
+      # this step every job ran whatever the runner shipped (3.12+). A construct
+      # newer than the declared floor would have passed CI and failed only on a
+      # user's machine. The other jobs deliberately keep the runner default, so
+      # both ends of the supported range are exercised.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.9"
       - name: Verify immutable action pins
         run: python3 scripts/check-action-pins.py
       - name: Lint shell scripts

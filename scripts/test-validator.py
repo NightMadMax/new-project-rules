@@ -103,7 +103,7 @@ class ValidatorTests(unittest.TestCase):
                 "sh", str(ROOT / "scripts" / "bootstrap-new-project.sh"),
                 str(project), "Validator Integration", "operated",
             ]
-        result = subprocess.run(command, env=env, capture_output=True, text=True)
+        result = subprocess.run(command, env=env, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         _, profile, findings = self.validate_project(project)
         self.assertEqual(profile, "operated")
@@ -280,7 +280,7 @@ class ValidatorTests(unittest.TestCase):
         env = os.environ.copy()
         env.update({"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         result = subprocess.run(
-            ["git", "-C", str(project), "init"], env=env, capture_output=True, text=True,
+            ["git", "-C", str(project), "init"], env=env, capture_output=True, text=True, encoding="utf-8",
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

@@ -174,7 +174,7 @@ def load_artifacts(contract_root: Path) -> list[Artifact]:
     path = contract_root / "config" / "profiles.tsv"
     try:
         with path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter="\t")
+            reader = csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
             if tuple(reader.fieldnames or ()) != PROFILE_FIELDS:
                 raise StandardizationConfigError(f"Unexpected profiles.tsv header: {path}")
             rows = [Artifact(**row) for row in reader]
@@ -201,10 +201,10 @@ def inspect_git(path: Path) -> GitState:
     git = shutil.which("git")
     if not git:
         return GitState(False, False, False, "Git is unavailable")
-    top = subprocess.run([git, "-C", str(path), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    top = subprocess.run([git, "-C", str(path), "rev-parse", "--show-toplevel"], capture_output=True, text=True, encoding="utf-8")
     if top.returncode != 0 or Path(top.stdout.strip()).resolve() != path.resolve():
         return GitState(True, False, False, "Target is not a Git repository root")
-    status = subprocess.run([git, "-C", str(path), "status", "--porcelain"], capture_output=True, text=True)
+    status = subprocess.run([git, "-C", str(path), "status", "--porcelain"], capture_output=True, text=True, encoding="utf-8")
     if status.returncode != 0:
         return GitState(True, True, False, "Cannot inspect Git status")
     clean = not status.stdout.strip()
@@ -871,6 +871,21 @@ def build_rebootstrap_plan(
     )
 
 
+def display_path(path: Path, root: Path) -> str:
+    """A plan path as the reader should see it.
+
+    A re-bootstrap plan writes under `--destination`, which the contract puts
+    *outside* the assessed root, so `relative_to(root)` raises there. The text
+    renderer handled that and the JSON renderer did not, and the mode whose whole
+    purpose is to be read by another program was the one that crashed. One
+    helper, so the two renderings cannot disagree again.
+    """
+    try:
+        return path.relative_to(root).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def format_apply_plan(plan: ApplyPlan, root: Path) -> str:
     lines = [
         f"status={plan.status}",
@@ -888,11 +903,7 @@ def format_apply_plan(plan: ApplyPlan, root: Path) -> str:
     if plan.files:
         lines.append("planned_changes:")
         for file in plan.files:
-            try:
-                relative = file.path.relative_to(root).as_posix()
-            except ValueError:
-                relative = str(file.path)
-            lines.append(f"- {file.action}: {relative}")
+            lines.append(f"- {file.action}: {display_path(file.path, root)}")
     if plan.fingerprint:
         lines.append(f"fingerprint={plan.fingerprint}")
     lines.append("No files were changed.")
@@ -959,11 +970,21 @@ def git_commit_all(root: Path, message: str) -> bool:
     git = shutil.which("git")
     if not git or not git_identity_available(root):
         return False
-    subprocess.run([git, "-C", str(root), "add", "-A"], check=True, capture_output=True, text=True)
-    status = subprocess.run([git, "-C", str(root), "status", "--porcelain"], capture_output=True, text=True, check=True)
-    if not status.stdout.strip():
-        return True
-    subprocess.run([git, "-C", str(root), "commit", "-m", message], check=True, capture_output=True, text=True)
+    # This runs after the files have been copied, so a git failure here is a
+    # step that did not happen, not a run that did not happen. It used to leave
+    # by CalledProcessError, which main does not catch: the user saw a traceback
+    # instead of a report naming the state their project was already in.
+    try:
+        subprocess.run([git, "-C", str(root), "add", "-A"], check=True, capture_output=True, text=True, encoding="utf-8")
+        status = subprocess.run([git, "-C", str(root), "status", "--porcelain"], capture_output=True, text=True, encoding="utf-8", check=True)
+        if not status.stdout.strip():
+            return True
+        subprocess.run([git, "-C", str(root), "commit", "-m", message], check=True, capture_output=True, text=True, encoding="utf-8")
+    except subprocess.CalledProcessError as exc:
+        detail = (exc.stderr or exc.stdout or "").strip().splitlines()
+        raise StandardizationApplyError(
+            "the files were written, but Git refused the commit: "
+            + (detail[-1] if detail else f"git exited {exc.returncode}")) from exc
     return True
 
 
@@ -984,7 +1005,7 @@ def bootstrap_project(contract_root: Path, destination: Path, project_name: str,
             project_name,
             profile,
         ]
-    result = subprocess.run(command, capture_output=True, text=True)
+    result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
     if result.returncode != 0:
         raise StandardizationApplyError(
             f"Bootstrap failed for {destination}:\n{result.stdout}{result.stderr}"
@@ -1127,7 +1148,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     "blockers": list(plan.blockers),
                     "files": [
                         {
-                            "path": file.path.relative_to(Path(args.root).resolve()).as_posix(),
+                            "path": display_path(file.path, Path(args.root).resolve()),
                             "action": file.action,
                         }
                         for file in plan.files

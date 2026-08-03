@@ -108,7 +108,7 @@ def bootstrap(destination: Path) -> subprocess.CompletedProcess | None:
     return subprocess.run(
         ["sh", (SCRIPTS / "bootstrap-new-project.sh").as_posix(),
          destination.as_posix(), "demo", "minimal", "--preset", "1c"],
-        capture_output=True, text=True, env={**os.environ, **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**os.environ, **GIT_IDENTITY},
     )
 
 
@@ -250,7 +250,7 @@ with tempfile.TemporaryDirectory() as raw:
 
         report = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(project), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("0 error(s)" in report.stdout, f"a fresh 1C project must validate: {report.stdout[-300:]}")
 
@@ -260,7 +260,7 @@ with tempfile.TemporaryDirectory() as raw:
             registry_rows(base_row(server_port="9000")).encode("utf-8"))
         report = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(project), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("registry.port" in report.stdout, f"the validator must check the registry: {report.stdout[-300:]}")
 

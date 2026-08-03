@@ -143,7 +143,7 @@ def git_listed_files(root: Path) -> Optional[list[Path]]:
         listing = subprocess.run(
             [git, "-C", str(root), "ls-files", "-z", "--cached", "--others", "--exclude-standard"],
             capture_output=True,
-            text=True,
+            text=True, encoding="utf-8",
         )
     except OSError:
         return None
@@ -188,7 +188,7 @@ def load_artifacts(contract_root: Path) -> list[Artifact]:
     path = contract_root / "config" / "profiles.tsv"
     try:
         with path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter="\t")
+            reader = csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
             if tuple(reader.fieldnames or ()) != EXPECTED_PROFILE_FIELDS:
                 raise ContractError(f"Unexpected profiles.tsv header: {path}")
             rows = [Artifact(**row) for row in reader]
@@ -223,7 +223,7 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
     path = contract_root / "config" / "capabilities.tsv"
     try:
         with path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter="\t")
+            reader = csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
             if tuple(reader.fieldnames or ()) != EXPECTED_CAPABILITY_FIELDS:
                 raise ContractError(f"Unexpected capabilities.tsv header: {path}")
             rows = []
@@ -734,9 +734,9 @@ def check_project_structure(
     docs_text = read_text(root / "docs" / "README.md") or ""
     for artifact in selected:
         link_path = re.sub(r"\.md$", "", artifact.destination)
-        if artifact.root_purpose != "-" and f"[[{link_path}" not in index_text:
+        if artifact.root_purpose != "-" and not validate_project_support.link_present(index_text, link_path):
             findings.append(Finding("ERROR", "index.root", f"INDEX.md does not link '{link_path}'.", "INDEX.md"))
-        if artifact.docs_section != "-" and f"[[{link_path}" not in docs_text:
+        if artifact.docs_section != "-" and not validate_project_support.link_present(docs_text, link_path):
             findings.append(Finding("ERROR", "index.docs", f"docs/README.md does not link '{link_path}'.", "docs/README.md"))
     return findings
 
@@ -753,9 +753,9 @@ def check_capabilities(root: Path, rows: Sequence[CapabilityArtifact], capabilit
             findings.append(Finding("ERROR", "capability.missing", f"Required {artifact.capability} artifact is missing.", artifact.destination))
             continue
         link_path = re.sub(r"\.md$", "", artifact.destination)
-        if artifact.root_purpose != "-" and f"[[{link_path}" not in index_text:
+        if artifact.root_purpose != "-" and not validate_project_support.link_present(index_text, link_path):
             findings.append(Finding("ERROR", "capability.index.root", f"INDEX.md does not link '{link_path}'.", "INDEX.md"))
-        if artifact.docs_section != "-" and f"[[{link_path}" not in docs_text:
+        if artifact.docs_section != "-" and not validate_project_support.link_present(docs_text, link_path):
             findings.append(Finding("ERROR", "capability.index.docs", f"docs/README.md does not link '{link_path}'.", "docs/README.md"))
     return findings
 
@@ -765,7 +765,7 @@ def check_policy_contract(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     try:
         with path.open(encoding="utf-8", newline="") as handle:
-            rows = list(csv.DictReader(handle, delimiter="\t"))
+            rows = list(csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE))
     except OSError as exc:
         raise ContractError(f"Cannot read {path}: {exc}") from exc
     for row in rows:
@@ -866,11 +866,11 @@ def check_doctor_context(root: Path, contract_root: Path) -> list[Finding]:
     if not git:
         findings.append(Finding("WARN", "doctor.git_missing", "Git diagnostics skipped because git is unavailable."))
     else:
-        probe = subprocess.run([git, "-C", str(root), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+        probe = subprocess.run([git, "-C", str(root), "rev-parse", "--show-toplevel"], capture_output=True, text=True, encoding="utf-8")
         if probe.returncode != 0:
             findings.append(Finding("WARN", "doctor.not_git", "Root is not inside a Git repository.", str(root)))
         else:
-            status = subprocess.run([git, "-C", str(root), "status", "--porcelain"], capture_output=True, text=True)
+            status = subprocess.run([git, "-C", str(root), "status", "--porcelain"], capture_output=True, text=True, encoding="utf-8")
             if status.returncode != 0:
                 findings.append(Finding("ERROR", "doctor.git_status", "git status failed.", str(root)))
             elif status.stdout.strip():
@@ -878,7 +878,7 @@ def check_doctor_context(root: Path, contract_root: Path) -> list[Finding]:
                     "WARN", "doctor.dirty", "Git working tree contains uncommitted changes.", str(root),
                     "Commit, stash, or review changes before migration or other mutation.",
                 ))
-            remote = subprocess.run([git, "-C", str(root), "remote", "get-url", "origin"], capture_output=True, text=True)
+            remote = subprocess.run([git, "-C", str(root), "remote", "get-url", "origin"], capture_output=True, text=True, encoding="utf-8")
             if remote.returncode != 0:
                 findings.append(Finding("WARN", "doctor.no_origin", "Git remote 'origin' is not configured.", str(root)))
             else:

@@ -252,7 +252,18 @@ def read_artifacts(contract_root: Path, known_sources: Iterable[str] = ()) -> li
     except (OSError, UnicodeDecodeError) as exc:
         raise ReleaseError(f"Cannot read {ARTIFACTS_NAME}: {exc}") from exc
 
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    # A quote is checked on the raw line, before parsing. The reader is
+    # deliberately QUOTE_NONE — a TSV field is whatever lies between tabs, and
+    # letting csv treat a quote as markup silently ate it, or swallowed the
+    # separators after an unclosed one. That leaves the quote itself: the ledger
+    # is written back verbatim, so a value carrying one would not survive the
+    # round trip, and saying so is more useful than the shape complaint the
+    # split now produces.
+    for number, line in enumerate(text.splitlines(), start=1):
+        if '"' in line:
+            raise ReleaseError(f"{ARTIFACTS_NAME}:{number} contains a separator or quote")
+
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     if tuple(reader.fieldnames or ()) != ARTIFACT_FIELDS:
         raise ReleaseError(f"Unexpected header in {ARTIFACTS_NAME}")
 
@@ -381,7 +392,7 @@ def binary_sources(contract_root: Path, capability: str) -> dict[str, Path]:
         text = path.read_bytes().decode("utf-8")
     except (OSError, UnicodeDecodeError) as exc:
         raise ReleaseError(f"Cannot read config/capabilities.tsv: {exc}") from exc
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     for row in reader:
         if row.get("capability") != capability or row.get("payload_class") != "binary":
             continue

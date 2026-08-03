@@ -75,6 +75,21 @@ class SupplyChainTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", macos)
         self.assertIn('      - "scripts/**"', macos)
 
+    def test_no_script_decodes_a_subprocess_with_the_locale_encoding(self):
+        # Defect 231 was this, fixed in the two places it had been noticed:
+        # a bare text flag decodes with locale.getpreferredencoding(), which on a
+        # Windows machine is the ANSI code page while git answers UTF-8. Cyrillic
+        # does not raise there — it comes back mojibake — so `rev-parse
+        # --show-toplevel` stops matching the path and the repository looks like
+        # it is not a repository root. This project's own root is a Cyrillic
+        # name. The rule is asserted for the whole tree instead of per call.
+        offenders = []
+        for path in sorted((ROOT / "scripts").glob("*.py")):
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+                if "text=True" in line and "encoding=" not in line:
+                    offenders.append(f"{path.name}:{number}")
+        self.assertEqual([], offenders, "a text subprocess without an explicit encoding")
+
     def test_codeowners_protects_governance_surfaces(self):
         codeowners = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")
         self.assertIn("* @NightMadMax", codeowners)

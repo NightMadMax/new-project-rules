@@ -43,7 +43,7 @@ UPSTREAM_SOURCE = "ai_rules_1c"
 def read_routing(contract_root: Path) -> list[dict[str, str]]:
     path = contract_root / ROUTING_NAME
     text = path.read_bytes().decode("utf-8")
-    rows = list(csv.DictReader(text.splitlines(), delimiter="\t"))
+    rows = list(csv.DictReader(text.splitlines(), delimiter="\t", quoting=csv.QUOTE_NONE))
     if not rows:
         raise release.ReleaseError(f"{ROUTING_NAME} holds no routes")
     for position, row in enumerate(rows, start=2):

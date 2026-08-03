@@ -57,6 +57,37 @@ DEV = base()
 PROD = base(environment_id="prod", server_port="6004", is_production="true")
 REGISTRY = [DEV, PROD]
 
+# --- the registry is a spreadsheet, and the guards read it literally ---------
+# Every barrier compared the raw cell to the lowercase literal. `True` and
+# `Managed` — what a spreadsheet writes back — matched neither, so a production
+# base read as non-production and a managed base skipped the switch evidence
+# that is its only barrier. The result was an approved write on production with
+# no switch ever asked. The validator does check the enum, but it is a separate
+# run, and a guard that depends on someone having made that run is not a guard.
+for spelling in ("True", "TRUE", " true "):
+    refuses(
+        lambda spelling=spelling: session.acquire(
+            root_ignored := Path("."), base(is_production=spelling, application_kind="ordinary"),
+            confirmed_by="probe", write_mode="approved-write", backup_confirmed="copy 2026-08-03"),
+        "is production",
+        f"is_production={spelling!r} must still refuse an approved write")
+for spelling in ("Managed", "MANAGED", " managed "):
+    refuses(
+        lambda spelling=spelling: session.acquire(
+            Path("."), base(application_kind=spelling), confirmed_by="probe"),
+        "switch",
+        f"application_kind={spelling!r} must still demand the switch evidence")
+# A value outside the enum is the one case where reading it as "no" is the
+# dangerous answer, so it is refused rather than defaulted.
+refuses(lambda: session.acquire(Path("."), base(is_production="maybe",
+                                                application_kind="ordinary"),
+                                confirmed_by="probe"),
+        "neither true nor false", "an unreadable is_production must be refused")
+refuses(lambda: session.acquire(Path("."), base(application_kind="клиент"),
+                                confirmed_by="probe"),
+        "neither 'managed' nor 'ordinary'",
+        "an unreadable application_kind must be refused")
+
 with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
 
@@ -252,7 +283,7 @@ REGISTRY_ROW = "erp\tdev\tsrc\tERP\t8.3.27\t-\tmanaged\ton-support\tedt\t-\t-\t6
 def cli(root: Path, *arguments: str):
     return subprocess.run(
         [sys.executable, str(SCRIPTS / "one_c_session.py"), "--root", str(root), *arguments],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
 
 

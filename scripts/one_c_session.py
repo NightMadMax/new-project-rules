@@ -81,6 +81,40 @@ def identity_of(row: dict) -> str:
     return f"{row['project_id']}/{row['environment_id']}"
 
 
+def is_production(row: dict) -> bool:
+    """Whether the row says production — and a refusal to guess when it does not.
+
+    Every guard used to compare the raw cell to the literal `"true"`. The
+    registry is a TSV a person edits in a spreadsheet, and `True` came back from
+    one: the comparison failed, the row read as non-production, and an approved
+    write was granted on a production base. A value outside the enum is the one
+    case where "no" is the dangerous answer, so it is refused instead. The enum
+    check in the validator is a separate run and cannot stand in for this one.
+    """
+    value = (row.get("is_production") or "").strip().lower()
+    if value in ("true", "yes", "1"):
+        return True
+    if value in ("false", "no", "0", ""):
+        return False
+    raise SessionError(
+        f"is_production is '{row.get('is_production')}', which is neither true nor false: "
+        "a base whose production status cannot be read is treated as unsafe, not as safe")
+
+
+def is_managed(row: dict) -> bool:
+    """Whether the row says managed application, read the same forgiving way.
+
+    `Managed` from a spreadsheet skipped the write-switch evidence entirely,
+    which is the whole barrier a managed base has.
+    """
+    value = (row.get("application_kind") or "").strip().lower()
+    if value in ("managed", "ordinary"):
+        return value == "managed"
+    raise SessionError(
+        f"application_kind is '{row.get('application_kind')}', which is neither 'managed' nor "
+        "'ordinary': the barrier a base has depends on it, so it is not guessed")
+
+
 def switch_state(state: str) -> bool | None:
     """True for `on`, False for `off`, None for anything else.
 
@@ -120,7 +154,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
     if write_mode not in WRITE_MODES:
         raise SessionError(f"unknown write mode '{write_mode}'; expected one of {', '.join(WRITE_MODES)}")
     if write_mode == "approved-write":
-        if row.get("is_production") == "true":
+        if is_production(row):
             raise SessionError(
                 f"{identity_of(row)} is production: an approved write is not taken on it "
                 "at all, and no confirmation makes it one"
@@ -130,7 +164,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
                 "an approved write needs the backup that was checked — which copy and when; "
                 "'there is a backup' is a belief, not a precondition"
             )
-    if row.get("application_kind") == "managed":
+    if is_managed(row):
         if not switch_confirmed:
             raise SessionError(
                 "a managed base has no read-only build to stand behind: the write switch lives "
@@ -149,7 +183,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
                 f"the switch was read as {'on' if state else 'off'}, but {write_mode} needs it {wanted}: "
                 "the mode is what the base is in, not what the lock would like it to be"
             )
-    if row.get("is_production") == "true" and not production_confirmed:
+    if is_production(row) and not production_confirmed:
         raise SessionError(
             f"{identity_of(row)} is production: it is never selected implicitly, "
             "the user has to name the base, the environment and the reason in this conversation"
@@ -159,7 +193,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
         "environment_id": row["environment_id"],
         "server_port": row.get("server_port", ""),
         "application_kind": row.get("application_kind", ""),
-        "is_production": row.get("is_production", "false"),
+        "is_production": "true" if is_production(row) else "false",
         "confirmed_by": confirmed_by,
         "write_mode": write_mode,
         "production_confirmed": bool(production_confirmed),
@@ -170,7 +204,9 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
     }
     directory = state_directory(root)
     directory.mkdir(parents=True, exist_ok=True)
-    temporary = directory / f"{LOCK_NAME}.tmp"
+    # The pid keeps two processes in one checkout from staging over each other:
+    # a fixed name meant the loser of the race replaced the winner's lock.
+    temporary = directory / f".{LOCK_NAME}.{os.getpid()}.tmp"
     temporary.write_bytes((json.dumps(lock, ensure_ascii=False, indent=2) + "\n").encode("utf-8"))
     os.replace(temporary, lock_path(root))
     return lock
@@ -205,7 +241,13 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
         raise SessionError("no session lock: run select-1c-project and confirm the base by a call")
 
     moment = now if now is not None else time.time()
-    if moment - float(lock.get("created_at", 0)) > LOCK_TTL_SECONDS:
+    try:
+        created_at = float(lock.get("created_at", 0))
+    except (TypeError, ValueError):
+        # A lock whose timestamp cannot be read cannot be shown to be fresh,
+        # and a traceback is not the answer to a hand-edited file.
+        raise SessionError("the session lock has an unreadable created_at; confirm the base again")
+    if moment - created_at > LOCK_TTL_SECONDS:
         raise SessionError("the session lock has expired; confirm the base again")
 
     locked = f"{lock['project_id']}/{lock['environment_id']}"
@@ -225,7 +267,7 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
     # switch state authorises nothing — not even analysis, whose whole claim is
     # that writing is impossible. A lock written before this rule existed has no
     # such evidence, and being old is not a reason to skip a precondition.
-    if row.get("application_kind") == "managed":
+    if is_managed(row):
         state = switch_state(lock.get("switch_read", ""))
         if state is None or not lock.get("switch_confirmed"):
             raise SessionError(
@@ -244,7 +286,7 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
                 "this operation writes, and the lock was taken in analysis mode; "
                 "an approved write is a separate confirmation, not an assumption"
             )
-        if lock.get("is_production") == "true":
+        if is_production(lock):
             raise SessionError("writing to production is refused here regardless of the lock")
         # A lock written before this rule existed carries no backup evidence, and
         # an old lock is not a reason to skip the precondition.

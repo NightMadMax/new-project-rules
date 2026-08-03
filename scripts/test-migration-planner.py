@@ -199,7 +199,7 @@ class MigrationPlannerTests(unittest.TestCase):
         metadata_path = project / ".project-standard.json"
         self.assertTrue(result.changed)
         self.assertTrue(metadata_path.is_file())
-        status = subprocess.run(["git", "-C", str(project), "status", "--porcelain"], capture_output=True, text=True)
+        status = subprocess.run(["git", "-C", str(project), "status", "--porcelain"], capture_output=True, text=True, encoding="utf-8")
         self.assertIn(".project-standard.json", status.stdout)
         repeated = planner.project_plan(project, self.contract, "auto", self.migrations, self.version)
         self.assertEqual(repeated.status, "up_to_date")
@@ -505,7 +505,7 @@ class MigrationPlannerTests(unittest.TestCase):
         project = self.make_project("minimal")
         before = digest_tree(project)
         base = [sys.executable, str(MODULE_PATH), "--plan", "--target", "project", "--root", str(project), "--contract-root", str(self.contract)]
-        result = subprocess.run(base, capture_output=True, text=True)
+        result = subprocess.run(base, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn("No files were changed.", result.stdout)
         self.assertEqual(before, digest_tree(project))
@@ -516,7 +516,7 @@ class MigrationPlannerTests(unittest.TestCase):
             "--fingerprint", plan.fingerprint,
         ]
         self.assertEqual(subprocess.run(apply_base, capture_output=True).returncode, 2)
-        applied = subprocess.run(apply_base + ["--yes"], capture_output=True, text=True)
+        applied = subprocess.run(apply_base + ["--yes"], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(applied.returncode, 0, applied.stderr)
         self.assertTrue((project / ".project-standard.json").is_file())
         self.assertEqual(subprocess.run(apply_base + ["--yes"], capture_output=True).returncode, 0)

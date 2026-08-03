@@ -104,7 +104,7 @@ class BestPracticesContractTests(unittest.TestCase):
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
             head = subprocess.run(
-                ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True
+                ["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True, encoding="utf-8"
             ).stdout.strip()
             contract = {
                 "schema_version": 1,
@@ -150,7 +150,7 @@ class BestPracticesContractTests(unittest.TestCase):
             (root / "README.md").write_text("retired-route\n", encoding="utf-8")
             subprocess.run(["git", "add", "."], cwd=root, check=True)
             subprocess.run(["git", "commit", "-qm", "fixture"], cwd=root, check=True)
-            head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
+            head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, check=True, capture_output=True, text=True, encoding="utf-8").stdout.strip()
             changed = json.loads(json.dumps(self.contract))
             changed["source_commit"] = head
             changed["required_files"] = required
