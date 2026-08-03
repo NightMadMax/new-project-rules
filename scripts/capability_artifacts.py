@@ -88,7 +88,7 @@ class Plan:
 
 
 def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]],
-                   project_root: Optional[Path] = None) -> Plan:
+                   project_root: Path) -> Plan:
     """The same plan, also rewriting these project files.
 
     A plan that only has documents to write is still work to do, so a plan that
@@ -96,10 +96,12 @@ def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]],
     capability whose files bootstrap already delivered and whose record nobody
     ever wrote.
 
-    `project_root` lets the plan remember what each document looked like when it
-    was built. These bodies are produced *from* the current file — one line
-    added to an index — so a file edited between planning and applying loses
-    that edit without a word. Passing the root turns that into a refusal.
+    `project_root` is required, not optional: the plan remembers what each
+    document looked like when it was built, and these bodies are produced *from*
+    the current file — one line added to an index — so a file edited between
+    planning and applying loses that edit without a word. An optional root would
+    have made the protection something a future caller can drop by forgetting an
+    argument, and nothing would say so.
     """
     if not documents:
         return plan
@@ -108,12 +110,10 @@ def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]],
             raise CapabilityArtifactsError(f"Unsafe document target: {target}")
         if any(operation.target == target for operation in plan.operations):
             raise CapabilityArtifactsError(f"{target} is both a capability artifact and a project record")
-    baselines: tuple[tuple[str, Optional[str]], ...] = ()
-    if project_root is not None:
-        baselines = tuple(
-            (target, digest_bytes((project_root / target).read_bytes())
-             if (project_root / target).is_file() else None)
-            for target, _ in documents)
+    baselines = tuple(
+        (target, digest_bytes((project_root / target).read_bytes())
+         if (project_root / target).is_file() else None)
+        for target, _ in documents)
     status = "ready" if plan.status == "up_to_date" else plan.status
     return Plan(plan.capability, status, plan.operations, plan.conflicts,
                 tuple(documents), baselines)

@@ -33,10 +33,19 @@ def main() -> int:
     root = Path(arguments.root).resolve()
     try:
         # `--write` edits the client configuration files of a real machine, and
-        # what belongs in them is decided by the capability's own release. A
+        # what belongs in them is decided by the capability's own release: a
         # checkout that is not the release the project installed writes the
-        # wrong thing into a file the user partly owns.
-        release_guard.require_matching_release(root, Path(__file__).resolve().parents[1])
+        # wrong thing into a file the user partly owns. Without `--write` this
+        # is a report, and a report says what it found instead of refusing —
+        # the same split the diagnosis uses. Refusing here too would have
+        # contradicted the comment above it, which is the class of defect this
+        # audit spent the day closing.
+        try:
+            release_guard.require_matching_release(root, Path(__file__).resolve().parents[1])
+        except release_guard.ReleaseMismatch:
+            if arguments.write:
+                raise
+            print(f"[MISMATCH ] {sys.exc_info()[1]}", file=sys.stderr)
         # Without a manifest nothing is resolved, and that is the honest state of
         # a machine where the provider is not deployed: a guessed URL would look
         # installed and fail at the first call.

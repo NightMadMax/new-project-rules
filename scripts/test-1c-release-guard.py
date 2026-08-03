@@ -103,12 +103,26 @@ with tempfile.TemporaryDirectory() as raw:
     (session_project / "config/1c-projects.tsv").write_text(
         "project_id\tenvironment_id\tserver_port\tapplication_kind\tis_production\n"
         "erp\tdev\t6003\tordinary\tfalse\n", encoding="utf-8")
-    result = subprocess.run(
-        [sys.executable, str(SCRIPTS / "one_c_session.py"), "--root", str(session_project), "show"],
-        capture_output=True, text=True, encoding="utf-8")
-    note(result.returncode != 0,
-         f"the session lock must refuse a foreign release: {result.stdout} {result.stderr}")
-    note("[REFUSED]" in result.stderr, f"the refusal must be recognisable: {result.stderr[:200]}")
+    def session(*command: str):
+        return subprocess.run(
+            [sys.executable, str(SCRIPTS / "one_c_session.py"), "--root", str(session_project),
+             *command], capture_output=True, text=True, encoding="utf-8")
+
+    for command in (["require"], ["acquire", "--base", "erp/dev", "--confirmed-by", "probe"]):
+        result = session(*command)
+        note(result.returncode != 0,
+             f"{command[0]} must refuse a foreign release: {result.stdout} {result.stderr}")
+        note("installed release" in result.stderr,
+             f"{command[0]} must refuse for the release, not for something else: {result.stderr[:200]}")
+        note("[REFUSED]" in result.stderr, f"the refusal must be recognisable: {result.stderr[:200]}")
+
+    # And the guard must not lock the user in. `release` removes state and
+    # `show` prints it: refusing those would leave someone holding a stale lock
+    # with no way to clear it but deleting the file by hand.
+    for command in ("release", "show"):
+        result = session(command)
+        note("installed release" not in result.stderr,
+             f"{command} must not be blocked by the release guard: {result.stderr[:200]}")
 
     # The diagnosis never fails a run, so it reports the same fact as a row.
     rows = {row.component: row for row in doctor.report(session_project, names=())}

@@ -419,7 +419,7 @@ def _(root: Path, project: Path) -> None:
 def _(root: Path, project: Path) -> None:
     artifacts = release(root, {"docs/GUIDE.md": b"guide\n"})
     plan = module.build_plan(project, "1c", artifacts)
-    plan = module.with_documents(plan, [("INDEX.md", b"# Index\n\n| a | b |\n")])
+    plan = module.with_documents(plan, [("INDEX.md", b"# Index\n\n| a | b |\n")], project)
     note(plan.status == "ready", f"documents must be work to do: {plan.status}")
     note("record: 1" in plan.summary(), f"the summary must count records: {plan.summary()}")
     module.apply_plan(project, plan)
@@ -436,7 +436,7 @@ def _(root: Path, project: Path) -> None:
     module.apply_plan(project, module.build_plan(project, "1c", artifacts))
     plan = module.build_plan(project, "1c", artifacts)
     note(plan.status == "up_to_date", f"a second run must be a no-op: {plan.status}")
-    plan = module.with_documents(plan, [(".project-standard.json", b"{}\n")])
+    plan = module.with_documents(plan, [(".project-standard.json", b"{}\n")], project)
     note(plan.status == "ready",
          "a capability whose files are in place and whose record is not is not up to date")
 
@@ -487,7 +487,7 @@ def _(root: Path, project: Path) -> None:
     artifacts = release(root, {"INDEX.md": b"owned\n"})
     plan = module.build_plan(project, "1c", artifacts)
     try:
-        module.with_documents(plan, [("INDEX.md", b"other\n")])
+        module.with_documents(plan, [("INDEX.md", b"other\n")], project)
         failures.append("one file cannot be both owned and recorded")
     except module.CapabilityArtifactsError:
         pass
@@ -500,7 +500,7 @@ def _(root: Path, project: Path) -> None:
     # A file where the record expects a directory: the write fails, and the
     # question is whether the files that already landed come back out.
     (project / "notes").write_bytes(b"not a directory\n")
-    plan = module.with_documents(plan, [("notes/INDEX.md", b"# Index\n")])
+    plan = module.with_documents(plan, [("notes/INDEX.md", b"# Index\n")], project)
     try:
         module.apply_plan(project, plan)
         failures.append("a record that cannot be written must fail the install")
@@ -569,6 +569,17 @@ note("\x0c" in form_feed, f"a form feed must survive an inserted entry: {form_fe
 note(install.docs_index_document(
         "# Docs\n\n## Ops\n\n- [[docs/ops/A_ARCHIVE|Архив]]\n- [[docs/ops/A|A]]\n", [ROW]) is None,
      "adding the same entry twice must still be a no-op")
+
+# A file whose last line carries no terminator. Rejoining with one chosen
+# ending used to hide this by re-ending every line on the way out; keeping the
+# endings means the missing one has to be added, or the new entry is glued onto
+# the previous one as `- [[b|B]]- [[c|C]]`.
+for unterminated in ("# Docs\n\n## Ops\n\n- [[docs/ops/B|B]]",
+                     "# Docs\r\n\r\n## Ops\r\n\r\n- [[docs/ops/B|B]]"):
+    joined = install.docs_index_document(unterminated, [ROW])
+    note("]]- [[" not in joined,
+         f"an entry must not be glued onto an unterminated last line: {joined!r}")
+    note(joined.endswith(("\n", "\r")), f"the result must end with a newline: {joined!r}")
 
 # A declined stack is a decision the user already made; the install reports it
 # instead of overruling it.

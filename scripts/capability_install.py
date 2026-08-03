@@ -145,6 +145,12 @@ def docs_index_document(current: str, rows: list[dict[str, str]]) -> str | None:
             # section stays CRLF and an LF section stays LF.
             neighbour = lines[at - 1] if 0 < at <= len(lines) else ""
             local_end = "\r\n" if neighbour.endswith("\r\n") else ("\n" if neighbour.endswith("\n") else end)
+            # A file whose last line has no terminator would otherwise get the
+            # new entry glued onto it: `- [[b|B]]- [[c|C]]`. Rejoining with a
+            # chosen ending hid this, because it re-ended every line on the way
+            # out; keeping the endings means the missing one has to be added.
+            if neighbour and not neighbour.endswith(("\n", "\r")):
+                lines[at - 1] = neighbour + local_end
             lines.insert(at, entry + local_end)
             text = "".join(lines)
             if not text.endswith(("\n", "\r")):

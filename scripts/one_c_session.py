@@ -369,10 +369,14 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     root = Path(args.root).resolve()
     try:
-        # Before anything touches the lock: these scripts decide whether a live
-        # infobase may be written, and being a different release of the standard
-        # than the project installed is not a detail to report afterwards.
-        release_guard.require_matching_release(root, SCRIPTS.parent)
+        # These scripts decide whether a live infobase may be written, and being
+        # a different release of the standard than the project installed is not
+        # a detail to report afterwards. But the guard must not lock the user
+        # in: `release` only removes state and `show` only prints it, so
+        # refusing those would leave someone with a stale lock and no way to
+        # clear it except deleting the file by hand.
+        if args.command not in ("release", "show"):
+            release_guard.require_matching_release(root, SCRIPTS.parent)
         if args.command == "acquire":
             row = find_row(registry_rows(root), args.base)
             lock = acquire(
