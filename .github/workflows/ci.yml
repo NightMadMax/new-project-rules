@@ -93,6 +93,27 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      # Measured 2026-08-03: this job took 13m27s, and 11 minutes of that was
+      # one step — the Python suite. The same suite takes 1m28s on Ubuntu. The
+      # three slowest tests each run a full bootstrap, which writes the 240
+      # files of the `1c` capability, and on Windows every one of those writes
+      # goes past real-time scanning. The runner is ephemeral and its disk is
+      # discarded with it, so excluding the two directories the tests write to
+      # costs nothing and is not a security decision about anyone's machine.
+      #
+      # Deliberately not fatal: the cmdlet needs privileges the runner image
+      # happens to grant today, and a hosted image that stops granting them
+      # should slow the job down, not turn it red. The step says which it was.
+      - name: Take the work directories out of real-time scanning
+        shell: powershell
+        run: |
+          try {
+            Add-MpPreference -ExclusionPath "${{ github.workspace }}", "$env:RUNNER_TEMP" -ErrorAction Stop
+            Add-MpPreference -ExclusionProcess "python.exe", "git.exe", "pwsh.exe", "powershell.exe" -ErrorAction Stop
+            Write-Host "Defender exclusions applied for the workspace and RUNNER_TEMP."
+          } catch {
+            Write-Host "NOTE: could not apply Defender exclusions ($($_.Exception.Message)); the suite will just run slower."
+          }
       - name: Verify immutable action pins
         shell: powershell
         run: python .\scripts\check-action-pins.py
