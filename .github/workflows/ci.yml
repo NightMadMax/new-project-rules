@@ -200,7 +200,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: NightMadMax/best-practices
-          ref: 247597bd9bd18b21d55eddf38bd0ed846d063b74
+          ref: 2ef1fda8a50ecafc85a8bd0f3e4bf2e0b9219c8d
           path: .external/best-practices
           persist-credentials: false
       # `bash` on every platform, including Windows: the default there is
