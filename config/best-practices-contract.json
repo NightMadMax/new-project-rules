@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "repository": "NightMadMax/best-practices",
-  "source_commit": "2ef1fda8a50ecafc85a8bd0f3e4bf2e0b9219c8d",
+  "source_commit": "56c51c014751035a84054e4468c7babc560c637b",
   "supported_practice_statuses": [
     "accepted"
   ],
