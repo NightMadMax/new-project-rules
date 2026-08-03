@@ -79,6 +79,9 @@ with tempfile.TemporaryDirectory() as raw:
             "BASE_LOGIN=admin",
             "EMPTY_SECRET=",
             "VERIFICATION_DEPTH=full",
+            # Not a credential by any marker, and still a machine-specific path
+            # the rest of the diagnosis takes care to hide.
+            "EDT_WORKSPACE=D:\\wrk\\personspace",
         ]).encode("utf-8")
     )
     lines = doctor.settings(root)
@@ -89,8 +92,15 @@ with tempfile.TemporaryDirectory() as raw:
          f"a set secret must be reported as set: {lines}")
     note(any("EMPTY_SECRET" in line and "не задан" in line for line in lines),
          f"an empty secret must be reported as unset: {lines}")
-    note(any(line == "VERIFICATION_DEPTH=full" for line in lines),
-         f"an ordinary setting must survive unchanged: {lines}")
+    # The row this feeds says values are not read — only the key and whether it
+    # is set. That was true of keys a marker list recognised and false of every
+    # other one, so a marker list that is always behind the names a project
+    # invents was the only thing standing between the report and a user path.
+    # Every value is now reported as set, including the ordinary ones.
+    note(any(line == "VERIFICATION_DEPTH: задан" for line in lines),
+         f"an ordinary value must not be printed either: {lines}")
+    note("personspace" not in joined and "wrk" not in joined,
+         f"a machine path must not reach the report: {joined}")
     # The decision is made on the key, so a key that names a credential is
     # masked even when nothing in its value looks like one.
     for key in ("DB_PWD", "ONEC_CREDENTIAL", "BASE_LOGIN"):
@@ -146,6 +156,27 @@ for component, name in (("EDT-MCP", "EDT-MCP"),
                         ("плагин обычного приложения", "Плагин обычного приложения")):
     note(doctor.catalog_key(name, "СТАРЫЙ_КЛЮЧ") == declared.get(name),
          f"{component}: the diagnosis must read the key the catalog declares, not a copy")
+
+# --- the registry is edited in a spreadsheet ---------------------------------
+#
+# Every other reader of these files opens them `utf-8-sig`; this one did not,
+# so the BOM stayed on the first header cell. `project_id` became a key nobody
+# looked up: every base in the report lost its name while the registry row of
+# the same report said OK. A row with the wrong number of cells was dropped in
+# silence, which reads as "this base is fine" rather than "not looked at".
+
+with tempfile.TemporaryDirectory() as raw:
+    root = Path(raw)
+    (root / "config").mkdir()
+    header = "project_id\tenvironment_id\tapplication_kind\tedt_profile\n"
+    (root / "config/1c-projects.tsv").write_bytes(
+        b"\xef\xbb\xbf" + (header + "erp\tdev\tordinary\terp-dev\n" + "broken\ttoo-few\n").encode("utf-8"))
+    rows = doctor.registry_rows(root)
+    note(rows and rows[0].get("project_id") == "erp",
+         f"a BOM must not rename the first column: {rows[:1]}")
+    note(any(row.get("status") == "unreadable" for row in rows),
+         f"a row the reader cannot use must be named, not dropped: {rows}")
+
 
 # --- the plugin and the launch profile belong to `ordinary` only -------------
 #

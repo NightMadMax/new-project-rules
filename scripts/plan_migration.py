@@ -115,7 +115,7 @@ def read_migrations(contract_root: Path, standard_version: int) -> list[Migratio
     path = contract_root / "config" / "migrations.tsv"
     try:
         with path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter="\t")
+            reader = csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
             if tuple(reader.fieldnames or ()) != MIGRATION_FIELDS:
                 raise MigrationConfigError(f"Unexpected migrations.tsv header: {path}")
             raw_rows = list(reader)
@@ -197,7 +197,7 @@ def read_profile_destinations(contract_root: Path) -> dict[str, set[str]]:
     path = contract_root / "config" / "profiles.tsv"
     try:
         with path.open(encoding="utf-8", newline="") as handle:
-            reader = csv.DictReader(handle, delimiter="\t")
+            reader = csv.DictReader(handle, delimiter="\t", quoting=csv.QUOTE_NONE)
             if tuple(reader.fieldnames or ()) != PROFILE_FIELDS:
                 raise MigrationConfigError(f"Unexpected profiles.tsv header: {path}")
             rows = list(reader)
@@ -221,11 +221,11 @@ def inspect_git(path: Path) -> GitState:
     git = shutil.which("git")
     if not git:
         return GitState(False, False, False, None, "Git is unavailable")
-    top = subprocess.run([git, "-C", str(path), "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+    top = subprocess.run([git, "-C", str(path), "rev-parse", "--show-toplevel"], capture_output=True, text=True, encoding="utf-8")
     if top.returncode != 0 or Path(top.stdout.strip()).resolve() != path.resolve():
         return GitState(True, False, False, None, "Target is not a Git repository root")
-    status = subprocess.run([git, "-C", str(path), "status", "--porcelain"], capture_output=True, text=True)
-    head = subprocess.run([git, "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True)
+    status = subprocess.run([git, "-C", str(path), "status", "--porcelain"], capture_output=True, text=True, encoding="utf-8")
+    head = subprocess.run([git, "-C", str(path), "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8")
     if status.returncode != 0 or head.returncode != 0:
         return GitState(True, True, False, None, "Cannot inspect Git status or HEAD")
     commit = head.stdout.strip()

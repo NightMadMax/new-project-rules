@@ -336,7 +336,7 @@ with tempfile.TemporaryDirectory() as raw:
          "commit", "-qm", "staging"], check=True, capture_output=True,
     )
     head = subprocess.run(
-        ["git", "-C", str(staging), "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+        ["git", "-C", str(staging), "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8", check=True,
     ).stdout.strip()
 
     rows = [row()]
@@ -350,7 +350,7 @@ with tempfile.TemporaryDirectory() as raw:
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "build-capability-release.py"),
          "--contract-root", str(root), "--staging", f"ai_rules_1c={staging}"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
     note(check.returncode == 0, f"a matching staging must pass: {check.stderr[-300:]}")
 
@@ -363,7 +363,7 @@ with tempfile.TemporaryDirectory() as raw:
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "build-capability-release.py"),
          "--contract-root", str(root), "--staging", f"ai_rules_1c={staging}"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
     note(check.returncode != 0, "a new upstream file must fail the build")
     note("has no row" in check.stderr, f"the new file must be named: {check.stderr[-200:]}")
@@ -378,7 +378,7 @@ with tempfile.TemporaryDirectory() as raw:
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "build-capability-release.py"),
          "--contract-root", str(root), "--staging", f"ai_rules_1c={staging}"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
     note(check.returncode != 0, "a changed source must fail the build")
     note("source changed" in check.stderr, f"the changed file must be named: {check.stderr[-200:]}")
@@ -398,7 +398,7 @@ def git_staging(path: Path, files: dict[str, str]) -> str:
          "commit", "-qm", "staging"], check=True, capture_output=True,
     )
     return subprocess.run(["git", "-C", str(path), "rev-parse", "HEAD"],
-                          capture_output=True, text=True, check=True).stdout.strip()
+                          capture_output=True, text=True, encoding="utf-8", check=True).stdout.strip()
 
 
 ACCEPTED = ("---\nid: PC-2026-000000000000\nstatus: accepted\n"
@@ -452,7 +452,7 @@ with tempfile.TemporaryDirectory() as raw:
          "commit", "-qm", "staging"], check=True, capture_output=True,
     )
     head = subprocess.run(
-        ["git", "-C", str(staging), "rev-parse", "HEAD"], capture_output=True, text=True, check=True,
+        ["git", "-C", str(staging), "rev-parse", "HEAD"], capture_output=True, text=True, encoding="utf-8", check=True,
     ).stdout.strip()
     rows = [row(source_path="a.md")]
     write_release(root, passport(sources=[{"name": "ai_rules_1c", "repository": "a/b", "commit": head}]), rows)
@@ -460,7 +460,7 @@ with tempfile.TemporaryDirectory() as raw:
     def build(*arguments: str):
         return subprocess.run(
             [sys.executable, str(SCRIPTS / "build-capability-release.py"), "--contract-root", str(root), *arguments],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
 
     before = (root / release.RELEASE_NAME).read_bytes()
@@ -496,7 +496,7 @@ with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
     check = subprocess.run(
         [sys.executable, str(SCRIPTS / "check-upstream-sources.py"), "--contract-root", str(root), "--report-only"],
-        capture_output=True, text=True,
+        capture_output=True, text=True, encoding="utf-8",
     )
     note(check.returncode == 0, "the upstream check must not fail without a release")
     note("nothing to compare" in check.stdout, f"it must say why it did nothing: {check.stdout[:200]}")

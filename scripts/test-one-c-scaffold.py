@@ -24,6 +24,16 @@ spec = importlib.util.spec_from_file_location("validate_project", SCRIPTS / "val
 assert spec and spec.loader
 validator = importlib.util.module_from_spec(spec)
 sys.modules["validate_project"] = validator
+
+# The registry contract belongs to the capability, not to the core validator:
+# the core no longer knows what a 1C registry looks like (№278). The test reads
+# it from the same place the validator does, so it cannot drift into asserting
+# a shape nobody enforces.
+one_c_spec = importlib.util.spec_from_file_location("one_c_validation", SCRIPTS / "one_c_validation.py")
+assert one_c_spec and one_c_spec.loader
+one_c_validation = importlib.util.module_from_spec(one_c_spec)
+sys.modules["one_c_validation"] = one_c_validation
+one_c_spec.loader.exec_module(one_c_validation)
 spec.loader.exec_module(validator)
 
 GIT_IDENTITY = {
@@ -108,12 +118,12 @@ def bootstrap(destination: Path) -> subprocess.CompletedProcess | None:
     return subprocess.run(
         ["sh", (SCRIPTS / "bootstrap-new-project.sh").as_posix(),
          destination.as_posix(), "demo", "minimal", "--preset", "1c"],
-        capture_output=True, text=True, env={**os.environ, **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**os.environ, **GIT_IDENTITY},
     )
 
 
 def registry_rows(*rows: str) -> str:
-    header = "\t".join(validator.ONE_C_REGISTRY_FIELDS)
+    header = "\t".join(one_c_validation.ONE_C_REGISTRY_FIELDS)
     return "\n".join([header, *rows]) + "\n"
 
 
@@ -126,7 +136,7 @@ def base_row(**overrides: str) -> str:
         "is_production": "false", "mcp_enabled": "true", "owner": "team",
     }
     values.update(overrides)
-    return "\t".join(values[field] for field in validator.ONE_C_REGISTRY_FIELDS)
+    return "\t".join(values[field] for field in one_c_validation.ONE_C_REGISTRY_FIELDS)
 
 
 # --- what a created project gets -------------------------------------------
@@ -244,13 +254,13 @@ with tempfile.TemporaryDirectory() as raw:
              "the Claude entry point must only import AGENTS.md")
 
         registry = (project / "config/1c-projects.tsv").read_text(encoding="utf-8")
-        note(registry.splitlines()[0].split("\t") == list(validator.ONE_C_REGISTRY_FIELDS),
+        note(registry.splitlines()[0].split("\t") == list(one_c_validation.ONE_C_REGISTRY_FIELDS),
              "the registry header does not match the contract")
         note(len(registry.splitlines()) == 1, "a fresh registry must have no rows")
 
         report = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(project), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("0 error(s)" in report.stdout, f"a fresh 1C project must validate: {report.stdout[-300:]}")
 
@@ -260,7 +270,7 @@ with tempfile.TemporaryDirectory() as raw:
             registry_rows(base_row(server_port="9000")).encode("utf-8"))
         report = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(project), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("registry.port" in report.stdout, f"the validator must check the registry: {report.stdout[-300:]}")
 
@@ -332,7 +342,9 @@ def registry_case(name: str, content: str, expect: str | None) -> None:
         project = Path(raw)
         (project / "config").mkdir()
         (project / "config/1c-projects.tsv").write_bytes(content.encode("utf-8"))
-        codes = {finding.code for finding in validator.check_one_c_registry(project)}
+        # The capability returns tuples (severity, code, message, path); the
+        # core turns them into findings. The code is the second field.
+        codes = {item[1] for item in one_c_validation.check_registry(project)}
         if expect is None:
             note(not codes, f"{name}: expected no findings, got {codes}")
         else:

@@ -32,7 +32,7 @@ def read_presets(contract_root: Path) -> dict[str, dict[str, str]]:
     except (OSError, UnicodeDecodeError) as exc:
         raise PresetError(f"Cannot read {MANIFEST}: {exc}") from exc
 
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     if tuple(reader.fieldnames or ()) != EXPECTED_FIELDS:
         raise PresetError(f"Unexpected header in {MANIFEST}")
 

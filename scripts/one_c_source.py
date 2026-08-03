@@ -408,7 +408,7 @@ def cli_converter(command: list[str], source_option: str, target_option: str):
         try:
             result = subprocess.run(
                 [*command, source_option, str(source.resolve()), target_option, str(destination.resolve())],
-                capture_output=True, text=True,
+                capture_output=True, text=True, encoding="utf-8",
             )
         except OSError as error:
             # A command that cannot be started is the most likely case while the

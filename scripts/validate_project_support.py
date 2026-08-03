@@ -10,7 +10,7 @@ import csv
 import io
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 # The Toolkit port range, defined once. It was written out in both the
 # validator and the client renderer, so widening it in one place produced a
@@ -23,6 +23,46 @@ ONE_C_PORTS = range(6003, 6013)
 # validator only, and the validator is a separate run: the renderer wrote the
 # broken file whether or not anyone had validated first.
 ONE_C_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
+# What may follow a wikilink target: the closing bracket, an alias pipe, or a
+# heading anchor. Presence used to be tested with the bare prefix `[[<link>`,
+# which makes every link a prefix of every longer one — an index carrying
+# `[[docs/quality/DEFECTS_ARCHIVE|…]]` counted as already linking
+# `docs/quality/DEFECTS`. The installer then never added the missing entry and
+# the validator never reported it missing, because both asked the same wrong
+# question. Defined once so they cannot drift apart again.
+LINK_TERMINATORS = ("]", "|", "#")
+DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+
+
+def machine_path(value: str) -> bool:
+    """A path that only resolves on the machine that wrote it.
+
+    Both conventions are checked on every host: the repository is prepared on
+    macOS and used on Windows, so a check that depends on where it runs would
+    let each side through the other's mistake. Defined here because it is a
+    fact about paths, not about any one capability.
+    """
+    return bool(
+        PurePosixPath(value).is_absolute()
+        or PureWindowsPath(value).is_absolute()
+        or DRIVE_PATH_RE.match(value)
+        or value.startswith("~")
+        or ".." in value.replace("\\", "/").split("/")
+    )
+
+
+def link_present(text: str, link: str) -> bool:
+    """Whether `text` links exactly `link`, not merely something starting with it."""
+    marker = f"[[{link}"
+    start = 0
+    while True:
+        found = text.find(marker, start)
+        if found < 0:
+            return False
+        after = text[found + len(marker): found + len(marker) + 1]
+        if after in LINK_TERMINATORS:
+            return True
+        start = found + len(marker)
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import artifacts_ledger  # noqa: E402
@@ -52,7 +92,7 @@ def manifest_rows(contract_root: Path, capability: str) -> list[dict[str, str]]:
     except (OSError, UnicodeDecodeError) as exc:
         raise ManifestError(f"Cannot read {MANIFEST}: {exc}") from exc
 
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     if tuple(reader.fieldnames or ()) != EXPECTED_FIELDS:
         raise ManifestError(f"Unexpected header in {MANIFEST}")
     rows = []
@@ -74,7 +114,7 @@ def release_artifacts(contract_root: Path, capability: str) -> list[tuple[str, P
     except (OSError, UnicodeDecodeError) as exc:
         raise ManifestError(f"Cannot read {MANIFEST}: {exc}") from exc
 
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     if tuple(reader.fieldnames or ()) != EXPECTED_FIELDS:
         raise ManifestError(f"Unexpected header in {MANIFEST}")
 

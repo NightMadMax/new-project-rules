@@ -57,6 +57,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-provider.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-yaxunit.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-transcribe.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-readiness.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-1c-release-guard.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-no-secrets.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standardize-existing-project.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-compress-project.py
@@ -104,6 +105,7 @@ python .\scripts\test-1c-provider.py
 python .\scripts\test-1c-yaxunit.py
 python .\scripts\test-transcribe.py
 python .\scripts\test-1c-readiness.py
+python .\scripts\test-1c-release-guard.py
 python .\scripts\test-no-secrets.py
 python .\scripts\test-standardize-existing-project.py
 python .\scripts\test-compress-project.py

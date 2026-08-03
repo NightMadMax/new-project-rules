@@ -96,7 +96,10 @@ def inspect_state(
     try:
         with active_path.open(encoding="utf-8", newline="") as handle:
             active_text = handle.read()
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
+        # A file in another encoding used to raise UnicodeDecodeError straight
+        # through the validator, which catches SyncConfigError only: one
+        # unreadable global file took down the whole project validation.
         raise SyncConfigError(f"Cannot read active policy {active_path}: {exc}") from exc
 
     lines = active_text.splitlines(keepends=True)

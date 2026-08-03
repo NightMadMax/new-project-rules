@@ -34,6 +34,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import best_practices_manifest  # noqa: E402
 import project_metadata  # noqa: E402
+from validate_project_support import link_present  # noqa: E402
 import validate_project_support as support  # noqa: E402
 
 METADATA = ".project-standard.json"
@@ -96,7 +97,7 @@ def index_document(current: str, rows: list[dict[str, str]]) -> str | None:
         if row["root_purpose"] == "-":
             continue
         link = link_target(row["destination"])
-        if f"[[{link}" in current or f"[[{link}" in "".join(added):
+        if link_present(current, link) or link_present("".join(added), link):
             continue
         added.append(f"| [[{link}|{row['destination']}]] | {row['root_purpose']} |{end}")
     if not added:
@@ -119,22 +120,41 @@ def docs_index_document(current: str, rows: list[dict[str, str]]) -> str | None:
         if row["docs_section"] == "-":
             continue
         link = link_target(row["destination"])
-        if f"[[{link}" in text:
+        if link_present(text, link):
             continue
         entry = f"- [[{link}|{row['docs_label']}]]"
         heading = f"## {row['docs_section']}"
-        lines = text.splitlines()
-        if heading in lines:
-            start = lines.index(heading)
+        # `keepends` so every other line keeps the terminator it had. Rejoining
+        # with one chosen ending rewrote the whole file when a single CRLF line
+        # was present, and `splitlines()` without it also swallows the other
+        # characters it treats as breaks — a form feed disappeared from a file
+        # this function claims to preserve byte for byte around its own edit.
+        lines = text.splitlines(keepends=True)
+        stripped = [line.rstrip("\r\n") for line in lines]
+        if heading in stripped:
+            start = stripped.index(heading)
             stop = start + 1
-            while stop < len(lines) and not lines[stop].startswith("## "):
+            while stop < len(lines) and not stripped[stop].startswith("## "):
                 stop += 1
             last = start
             for position in range(start + 1, stop):
-                if lines[position].startswith("- "):
+                if stripped[position].startswith("- "):
                     last = position
-            lines.insert(last + 1 if last > start else start + 2, entry)
-            text = end.join(lines) + end
+            at = last + 1 if last > start else start + 2
+            # The new line takes the ending of the line it follows, so a CRLF
+            # section stays CRLF and an LF section stays LF.
+            neighbour = lines[at - 1] if 0 < at <= len(lines) else ""
+            local_end = "\r\n" if neighbour.endswith("\r\n") else ("\n" if neighbour.endswith("\n") else end)
+            # A file whose last line has no terminator would otherwise get the
+            # new entry glued onto it: `- [[b|B]]- [[c|C]]`. Rejoining with a
+            # chosen ending hid this, because it re-ended every line on the way
+            # out; keeping the endings means the missing one has to be added.
+            if neighbour and not neighbour.endswith(("\n", "\r")):
+                lines[at - 1] = neighbour + local_end
+            lines.insert(at, entry + local_end)
+            text = "".join(lines)
+            if not text.endswith(("\n", "\r")):
+                text += end
         else:
             body = text if text.endswith(("\n", "\r")) else text + end
             text = f"{body}{end}{heading}{end}{end}{entry}{end}"

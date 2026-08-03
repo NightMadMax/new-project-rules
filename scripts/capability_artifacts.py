@@ -71,6 +71,11 @@ class Plan:
     # right after installing it (№242). They carry no ledger entry — the project
     # owns them, the capability only adds a line.
     documents: tuple[tuple[str, bytes], ...] = ()
+    # What each document looked like when the plan was built, so applying it can
+    # refuse a file somebody edited in between. The capability's own files stop
+    # the transaction on drift; these were rewritten over it, which is the same
+    # silent overwrite the module exists to prevent.
+    document_baselines: tuple[tuple[str, Optional[str]], ...] = ()
 
     def summary(self) -> str:
         counts: dict[str, int] = {}
@@ -82,13 +87,21 @@ class Plan:
         return ", ".join(parts) or "no operations"
 
 
-def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]]) -> Plan:
+def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]],
+                   project_root: Path) -> Plan:
     """The same plan, also rewriting these project files.
 
     A plan that only has documents to write is still work to do, so a plan that
     was `up_to_date` about its artifacts becomes `ready`: that is the case of a
     capability whose files bootstrap already delivered and whose record nobody
     ever wrote.
+
+    `project_root` is required, not optional: the plan remembers what each
+    document looked like when it was built, and these bodies are produced *from*
+    the current file — one line added to an index — so a file edited between
+    planning and applying loses that edit without a word. An optional root would
+    have made the protection something a future caller can drop by forgetting an
+    argument, and nothing would say so.
     """
     if not documents:
         return plan
@@ -97,8 +110,13 @@ def with_documents(plan: Plan, documents: Sequence[tuple[str, bytes]]) -> Plan:
             raise CapabilityArtifactsError(f"Unsafe document target: {target}")
         if any(operation.target == target for operation in plan.operations):
             raise CapabilityArtifactsError(f"{target} is both a capability artifact and a project record")
+    baselines = tuple(
+        (target, digest_bytes((project_root / target).read_bytes())
+         if (project_root / target).is_file() else None)
+        for target, _ in documents)
     status = "ready" if plan.status == "up_to_date" else plan.status
-    return Plan(plan.capability, status, plan.operations, plan.conflicts, tuple(documents))
+    return Plan(plan.capability, status, plan.operations, plan.conflicts,
+                tuple(documents), baselines)
 
 
 def digest_bytes(data: bytes) -> str:
@@ -409,6 +427,14 @@ def apply_plan(project_root: Path, plan: Plan) -> None:
                 os.replace(backup, path)
         for path in reversed(created):
             path.unlink(missing_ok=True)
+        # The same cleanup as the branch above: without it a failed apply left
+        # behind the empty directories it had created, so "the project is
+        # untouched" was true of files and false of the tree.
+        for directory in reversed(created_directories):
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
         raise CapabilityArtifactsError(f"Ledger write failed and files were rolled back: {exc}") from exc
 
     for backup, _ in removed:
@@ -427,6 +453,23 @@ def verify_preconditions(project_root: Path, plan: Plan) -> None:
                 raise CapabilityArtifactsError(f"{operation.target} disappeared after planning")
             if digest_bytes(path.read_bytes()) != operation.installed_hash:
                 raise CapabilityArtifactsError(f"{operation.target} changed after planning")
+        elif operation.action == "adopt":
+            # Adopt means "these bytes are already the release, so record them
+            # as ours". Left unchecked it recorded the release hash for whatever
+            # the file had become in between — a state that never existed. A
+            # template rendered by bootstrap has no desired hash by design: its
+            # bytes legitimately differ from the source, so only its presence
+            # can be checked.
+            if not path.is_file():
+                raise CapabilityArtifactsError(f"{operation.target} disappeared after planning")
+            if operation.desired_hash is not None and digest_bytes(path.read_bytes()) != operation.desired_hash:
+                raise CapabilityArtifactsError(f"{operation.target} changed after planning")
+    for target, baseline in plan.document_baselines:
+        path = project_root / target
+        current = digest_bytes(path.read_bytes()) if path.is_file() else None
+        if current != baseline:
+            raise CapabilityArtifactsError(
+                f"{target} changed after planning; its new content was built from the old one")
 
 
 def ledger_document(project_root: Path, plan: Plan) -> dict:

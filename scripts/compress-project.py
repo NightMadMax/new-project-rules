@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import datetime
+import os
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -98,7 +99,13 @@ def relative(path: Path, root: Path) -> str:
 
 def read_text(path: Path) -> Optional[str]:
     try:
-        return path.read_text(encoding="utf-8")
+        # `newline=""` so a CRLF file stays CRLF end to end. Reading with the
+        # default normalised it to "\n" and writing translated back to the
+        # platform's ending, so moving three entries between two files rewrote
+        # every line of both — on Windows in one direction, on macOS in the
+        # other. The tool moves entries; it does not re-end files.
+        with path.open("r", encoding="utf-8", newline="") as handle:
+            return handle.read()
     except (UnicodeDecodeError, OSError):
         return None
 
@@ -338,7 +345,12 @@ def find_cruft(root: Path) -> list[Path]:
 
 
 def frontmatter_field(text: str, key: str) -> Optional[str]:
-    if not text.startswith("---\n"):
+    # The delimiter is matched without its ending. Reading used to normalise
+    # CRLF away, so `---\n` was enough; now that reading preserves the file's
+    # endings (so the tool stops re-ending files it only moves lines in), a
+    # CRLF document opens with `---\r\n` and the old prefix silently matched
+    # nothing — every such file counted as having no frontmatter at all.
+    if text.splitlines()[:1] != ["---"]:
         return None
     lines = text.splitlines()
     try:
@@ -425,10 +437,23 @@ def plan_compression(cfg: Config) -> Plan:
                     for block in split_h2_blocks(changelog)[1]
                     if block.startswith("## Unreleased")
                 )
+                # The newest release is always kept, so when that one release is
+                # itself over the limit, lowering the threshold moves nothing —
+                # the same wrong-remedy defect as №251, one step further on.
+                blocks = [block for block in split_h2_blocks(changelog)[1]
+                          if block.startswith("## ") and not block.startswith("## Unreleased")]
+                newest_bytes = len(blocks[0].encode("utf-8")) if blocks else 0
                 if unreleased_bytes > cfg.changelog_max_bytes // 2:
                     detail = (
                         f"`## Unreleased` alone is {unreleased_bytes / KB:.0f} KB and stays "
                         "here by definition; archiving releases cannot help. Cut a release."
+                    )
+                elif newest_bytes > cfg.changelog_max_bytes:
+                    heading = blocks[0].splitlines()[0][3:].strip()
+                    detail = (
+                        f"the newest release ({heading}) is {newest_bytes / KB:.0f} KB on its "
+                        "own and is never archived; no threshold can split it. Release more "
+                        "often, so one entry stops carrying a month of work."
                     )
                 else:
                     detail = (
@@ -475,8 +500,28 @@ def apply_plan(plan: Plan) -> None:
             path.rmdir()
         elif path.exists():
             path.unlink()
-    for path, content in plan.writes.items():
-        path.write_text(content, encoding="utf-8")
+    # `newline=""` so the text is written exactly as it was assembled. The
+    # default translates every "\n" to os.linesep on write while `read_text`
+    # had already normalised CRLF to "\n" on the way in — so moving three
+    # entries between two files re-ended both of them, and a change of a few
+    # lines arrived as a diff of the whole file.
+    #
+    # Staged then replaced, in the same order the plan lists: writing straight
+    # over the source meant a failure between the trimmed file and its archive
+    # lost the entries that were being moved.
+    staged: list[tuple[Path, Path]] = []
+    try:
+        for path, content in plan.writes.items():
+            temporary = path.with_name(f".{path.name}.compress-{os.getpid()}")
+            with temporary.open("w", encoding="utf-8", newline="") as handle:
+                handle.write(content)
+            staged.append((temporary, path))
+        for temporary, path in staged:
+            os.replace(temporary, path)
+        staged.clear()
+    finally:
+        for temporary, _ in staged:
+            temporary.unlink(missing_ok=True)
 
 
 def print_report(cfg: Config, plan: Plan, applied: bool) -> None:

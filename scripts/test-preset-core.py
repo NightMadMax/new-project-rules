@@ -58,7 +58,7 @@ def run_shell(destination: Path, *arguments: str):
         return None
     return subprocess.run(
         ["sh", (SCRIPTS / "bootstrap-new-project.sh").as_posix(), destination.as_posix(), "demo", *arguments],
-        capture_output=True, text=True, env={**dict(__import__("os").environ), **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**dict(__import__("os").environ), **GIT_IDENTITY},
     )
 
 
@@ -68,7 +68,7 @@ def run_shell_raw(*arguments: str):
         return None
     return subprocess.run(
         ["sh", (SCRIPTS / "bootstrap-new-project.sh").as_posix(), *arguments],
-        capture_output=True, text=True, env={**dict(__import__("os").environ), **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**dict(__import__("os").environ), **GIT_IDENTITY},
     )
 
 
@@ -80,7 +80,7 @@ def run_powershell(destination: Path, *arguments: str):
     command = f"& '{script}' -Destination '{destination.as_posix()}' -ProjectName demo " + " ".join(arguments)
     return subprocess.run(
         [pwsh, "-NoProfile", "-Command", command],
-        capture_output=True, text=True, env={**dict(__import__("os").environ), **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**dict(__import__("os").environ), **GIT_IDENTITY},
     )
 
 
@@ -176,7 +176,34 @@ note(
     f"config/capability-core.tsv and CAPABILITY_CORE disagree: {declared} vs {project_metadata.CAPABILITY_CORE}",
 )
 
-# The three lists of capability names must be one list. `CAPABILITY_CORE` had a
+# The check above used to compare two copies — the literal in the module and the
+# TSV the two bootstrap adapters read. A comparison finds a disagreement after it
+# exists; one source cannot disagree with itself. So the requirement now is that
+# the module *reads* the manifest: point it at another one and the answer must
+# change. A literal would pass the comparison above and fail here (№277).
+reader = getattr(project_metadata, "read_capability_core", None)
+if reader is None:
+    failures.append("project_metadata must read config/capability-core.tsv, not hold a copy of it")
+else:
+    with tempfile.TemporaryDirectory() as raw:
+        other = Path(raw)
+        (other / "config").mkdir()
+        (other / "config/capability-core.tsv").write_text(
+            "capability\tmin_profile\tstack\nprobe\tall\t-\n", encoding="utf-8")
+        reread = reader(other)
+        note(reread == {"probe": {"min_profile": "all", "stack": "-"}},
+             f"the core must come from the manifest, not from a literal: {reread}")
+        # And a manifest it cannot trust is an error, not an empty default: an
+        # empty core silently accepts every capability name.
+        (other / "config/capability-core.tsv").write_text(
+            "capability\tmin_profile\tstack\nprobe\tnosuchprofile\t-\n", encoding="utf-8")
+        try:
+            reader(other)
+            failures.append("an unknown profile in the core manifest must be refused")
+        except project_metadata.MetadataConfigError:
+            pass
+
+# The lists of capability names must be one list. `CAPABILITY_CORE` had a
 # comparison and `CAPABILITY_NAMES` had none, so bootstrap — which accepts what
 # the delivery manifest declares — and the validator — which accepts what this
 # set declares — could disagree, and the disagreement surfaces as a project that
@@ -186,11 +213,6 @@ note(
     manifest_names == project_metadata.CAPABILITY_NAMES,
     f"config/capabilities.tsv and CAPABILITY_NAMES disagree: "
     f"{sorted(manifest_names)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
-)
-note(
-    set(declared) == project_metadata.CAPABILITY_NAMES,
-    f"config/capability-core.tsv and CAPABILITY_NAMES disagree: "
-    f"{sorted(declared)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
 )
 
 # A capability that indexes documentation needs a profile that has an index.
@@ -258,7 +280,7 @@ with tempfile.TemporaryDirectory() as raw:
         note(manifest.is_file(), f"{label}: the core stack was not recorded without a preset")
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("0 error(s)" in check.stdout, f"{label}: choosing a capability directly must not create an invalid project")
 
@@ -275,7 +297,7 @@ with tempfile.TemporaryDirectory() as raw:
         manifest.write_text(json.dumps(data), encoding="utf-8")
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("capability.stack_declined" in check.stdout, f"a declined stack must break the core: {check.stdout[-200:]}")
 
@@ -283,7 +305,7 @@ with tempfile.TemporaryDirectory() as raw:
         manifest.write_text(json.dumps(data), encoding="utf-8")
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("capability.stack_missing" in check.stdout, f"an unrecorded stack must break the core: {check.stdout[-200:]}")
 
@@ -291,21 +313,21 @@ with tempfile.TemporaryDirectory() as raw:
         manifest.write_text(json.dumps(data), encoding="utf-8")
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("capability.stack_declined" in check.stdout, f"a globally declined base must break the core: {check.stdout[-200:]}")
 
         manifest.unlink()
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("capability.stack_missing" in check.stdout, f"a missing manifest must break the core: {check.stdout[-200:]}")
 
         manifest.write_text("{not json", encoding="utf-8")
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("capability.stack_unreadable" in check.stdout, f"an unreadable manifest must be reported: {check.stdout[-200:]}")
 
@@ -346,7 +368,7 @@ with tempfile.TemporaryDirectory() as raw:
         added = subprocess.run(
             [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
              "--project", str(destination), "--capability", "jira-confluence", "--apply", "--yes"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note(added.returncode == 0, f"adding a capability must succeed: {added.stderr[-300:]}")
         if added.returncode == 0:
@@ -359,7 +381,7 @@ with tempfile.TemporaryDirectory() as raw:
             check = subprocess.run(
                 [sys.executable, str(SCRIPTS / "validate-project.py"),
                  "--root", str(destination), "--report-only"],
-                capture_output=True, text=True,
+                capture_output=True, text=True, encoding="utf-8",
             )
             note("0 error(s)" in check.stdout,
                  f"a project must stay valid after a capability is added: {check.stdout[-300:]}")
@@ -372,7 +394,7 @@ with tempfile.TemporaryDirectory() as raw:
         refused = subprocess.run(
             [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
              "--project", str(low), "--capability", "transcribe", "--apply", "--yes"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note(refused.returncode != 0, "a capability below its profile floor must be refused")
         note("profile" in refused.stderr, f"the refusal must name the profile: {refused.stderr[:200]}")
@@ -389,7 +411,7 @@ with tempfile.TemporaryDirectory() as raw:
         applied = subprocess.run(
             [sys.executable, str(SCRIPTS / "apply-capability-artifacts.py"),
              "--project", str(destination), "--capability", "1c", "--apply", "--yes"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         # Checked, not assumed: without this the next line reported a missing
         # record and said nothing about the install that never happened.
@@ -422,7 +444,7 @@ with tempfile.TemporaryDirectory() as raw:
         (destination / ".project-standard.json").write_text(json.dumps(data), encoding="utf-8")
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note(
             "capability.removed" in check.stdout,
@@ -464,7 +486,7 @@ with tempfile.TemporaryDirectory() as raw:
 
         check = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(destination), "--report-only"],
-            capture_output=True, text=True,
+            capture_output=True, text=True, encoding="utf-8",
         )
         note("0 error(s)" in check.stdout, f"{label}: a freshly created project must validate: {check.stdout[-300:]}")
 

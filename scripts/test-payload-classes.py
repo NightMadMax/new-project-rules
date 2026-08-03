@@ -137,7 +137,7 @@ def shell_bootstrap(contract: Path, destination: Path):
     return subprocess.run(
         ["sh", (contract / "scripts" / "bootstrap-new-project.sh").as_posix(),
          destination.as_posix(), "demo", "operated", CAPABILITY],
-        capture_output=True, text=True, env={**os.environ, **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**os.environ, **GIT_IDENTITY},
     )
 
 
@@ -151,7 +151,7 @@ def powershell_bootstrap(contract: Path, destination: Path):
         [pwsh, "-NoProfile", "-Command",
          f"& '{script}' -ProjectName demo -Destination '{destination.as_posix()}' "
          f"-Profile operated -Capability {CAPABILITY}"],
-        capture_output=True, text=True, env={**os.environ, **GIT_IDENTITY},
+        capture_output=True, text=True, encoding="utf-8", env={**os.environ, **GIT_IDENTITY},
     )
 
 

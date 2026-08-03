@@ -188,7 +188,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
 
     def test_rules_repository_cli_json_reports_not_applicable(self):
         command = [sys.executable, str(MODULE_PATH), "--root", str(ROOT), "--json"]
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["target_kind"], "rules-repository")
@@ -216,7 +216,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
             result = subprocess.run(
                 [sys.executable, str(MODULE_PATH), "--root", str(ROOT), *arguments],
                 capture_output=True,
-                text=True,
+                text=True, encoding="utf-8",
             )
             self.assertEqual(result.returncode, 1, (arguments, result.stdout, result.stderr))
             self.assertIn("Rules repositories", result.stdout)
@@ -256,7 +256,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         project = self.make_project("minimal")
         before = tree_digest(project)
         command = [sys.executable, str(MODULE_PATH), "--root", str(project), "--json"]
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stderr)
         payload = json.loads(result.stdout)
         self.assertEqual(payload["recommended_strategy"], "adopt-in-place")
@@ -275,7 +275,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
             "--profile", "software",
             "--plan-adopt",
         ]
-        planned = subprocess.run(plan_command, capture_output=True, text=True)
+        planned = subprocess.run(plan_command, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(planned.returncode, 0, planned.stderr)
         self.assertIn("CLAUDE.md", planned.stdout)
         self.assertIn("docs/README.md", planned.stdout)
@@ -286,7 +286,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         )
         self.assertEqual(before, tree_digest(project))
         apply_command = plan_command[:-1] + ["--apply", "--fingerprint", fingerprint, "--yes"]
-        applied = subprocess.run(apply_command, capture_output=True, text=True)
+        applied = subprocess.run(apply_command, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(applied.returncode, 0, applied.stderr)
         self.assertEqual((project / "CLAUDE.md").read_text(encoding="utf-8"), "@AGENTS.md\n")
         self.assertTrue((project / "docs" / "README.md").exists())
@@ -304,7 +304,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
             "--fingerprint", "0" * 64,
             "--yes",
         ]
-        result = subprocess.run(command, capture_output=True, text=True)
+        result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 1)
         self.assertFalse((project / "CLAUDE.md").exists())
 
@@ -326,7 +326,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
             "--destination", str(destination),
             "--project-name", "Rebuilt Project",
             "--profile", "software",
-        ], capture_output=True, text=True)
+        ], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(plan.returncode, 0, plan.stderr)
         self.assertIn("destination=", plan.stdout)
         fingerprint = next(
@@ -344,12 +344,39 @@ class StandardizeExistingProjectTests(unittest.TestCase):
             "--profile", "software",
             "--fingerprint", fingerprint,
             "--yes",
-        ], capture_output=True, text=True)
+        ], capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(apply.returncode, 0, apply.stderr)
         self.assertTrue((destination / "src" / "main.py").exists())
         self.assertTrue((destination / "package.json").exists())
         self.assertFalse((destination / "docs" / "README.md").read_text(encoding="utf-8").startswith("# Legacy"))
         self.assertIn("NEXT METADATA PLAN:", apply.stdout)
+
+    def test_rebootstrap_plan_renders_as_json(self):
+        # The re-bootstrap plan writes under --destination, which the contract
+        # keeps outside the assessed root. The text renderer allowed for that
+        # and the JSON renderer did not, so `--json` — the mode meant to be read
+        # by another program — died with a ValueError traceback instead of
+        # printing the plan.
+        project = self.base / "legacy-json-plan"
+        project.mkdir()
+        (project / "src").mkdir()
+        (project / "src" / "main.py").write_text("print('ok')\n", encoding="utf-8")
+        self.git_init(project)
+        destination = self.base / "rebuilt-json"
+        result = subprocess.run([
+            sys.executable, str(MODULE_PATH),
+            "--root", str(project),
+            "--strategy", "re-bootstrap-from-existing",
+            "--plan-rebootstrap",
+            "--destination", str(destination),
+            "--project-name", "Rebuilt Project",
+            "--profile", "software",
+            "--json",
+        ], capture_output=True, text=True, encoding="utf-8")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        payload = json.loads(result.stdout)
+        self.assertEqual("ready", payload["apply_plan"]["status"])
+        self.assertTrue(payload["apply_plan"]["files"])
 
     def test_adopt_plan_blocks_symlink_write_target(self):
         outside = self.base / "outside-target.md"
@@ -423,7 +450,7 @@ class StandardizeExistingProjectTests(unittest.TestCase):
         env["PATH"] = str(self.base / "empty-path")
         (self.base / "empty-path").mkdir()
         command = ["/bin/sh", str(ROOT / "scripts" / "standardize-existing-project.sh"), "--root", str(self.base)]
-        result = subprocess.run(command, env=env, capture_output=True, text=True)
+        result = subprocess.run(command, env=env, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 1)
         self.assertIn("Python 3.9+", result.stderr)
 

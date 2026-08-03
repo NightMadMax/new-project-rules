@@ -74,7 +74,7 @@ def read_manifest(root: Path) -> list[dict[str, str]]:
     text, error = read_text(path)
     if error:
         raise ManifestError(error)
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t")
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     if reader.fieldnames != HEADER:
         raise ManifestError(f"{MANIFEST} header must be {chr(9).join(HEADER)}")
 
@@ -333,7 +333,7 @@ def delivered_targets(root: Path) -> tuple[dict[str, str], list[str]]:
     text, error = read_text(path)
     if error:
         return {}, [error]
-    rows = csv.DictReader(io.StringIO(text), delimiter="\t")
+    rows = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
     return {(row.get("destination") or "").strip(): (row.get("source") or "").strip()
             for row in rows}, []
 
@@ -351,7 +351,7 @@ def capability_skill_roots(root: Path) -> tuple[set[str], list[str]]:
     text, error = read_text(path)
     if error:
         return roots, [error]
-    for row in csv.DictReader(io.StringIO(text), delimiter="\t"):
+    for row in csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE):
         source = (row.get("source") or "").strip()
         marker = f"/.{CANONICAL_ROOT}/"
         if marker in source:

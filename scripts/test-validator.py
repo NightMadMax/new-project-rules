@@ -36,6 +36,49 @@ def tree_digest(root: Path) -> dict[str, str]:
     return result
 
 
+class CapabilitySeamTests(unittest.TestCase):
+    """The core validator must not know what any one capability looks like.
+
+    The registry columns, enums and port range of the `1c` capability used to sit
+    in `validate-project.py`, which answers "does this project match its
+    profile". A second capability with a registry of its own would have added a
+    second such block to a file that is supposed to know about neither (№278).
+    """
+
+    def test_core_holds_no_capability_specific_knowledge(self):
+        core = (ROOT / "scripts/validate-project.py").read_text(encoding="utf-8")
+        offenders = [marker for marker in ("ONE_C_", "config/1c-", "1c-projects.tsv")
+                     if marker in core]
+        self.assertEqual([], offenders,
+                         "the core validator names artifacts of a single capability")
+
+    def test_capabilities_plug_in_through_a_registry(self):
+        # The seam itself: one row per capability, each entry callable, and each
+        # one silent about a project that does not have its file.
+        self.assertIn("1c", validator.CAPABILITY_VALIDATORS)
+        with tempfile.TemporaryDirectory() as raw:
+            empty = Path(raw)
+            for name, check in validator.CAPABILITY_VALIDATORS.items():
+                with self.subTest(capability=name):
+                    self.assertEqual([], list(check(empty)),
+                                     "a validator must skip a project without its file")
+
+    def test_registry_findings_survive_the_conversion(self):
+        # The capability returns tuples and the core builds findings from them.
+        # A shape mismatch here would surface as a traceback in the middle of a
+        # validation run, so it is asserted on a real refusal.
+        with tempfile.TemporaryDirectory() as raw:
+            project = Path(raw)
+            (project / "config").mkdir()
+            (project / "config/1c-projects.tsv").write_text("wrong\theader\n", encoding="utf-8")
+            items = validator.CAPABILITY_VALIDATORS["1c"](project)
+            self.assertTrue(items, "a broken registry must produce a finding")
+            findings = [validator.Finding(*item) for item in items]
+            self.assertTrue(all(finding.severity in ("ERROR", "WARN", "INFO")
+                                for finding in findings), findings)
+            self.assertTrue(all(finding.code and finding.message for finding in findings))
+
+
 class ValidatorTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix="validator-test-")
@@ -103,7 +146,7 @@ class ValidatorTests(unittest.TestCase):
                 "sh", str(ROOT / "scripts" / "bootstrap-new-project.sh"),
                 str(project), "Validator Integration", "operated",
             ]
-        result = subprocess.run(command, env=env, capture_output=True, text=True)
+        result = subprocess.run(command, env=env, capture_output=True, text=True, encoding="utf-8")
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         _, profile, findings = self.validate_project(project)
         self.assertEqual(profile, "operated")
@@ -280,7 +323,7 @@ class ValidatorTests(unittest.TestCase):
         env = os.environ.copy()
         env.update({"GIT_CONFIG_NOSYSTEM": "1", "GIT_CONFIG_GLOBAL": os.devnull})
         result = subprocess.run(
-            ["git", "-C", str(project), "init"], env=env, capture_output=True, text=True,
+            ["git", "-C", str(project), "init"], env=env, capture_output=True, text=True, encoding="utf-8",
         )
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
 

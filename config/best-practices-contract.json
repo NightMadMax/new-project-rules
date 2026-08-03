@@ -1,9 +1,13 @@
 {
   "schema_version": 1,
   "repository": "NightMadMax/best-practices",
-  "source_commit": "247597bd9bd18b21d55eddf38bd0ed846d063b74",
-  "supported_practice_statuses": ["accepted"],
-  "retired_routes": ["harvest-project-lessons"],
+  "source_commit": "2ef1fda8a50ecafc85a8bd0f3e4bf2e0b9219c8d",
+  "supported_practice_statuses": [
+    "accepted"
+  ],
+  "retired_routes": [
+    "harvest-project-lessons"
+  ],
   "active_routing_surfaces": [
     "README.md",
     "candidates/README.md",
@@ -29,8 +33,8 @@
     "docs/architecture/decisions/ADR-0006-versioned-consumer-manifest.md": "0d833f415ba9c72e3cbc33c43ec505f77a2813fc51cf3ecb1a6903b9cd0cd214",
     "docs/reference/PRACTICE_SCHEMA.md": "7e7dd63fe28215606849a13ef39d3d1fea8fbaeead2e4933343eea46545b6028",
     "scripts/migrate_consumer_manifest.py": "4f6c3308d2ae43dead92e6aad294fd696a8223fd6dc4141bd762f61e7f5c856f",
-    "scripts/practice_report.py": "9a42c8457a1c5acdbb1557f7b1ba113097083b61f543f738a512a5f86f0540f2",
-    "scripts/validate.py": "f18b72f1b72be2684e563f2840f4d47476961cf8fab2ef823b1ec0738e1fae72",
+    "scripts/practice_report.py": "ced81aa270f84358a0c512c81c903efa5359e28ba7a03a3b08598a27a785542e",
+    "scripts/validate.py": "3fa6f24303969b5dbeff123d30ecc4c7e6e5faa3604265b2ece823465adf9830",
     "practices/tools/PC-2026-850607ffdb29-pinned-cross-repo-contract.md": "bdc2a821f9646cbd702dcfbf6566fefd2b5319a9474223380ce660abcb8b7450"
   },
   "promotion_source": {

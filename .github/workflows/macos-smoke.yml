@@ -81,6 +81,7 @@ jobs:
           python3 scripts/test-1c-yaxunit.py
           python3 scripts/test-transcribe.py
           python3 scripts/test-1c-readiness.py
+          python3 scripts/test-1c-release-guard.py
           python3 scripts/test-cli-discovery.py
           python3 scripts/test-1c-session.py
           python3 scripts/test-1c-doctor.py

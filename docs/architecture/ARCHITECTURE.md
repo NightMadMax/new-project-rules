@@ -2,7 +2,7 @@
 type: architecture
 status: active
 owner: project
-last_verified: 2026-07-07
+last_verified: 2026-08-03
 source_of_truth: repository
 related:
   - "[[PROJECT]]"
@@ -113,6 +113,23 @@ substitution, Git и безопасный rollback. Parity-тесты согла
 [[docs/architecture/decisions/ADR-0002-versioned-project-contract|ADR-0002]]
 проверяют contract на обеих платформах и доказывают manifest-driven поведение в
 изолированной копии.
+
+**Ядро не знает, что такое capability изнутри.** `config/capability-core.tsv` —
+единственный источник минимального профиля и обязательного стека: его читают оба
+bootstrap и `project_metadata`, литералов в коде нет. Валидация, специфичная для
+capability, живёт у самой capability (`scripts/one_c_validation.py`), а ядро
+вызывает её через `CAPABILITY_VALIDATORS` — одна строка на capability — и
+превращает возвращённые кортежи в findings. Вторая capability со своим реестром
+пишет свой модуль и добавляет строку; `validate-project.py` при этом не
+меняется. DSL валидации намеренно не вводится: у него пока один потребитель.
+
+**Runtime сверяется с установленным release.** `one_c_release_guard` сравнивает
+`capability_releases` проекта с паспортом чекаута. Там, где пишут — замок сессии
+и рендерер клиентских проекций, — несовпадение это отказ; там, где только
+читают, это строка отчёта, потому что диагностика не валит прогон. Отсутствие
+capability в проекте несовпадением не считается, а нечитаемый паспорт чекаута
+называется поломкой чекаута, а не виной проекта. Без этого строгость версий
+заканчивалась ровно там, где начинается действие на живой системе.
 
 `scripts/validate-project.py` является общей read-only validation logic на
 Python 3.9 standard library. Native wrappers проверяют runtime и сохраняют

@@ -253,6 +253,18 @@ class StaleTests(unittest.TestCase):
         flagged = {n.path for n in notices}
         self.assertEqual(flagged, {"old.md"})
 
+    def test_frontmatter_is_read_from_a_crlf_document(self):
+        # Reading preserves the file's endings so the tool stops re-ending
+        # whole files it only moves lines in. That made the CRLF case real:
+        # a document opening with `---\r\n` no longer matched a `---\n` prefix
+        # and silently counted as having no frontmatter. On Windows every
+        # document is this document, and only the Windows job saw it.
+        path = self.root / "crlf.md"
+        path.write_bytes(
+            "---\r\ntype: doc\r\nlast_verified: 2020-01-01\r\n---\r\n\r\n# X\r\n".encode("utf-8"))
+        notices = compress.stale_frontmatter(self.root, TODAY, stale_days=60)
+        self.assertIn("crlf.md", {notice.path for notice in notices})
+
 
 class IntegrationTests(unittest.TestCase):
     def setUp(self):
@@ -291,6 +303,41 @@ class IntegrationTests(unittest.TestCase):
     def test_main_report_exits_zero(self):
         rc = compress.main(["--root", str(self.root), "--today", "2026-07-06"])
         self.assertEqual(rc, 0)
+
+    def test_oversized_newest_release_names_the_remedy_that_works(self):
+        # Defect 251 was a warning that sent the reader to a setting which
+        # changes nothing. This is the same shape one step on: the newest
+        # release is never archived, so when that single release is over the
+        # limit, "lower --changelog-keep" is again the wrong advice.
+        (self.root / "CHANGELOG.md").write_text(
+            # Nothing left to archive: one release, and it alone is over the
+            # limit. That is exactly when "lower --changelog-keep" is useless.
+            "# Журнал изменений\n\n## Unreleased\n\n- мелочь\n\n"
+            "## v9.0.0 — 2026-08-03\n\n" + ("- запись месяца работы\n" * 400),
+            encoding="utf-8")
+        plan = compress.plan_compression(self._config())
+        warnings = [notice for notice in plan.notices if notice.code == "changelog.size"]
+        self.assertEqual(1, len(warnings), plan.notices)
+        self.assertIn("v9.0.0", warnings[0].message)
+        self.assertNotIn("--changelog-keep", warnings[0].message)
+
+    def test_apply_keeps_the_line_endings_of_each_file(self):
+        # The tool moves entries between two files. Reading with the default
+        # normalised CRLF to "\n" and writing translated back to the platform's
+        # ending, so a project created on Windows got every line of both files
+        # rewritten to move three of them — and on macOS the same trip went the
+        # other way. Both directions are checked, because either one turns a
+        # small move into a whole-file diff.
+        crlf = self.root / "CRLF.md"
+        crlf.write_bytes(b"line one\r\nline two\r\n")
+        lf = self.root / "LF.md"
+        lf.write_bytes(b"line one\nline two\n")
+        plan = compress.Plan()
+        plan.writes[crlf] = compress.read_text(crlf) + "line three\r\n"
+        plan.writes[lf] = compress.read_text(lf) + "line three\n"
+        compress.apply_plan(plan)
+        self.assertEqual(b"line one\r\nline two\r\nline three\r\n", crlf.read_bytes())
+        self.assertEqual(b"line one\nline two\nline three\n", lf.read_bytes())
 
 
 if __name__ == "__main__":

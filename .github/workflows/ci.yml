@@ -19,6 +19,14 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           persist-credentials: false
+      # TOOLS.md and MIN_PYTHON declare 3.9 as the supported minimum, and until
+      # this step every job ran whatever the runner shipped (3.12+). A construct
+      # newer than the declared floor would have passed CI and failed only on a
+      # user's machine. The other jobs deliberately keep the runner default, so
+      # both ends of the supported range are exercised.
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+        with:
+          python-version: "3.9"
       - name: Verify immutable action pins
         run: python3 scripts/check-action-pins.py
       - name: Lint shell scripts
@@ -64,6 +72,7 @@ jobs:
           python3 scripts/test-1c-yaxunit.py
           python3 scripts/test-transcribe.py
           python3 scripts/test-1c-readiness.py
+          python3 scripts/test-1c-release-guard.py
           python3 scripts/test-no-secrets.py
       - name: Validator report
         env:
@@ -130,6 +139,7 @@ jobs:
             "test-1c-yaxunit.py",
             "test-transcribe.py",
             "test-1c-readiness.py",
+            "test-1c-release-guard.py",
             "test-no-secrets.py"
           )) {
             python ".\scripts\$test"
@@ -190,7 +200,7 @@ jobs:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           repository: NightMadMax/best-practices
-          ref: 247597bd9bd18b21d55eddf38bd0ed846d063b74
+          ref: 2ef1fda8a50ecafc85a8bd0f3e4bf2e0b9219c8d
           path: .external/best-practices
           persist-credentials: false
       # `bash` on every platform, including Windows: the default there is

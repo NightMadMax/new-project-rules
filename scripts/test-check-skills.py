@@ -626,6 +626,76 @@ for candidate in sorted((repository / "scripts").glob("test-*.py")):
     if name not in index:
         failures.append(f"{name} is not listed in INDEX.md")
 
+# Documented is not the same as run. Defects 228 and 229 were both "a test
+# exists and one surface does not know about it": 229 closed the documentation
+# half above, 228 was the CI half — five tests missing from macos-smoke — and it
+# was closed by editing the list, not by asserting it. The regression list is
+# written out three times (ci.yml has one per job, macos-smoke.yml has its own),
+# so a new test reaches every platform only if someone remembers all three.
+# A test that runs somewhere else names that workflow here instead.
+CI_REGRESSION_LISTS = {
+    ".github/workflows/ci.yml::shell": None,
+    ".github/workflows/ci.yml::powershell": None,
+    ".github/workflows/macos-smoke.yml": None,
+}
+# Reason a test is absent from the three lists, and the workflow that does run
+# it. Anything not named here has to be in all three.
+CI_ELSEWHERE = {
+    "test-best-practices-e2e.py": (
+        "needs --best-practices-root; runs in the cross-repo-e2e job and in bp-pin-watch.yml",
+        (".github/workflows/ci.yml", ".github/workflows/bp-pin-watch.yml"),
+    ),
+}
+ci_text = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
+# The jobs are split textually because both lists live in one file and a test
+# present in only one of them is exactly the defect this check exists for.
+if "\n  powershell:" not in ci_text or "\n  cross-repo-e2e:" not in ci_text:
+    failures.append(".github/workflows/ci.yml no longer has the jobs this check splits on")
+else:
+    CI_REGRESSION_LISTS[".github/workflows/ci.yml::shell"] = ci_text.split("\n  powershell:")[0]
+    CI_REGRESSION_LISTS[".github/workflows/ci.yml::powershell"] = (
+        ci_text.split("\n  powershell:")[1].split("\n  cross-repo-e2e:")[0])
+    CI_REGRESSION_LISTS[".github/workflows/macos-smoke.yml"] = (
+        repository / ".github/workflows/macos-smoke.yml").read_text(encoding="utf-8")
+
+    for candidate in sorted((repository / "scripts").glob("test-*.py")):
+        name = candidate.name
+        if name in CI_ELSEWHERE:
+            reason, workflows = CI_ELSEWHERE[name]
+            for workflow in workflows:
+                body = (repository / workflow).read_text(encoding="utf-8")
+                if name not in body:
+                    failures.append(
+                        f"{name} is exempt from the regression lists ({reason}) "
+                        f"but {workflow} does not run it either")
+            continue
+        for where, body in CI_REGRESSION_LISTS.items():
+            if name not in body:
+                failures.append(f"{name} is not run by {where}")
+
+# A skill every session reaches for must not route the user into a gate that
+# refuses them. `reflect-and-record` fires on every mistake and correction, and
+# it sent cross-project lessons to `promote-project-knowledge`, which is
+# maintainer-only and accepts only an already-accepted Best Practices entry: a
+# fresh lesson never satisfies it. The loop stood still for a month.
+reflect = (repository / ".agents/skills/reflect-and-record/SKILL.md").read_text(encoding="utf-8")
+MAINTAINER_ONLY = ("promote-project-knowledge", "apply-promotion-candidate")
+if "harvest-practice-candidates" not in reflect:
+    failures.append("reflect-and-record must name the user route into Best Practices "
+                    "(harvest-practice-candidates)")
+for skill_name in MAINTAINER_ONLY:
+    skill_file = repository / ".agents/skills" / skill_name / "SKILL.md"
+    body = skill_file.read_text(encoding="utf-8")
+    if "aintainer-only" not in body and "aintainer only" not in body:
+        failures.append(f"{skill_name} is routed to as maintainer-only but does not say so")
+    # And the user-facing skill may mention it only alongside that fact, so the
+    # reader is never sent there as their own next step.
+    for line in reflect.splitlines():
+        if skill_name in line and "maintainer-only" not in reflect:
+            failures.append(
+                f"reflect-and-record names {skill_name} without saying it is maintainer-only")
+            break
+
 # A capability skill that names a script of the standard must say where that
 # script lives: it is in the new-project-rules checkout, not in the created
 # project, and the project does not record the path (№215).
