@@ -36,11 +36,24 @@ class BestPracticesContractTests(unittest.TestCase):
         self.assertIn(f"ref: {self.contract['source_commit']}", workflow)
         self.assertIn("scripts/test-best-practices-e2e.py", workflow)
 
-    def test_latest_pin_check_detects_drift(self):
+    def test_latest_pin_check_reports_drift_without_failing(self):
+        # Drift is a signal for a maintainer, not a fault: refreshing the pin is
+        # a deliberate act, and this repository already decided that class for
+        # its other upstream. It matters more here than there, because the two
+        # repositories pin each other — treating behind-main as a failure means
+        # they can never both be current, since refreshing either pin advances
+        # that repository's main and puts the other one behind.
         pinned = self.contract["source_commit"]
-        self.assertEqual([], checker.verify_latest_commit(self.contract, pinned))
-        problems = checker.verify_latest_commit(self.contract, "f" * 40)
-        self.assertTrue(any("is behind main" in item for item in problems))
+        self.assertEqual(([], []), checker.verify_latest_commit(self.contract, pinned))
+        problems, notes = checker.verify_latest_commit(self.contract, "f" * 40)
+        self.assertEqual([], problems, "being behind main must not be an error")
+        self.assertTrue(any("is behind main" in item for item in notes))
+
+    def test_a_pin_that_cannot_be_resolved_is_still_an_error(self):
+        # The failure this watcher exists for stays a failure.
+        problems, notes = checker.verify_latest_commit(self.contract, "not-a-sha")
+        self.assertTrue(problems, "an unresolvable main must be an error")
+        self.assertEqual([], notes)
 
     def test_scheduled_pin_watch_is_read_only(self):
         workflow = (ROOT / ".github/workflows/bp-pin-watch.yml").read_text(encoding="utf-8")
