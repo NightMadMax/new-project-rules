@@ -348,10 +348,28 @@ mkdir -p "$destination"
 today=$(date +%Y-%m-%d)
 escaped_name=$(printf '%s' "$project_name" | sed 's/[&|\\]/\\&/g')
 
+# One directory is created once, and its name is computed without a process.
+# Delivering a capability writes hundreds of files, and the old form spent two
+# process spawns per file — `dirname` and an unconditional `mkdir -p` — which is
+# cheap on Linux and is not on Windows, where the Python suite ran nine times
+# slower than on Ubuntu almost entirely because of this loop.
+made_directories=""
+ensure_directory() {
+  case $1 in
+    */*) directory="$destination/${1%/*}" ;;
+    *) directory="$destination" ;;
+  esac
+  case "$made_directories" in
+    *"|$directory|"*) return 0 ;;
+  esac
+  mkdir -p "$directory"
+  made_directories="$made_directories|$directory|"
+}
+
 install_template() {
   source_file=$1
   target_file=$2
-  mkdir -p "$(dirname "$destination/$target_file")"
+  ensure_directory "$target_file"
   # Substitution only where there is something to substitute. `sed` in git-bash
   # rewrites line endings, so a template without placeholders arrived on Windows
   # with different bytes from the source it was copied from — and the first
@@ -371,7 +389,7 @@ install_template() {
 install_verbatim() {
   source_file=$1
   target_file=$2
-  mkdir -p "$(dirname "$destination/$target_file")"
+  ensure_directory "$target_file"
   cp "$templates/$source_file" "$destination/$target_file"
 }
 
