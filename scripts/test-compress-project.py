@@ -253,6 +253,18 @@ class StaleTests(unittest.TestCase):
         flagged = {n.path for n in notices}
         self.assertEqual(flagged, {"old.md"})
 
+    def test_frontmatter_is_read_from_a_crlf_document(self):
+        # Reading preserves the file's endings so the tool stops re-ending
+        # whole files it only moves lines in. That made the CRLF case real:
+        # a document opening with `---\r\n` no longer matched a `---\n` prefix
+        # and silently counted as having no frontmatter. On Windows every
+        # document is this document, and only the Windows job saw it.
+        path = self.root / "crlf.md"
+        path.write_bytes(
+            "---\r\ntype: doc\r\nlast_verified: 2020-01-01\r\n---\r\n\r\n# X\r\n".encode("utf-8"))
+        notices = compress.stale_frontmatter(self.root, TODAY, stale_days=60)
+        self.assertIn("crlf.md", {notice.path for notice in notices})
+
 
 class IntegrationTests(unittest.TestCase):
     def setUp(self):

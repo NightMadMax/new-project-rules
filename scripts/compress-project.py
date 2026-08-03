@@ -345,7 +345,12 @@ def find_cruft(root: Path) -> list[Path]:
 
 
 def frontmatter_field(text: str, key: str) -> Optional[str]:
-    if not text.startswith("---\n"):
+    # The delimiter is matched without its ending. Reading used to normalise
+    # CRLF away, so `---\n` was enough; now that reading preserves the file's
+    # endings (so the tool stops re-ending files it only moves lines in), a
+    # CRLF document opens with `---\r\n` and the old prefix silently matched
+    # nothing — every such file counted as having no frontmatter at all.
+    if text.splitlines()[:1] != ["---"]:
         return None
     lines = text.splitlines()
     try:
