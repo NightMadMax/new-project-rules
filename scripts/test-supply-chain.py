@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 import sys
 import tempfile
 import unittest
@@ -89,6 +90,24 @@ class SupplyChainTests(unittest.TestCase):
                 if "text=True" in line and "encoding=" not in line:
                     offenders.append(f"{path.name}:{number}")
         self.assertEqual([], offenders, "a text subprocess without an explicit encoding")
+
+    def test_vendored_upstream_states_where_it_came_from(self):
+        # This subtree is somebody else's code and the capability copies part of
+        # it into every created project. The permission exists — the upstream
+        # README grants it in as many words — but it lived only in that README,
+        # so a reader of this repository saw 161 files of foreign code and no
+        # basis for them. The commit is asserted against the inventory so that
+        # refreshing the pin cannot leave the notice describing another release.
+        notice_path = ROOT / "templates/new-project/capabilities/1c/upstream/NOTICE.md"
+        self.assertTrue(notice_path.is_file(), "vendored upstream carries no NOTICE.md")
+        notice = notice_path.read_text(encoding="utf-8")
+        inventory = (ROOT / "config/1c-upstream-inventory.txt").read_text(encoding="utf-8")
+        pinned = re.search(r"@\s*([0-9a-f]{40})", inventory)
+        self.assertIsNotNone(pinned, "the upstream inventory names no pinned commit")
+        self.assertIn(pinned.group(1), notice,
+                      "NOTICE.md describes a different commit than the inventory pins")
+        for expected in ("comol/ai_rules_1c", "Никакой лицензии"):
+            self.assertIn(expected, notice, f"NOTICE.md does not state {expected!r}")
 
     def test_codeowners_protects_governance_surfaces(self):
         codeowners = (ROOT / ".github" / "CODEOWNERS").read_text(encoding="utf-8")

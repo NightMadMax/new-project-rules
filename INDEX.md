@@ -160,6 +160,7 @@
 | `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/test-one-c-scaffold.py` | Тесты каркаса 1С-проекта и схемы реестра баз |
 | `scripts/test-1c-readiness.py` | Сверка матрицы готовности с планом и проверка её доказательств |
+| `scripts/test-1c-release-guard.py` | Runtime отказывается работать с проектом на другом release capability |
 | `scripts/test-no-secrets.py` | Сканер: секреты, машинные пути и имена рабочих баз |
 | `scripts/check-1c-component-links.py` | Report-only проверка внешних ссылок каталога компонентов |
 | `scripts/one_c_source.py` | Контракт конвертации EDT ↔ XML: временный каталог, детерминизм, возврат в канон |
@@ -167,6 +168,7 @@
 | `scripts/export-1c-source.sh` | POSIX-обёртка выгрузки исходников |
 | `scripts/export-1c-source.ps1` | PowerShell-обёртка выгрузки исходников |
 | `scripts/test-1c-source.py` | Тесты конвертации: расположение выгрузки, детерминизм, блокировка, возврат |
+| `scripts/one_c_release_guard.py` | Сверка release capability между чекаутом стандарта и проектом перед действием на живой системе |
 | `scripts/one_c_doctor.py` | Диагностика окружения 1С: allowlist источников, маскирование до вывода, статус и следствие в каждой строке |
 | `scripts/test-1c-doctor.py` | Тесты диагностики: чтение вне allowlist отклоняется, значение секрета не доходит до отчёта |
 | `scripts/one_c_session.py` | Session lock и его CLI: какую базу сессии разрешено трогать и чем это подтверждено |

@@ -176,7 +176,34 @@ note(
     f"config/capability-core.tsv and CAPABILITY_CORE disagree: {declared} vs {project_metadata.CAPABILITY_CORE}",
 )
 
-# The three lists of capability names must be one list. `CAPABILITY_CORE` had a
+# The check above used to compare two copies — the literal in the module and the
+# TSV the two bootstrap adapters read. A comparison finds a disagreement after it
+# exists; one source cannot disagree with itself. So the requirement now is that
+# the module *reads* the manifest: point it at another one and the answer must
+# change. A literal would pass the comparison above and fail here (№277).
+reader = getattr(project_metadata, "read_capability_core", None)
+if reader is None:
+    failures.append("project_metadata must read config/capability-core.tsv, not hold a copy of it")
+else:
+    with tempfile.TemporaryDirectory() as raw:
+        other = Path(raw)
+        (other / "config").mkdir()
+        (other / "config/capability-core.tsv").write_text(
+            "capability\tmin_profile\tstack\nprobe\tall\t-\n", encoding="utf-8")
+        reread = reader(other)
+        note(reread == {"probe": {"min_profile": "all", "stack": "-"}},
+             f"the core must come from the manifest, not from a literal: {reread}")
+        # And a manifest it cannot trust is an error, not an empty default: an
+        # empty core silently accepts every capability name.
+        (other / "config/capability-core.tsv").write_text(
+            "capability\tmin_profile\tstack\nprobe\tnosuchprofile\t-\n", encoding="utf-8")
+        try:
+            reader(other)
+            failures.append("an unknown profile in the core manifest must be refused")
+        except project_metadata.MetadataConfigError:
+            pass
+
+# The lists of capability names must be one list. `CAPABILITY_CORE` had a
 # comparison and `CAPABILITY_NAMES` had none, so bootstrap — which accepts what
 # the delivery manifest declares — and the validator — which accepts what this
 # set declares — could disagree, and the disagreement surfaces as a project that
@@ -186,11 +213,6 @@ note(
     manifest_names == project_metadata.CAPABILITY_NAMES,
     f"config/capabilities.tsv and CAPABILITY_NAMES disagree: "
     f"{sorted(manifest_names)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
-)
-note(
-    set(declared) == project_metadata.CAPABILITY_NAMES,
-    f"config/capability-core.tsv and CAPABILITY_NAMES disagree: "
-    f"{sorted(declared)} vs {sorted(project_metadata.CAPABILITY_NAMES)}",
 )
 
 # A capability that indexes documentation needs a profile that has an index.

@@ -21,6 +21,7 @@ import presets as preset_manifest
 import project_metadata
 import plan_migration as migration_planner
 import promotion_candidates
+import one_c_validation
 import validate_project_support
 
 
@@ -399,153 +400,15 @@ def check_artifacts_ledger(root: Path) -> list[Finding]:
     ]
 
 
-ONE_C_REGISTRY = "config/1c-projects.tsv"
-ONE_C_REGISTRY_FIELDS = (
-    "project_id", "environment_id", "folder", "configuration", "platform_version",
-    "compatibility_mode", "application_kind", "support_mode", "source_format",
-    "edt_workspace", "edt_profile", "server_port", "is_production", "mcp_enabled", "owner",
-)
-ONE_C_ENUMS = {
-    "application_kind": {"ordinary", "managed"},
-    "support_mode": {"on-support", "partially", "off-support"},
-    "source_format": {"edt", "designer-xml"},
-    "is_production": {"true", "false"},
-    "mcp_enabled": {"true", "false"},
-}
-ONE_C_PORTS = validate_project_support.ONE_C_PORTS
-ONE_C_REQUIRED = ("project_id", "environment_id", "folder", "configuration")
-ONE_C_ID_RE = validate_project_support.ONE_C_ID_RE
-DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")
+machine_path = validate_project_support.machine_path
 
-
-def machine_path(value: str) -> bool:
-    """A path that only resolves on the machine that wrote it.
-
-    Both conventions are checked on every host: the repository is prepared on
-    macOS and used on Windows, so a check that depends on where it runs would
-    let each side through the other's mistake.
-    """
-    return bool(
-        PurePosixPath(value).is_absolute()
-        or PureWindowsPath(value).is_absolute()
-        or DRIVE_PATH_RE.match(value)
-        or value.startswith("~")
-        or ".." in value.replace("\\", "/").split("/")
-    )
-
-
-def check_one_c_registry(root: Path) -> list[Finding]:
-    """The registry of infobases: identity, ports and no credentials.
-
-    Every rule here exists because getting it wrong is expensive at runtime: a
-    duplicate identity makes "which base" ambiguous, a shared port sends an
-    operation to the wrong infobase, and a credential column would put a
-    password into Git.
-    """
-    path = root / ONE_C_REGISTRY
-    if not path.is_file():
-        return []
-    try:
-        # The registry is a TSV people open in a spreadsheet, which is where a
-        # BOM comes from; quoting is not a TSV convention, so a value that
-        # starts with a quote must stay the value it is.
-        text = path.read_bytes().decode("utf-8-sig")
-    except (OSError, UnicodeDecodeError) as exc:
-        return [Finding("ERROR", "registry.unreadable", f"Cannot read the 1C registry: {exc}", ONE_C_REGISTRY)]
-
-    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
-    header = tuple(reader.fieldnames or ())
-    # The known columns are a prefix, not the whole header: the standard adds
-    # columns over time and a project may keep its own after them, and this file
-    # belongs to the project, so nothing can rewrite it on upgrade.
-    if header[:len(ONE_C_REGISTRY_FIELDS)] != ONE_C_REGISTRY_FIELDS:
-        return [Finding(
-            "ERROR", "registry.header",
-            f"{ONE_C_REGISTRY} header must start with: {', '.join(ONE_C_REGISTRY_FIELDS)}.",
-            ONE_C_REGISTRY,
-        )]
-
-    findings: list[Finding] = []
-    identities: set[tuple[str, str]] = set()
-    ports: dict[int, str] = {}
-    exposed = 0
-    for row in reader:
-        where = f"{ONE_C_REGISTRY}:{reader.line_num}"
-        if None in row or any(value is None for value in row.values()):
-            findings.append(Finding("ERROR", "registry.row", f"{where} does not match the header.", ONE_C_REGISTRY))
-            continue
-
-        for column in ONE_C_REQUIRED:
-            if not row[column]:
-                findings.append(Finding(
-                    "ERROR", "registry.value", f"{where} column '{column}' must not be empty.", ONE_C_REGISTRY,
-                ))
-        for column in ("project_id", "environment_id"):
-            # These two become a base name and an MCP namespace downstream, so a
-            # space or a slash here breaks routing after installation.
-            if row[column] and not ONE_C_ID_RE.fullmatch(row[column]):
-                findings.append(Finding(
-                    "ERROR", "registry.value",
-                    f"{where} column '{column}' must match {ONE_C_ID_RE.pattern}.", ONE_C_REGISTRY,
-                ))
-
-        identity = (row["project_id"], row["environment_id"])
-        if identity in identities:
-            findings.append(Finding(
-                "ERROR", "registry.duplicate",
-                f"{where} repeats the identity {identity[0]}/{identity[1]}.", ONE_C_REGISTRY,
-            ))
-        identities.add(identity)
-
-        for column, allowed in ONE_C_ENUMS.items():
-            if row[column] not in allowed:
-                findings.append(Finding(
-                    "ERROR", "registry.value",
-                    f"{where} column '{column}' must be one of {', '.join(sorted(allowed))}.", ONE_C_REGISTRY,
-                ))
-
-        if row["mcp_enabled"] == "true":
-            exposed += 1
-            port = row["server_port"]
-            if not (port.isascii() and port.isdigit()) or int(port) not in ONE_C_PORTS:
-                findings.append(Finding(
-                    "ERROR", "registry.port",
-                    f"{where} exposes MCP and needs a port in {ONE_C_PORTS.start}-{ONE_C_PORTS.stop - 1}.",
-                    ONE_C_REGISTRY,
-                ))
-            elif int(port) in ports:
-                findings.append(Finding(
-                    "ERROR", "registry.port",
-                    f"{where} shares port {port} with {ports[int(port)]}; an operation would reach the wrong infobase.",
-                    ONE_C_REGISTRY,
-                ))
-            else:
-                ports[int(port)] = f"{row['project_id']}/{row['environment_id']}"
-        elif row["server_port"]:
-            findings.append(Finding(
-                "ERROR", "registry.port",
-                f"{where} does not expose MCP, so its port must stay empty.", ONE_C_REGISTRY,
-            ))
-
-        for column in ("edt_workspace", "edt_profile", "folder"):
-            if row[column] not in ("", "-") and machine_path(row[column]):
-                findings.append(Finding(
-                    "ERROR", "registry.path",
-                    f"{where} column '{column}' must not hold a machine path.", ONE_C_REGISTRY,
-                ))
-
-    # The ceiling stated where it is reached. Uniqueness inside the range already
-    # makes an eleventh exposed base impossible, but it fails as "shares a port"
-    # or "needs a port in range" — messages about one row, when the fact is about
-    # the whole registry. Registering bases is not limited; exposing them is.
-    if exposed > len(ONE_C_PORTS):
-        findings.append(Finding(
-            "ERROR", "registry.exposed",
-            f"{exposed} bases expose MCP, but the range {ONE_C_PORTS.start}-{ONE_C_PORTS.stop - 1} "
-            f"holds {len(ONE_C_PORTS)}. Registering a base is not limited; exposing it is.",
-            ONE_C_REGISTRY,
-        ))
-    return findings
+# One row per capability that validates something of its own. The core does not
+# know what any of them check: it calls them and turns their tuples into
+# findings. Adding a capability with a registry, an enum or a port range of its
+# own means writing its module and adding a row here — not editing this file.
+# Each validator skips itself when its file is absent, so this runs unchanged
+# for a project that installed none of them.
+CAPABILITY_VALIDATORS = {"1c": one_c_validation.check_registry}
 
 
 def check_capability_evidence(root: Path, capabilities: Sequence[str]) -> list[Finding]:
@@ -974,7 +837,9 @@ def validate(
             findings.extend(check_capabilities(root, capability_rows, metadata.get("capabilities", [])))
             findings.extend(check_capability_core(root, metadata.get("capabilities", [])))
             findings.extend(check_capability_evidence(root, metadata.get("capabilities", [])))
-            findings.extend(check_one_c_registry(root))
+            for capability_name in sorted(CAPABILITY_VALIDATORS):
+                findings.extend(
+                    Finding(*item) for item in CAPABILITY_VALIDATORS[capability_name](root))
         findings.extend(check_project_baseline(root, contract_root, version))
 
     findings.extend(check_frontmatter(root, files, kind == "rules"))

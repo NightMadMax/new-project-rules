@@ -26,6 +26,11 @@ import sys
 import time
 from pathlib import Path
 
+SCRIPTS = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPTS))
+
+import one_c_release_guard as release_guard  # noqa: E402
+
 REGISTRY = "config/1c-projects.tsv"
 
 STATE_DIRECTORY = ".1c-state"
@@ -364,6 +369,10 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     root = Path(args.root).resolve()
     try:
+        # Before anything touches the lock: these scripts decide whether a live
+        # infobase may be written, and being a different release of the standard
+        # than the project installed is not a detail to report afterwards.
+        release_guard.require_matching_release(root, SCRIPTS.parent)
         if args.command == "acquire":
             row = find_row(registry_rows(root), args.base)
             lock = acquire(
@@ -388,7 +397,7 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         print(json.dumps(lock, ensure_ascii=False, indent=2))
         return 0
-    except SessionError as error:
+    except (SessionError, release_guard.ReleaseMismatch) as error:
         print(f"[REFUSED] {error}", file=sys.stderr)
         return 1
 

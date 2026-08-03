@@ -27,6 +27,7 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
 import cli_discovery  # noqa: E402
+import one_c_release_guard as release_guard  # noqa: E402
 
 # Exactly what may be opened. Anything else is refused, so widening the diagnosis
 # is a review of this list rather than an accident — and state, backups, sessions
@@ -407,9 +408,31 @@ def provider_rows(root: Path, discover=None) -> list[Row]:
                 "часть MCP-зависимой разработки недоступна")]
 
 
+def release_rows(root: Path) -> list[Row]:
+    """Whether this checkout is the release the project installed.
+
+    A diagnosis never fails a run, so unlike the session lock and the client
+    renderer this does not refuse — it reports. But it has to report: the
+    scripts that decide what may be written to a live infobase are run out of
+    this checkout, and being a different release than the project installed is
+    the kind of thing a diagnosis exists to notice.
+    """
+    try:
+        agreed = release_guard.require_matching_release(root, SCRIPTS.parent)
+    except release_guard.ReleaseMismatch as error:
+        return [Row("release capability 1c", "FAIL", str(error),
+                    "привести чекаут стандарта и проект к одному release")]
+    if agreed is None:
+        return [Row("release capability 1c", "SKIP", "capability не установлена в проекте",
+                    "ничего не требуется")]
+    return [Row("release capability 1c", "OK", f"чекаут и проект на {agreed[:12]}",
+                "ничего не требуется")]
+
+
 def report(root: Path, names: tuple[str, ...] = ("docker", "codex", "claude"),
            discover=None, provider=None) -> list[Row]:
     rows = list(tools(names))
+    rows.extend(release_rows(root))
     registry = registry_rows(root)
     if registry:
         rows.append(Row("реестр баз", "OK", f"строк: {len(registry)}", "ничего не требуется"))

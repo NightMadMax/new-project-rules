@@ -2,30 +2,75 @@
 
 from __future__ import annotations
 
+import csv
+import io
 import re
 from datetime import date
+from pathlib import Path
 from typing import Optional, Sequence
 
 
 PROFILE_RANKS = {"minimal": 0, "software": 1, "operated": 2, "all": 3}
 PROFILE_NAMES = set(PROFILE_RANKS)
-# The core a capability cannot be created without. Mirrored in
-# config/capability-core.tsv for the shell and PowerShell bootstrap; a test
-# keeps the two in step. The operational half of a 1C project (environments,
-# databases, diagnostics) has no place in a lighter profile.
-CAPABILITY_CORE = {
-    "1c": {"min_profile": "operated", "stack": "1c"},
-    # These two carry no mandatory stack, but they do carry documents with a
-    # docs section — and a docs section needs `docs/README.md`, which appears at
-    # `software`. Without the minimum here, `minimal` + capability wrote every
-    # file, failed while indexing, and the rollback removed the destination.
-    "jira-confluence": {"min_profile": "software", "stack": "-"},
-    "transcribe": {"min_profile": "software", "stack": "-"},
-}
+
+CAPABILITY_CORE_MANIFEST = Path("config/capability-core.tsv")
+CAPABILITY_CORE_FIELDS = ("capability", "min_profile", "stack")
+# The checkout this module belongs to. The manifest describes the standard, not
+# the project being validated, so it is read from here and not from `--root`.
+CONTRACT_ROOT = Path(__file__).resolve().parent.parent
+
+
+class MetadataConfigError(Exception):
+    """The capability core manifest cannot be read."""
+
+
+def read_capability_core(contract_root: Path = CONTRACT_ROOT) -> dict[str, dict[str, str]]:
+    """The core a capability cannot be created without, from its one source.
+
+    This used to be a literal here *and* a TSV for the two bootstrap adapters,
+    with a test asserting the two agreed. A test that compares two copies finds
+    a disagreement after it exists; one source cannot disagree with itself. Same
+    class as defects 232 and 234, and this was the third recurrence.
+
+    The operational half of a 1C project (environments, databases, diagnostics)
+    has no place in a lighter profile. The other two carry no mandatory stack but
+    do carry documents with a docs section — and a docs section needs
+    `docs/README.md`, which appears at `software`. Without that minimum,
+    `minimal` + capability wrote every file, failed while indexing, and the
+    rollback removed the destination.
+    """
+    path = contract_root / CAPABILITY_CORE_MANIFEST
+    try:
+        text = path.read_bytes().decode("utf-8")
+    except (OSError, UnicodeDecodeError) as exc:
+        raise MetadataConfigError(
+            f"Cannot read {CAPABILITY_CORE_MANIFEST.as_posix()}: {exc}") from exc
+    reader = csv.DictReader(io.StringIO(text), delimiter="\t", quoting=csv.QUOTE_NONE)
+    if tuple(reader.fieldnames or ()) != CAPABILITY_CORE_FIELDS:
+        raise MetadataConfigError(
+            f"Unexpected header in {CAPABILITY_CORE_MANIFEST.as_posix()}")
+    core: dict[str, dict[str, str]] = {}
+    for number, row in enumerate(reader, start=2):
+        where = f"{CAPABILITY_CORE_MANIFEST.as_posix()}:{number}"
+        if None in row or any(value is None for value in row.values()):
+            raise MetadataConfigError(f"{where} does not match the header")
+        name = row["capability"]
+        if name in core:
+            raise MetadataConfigError(f"{where} duplicate capability '{name}'")
+        if row["min_profile"] not in PROFILE_RANKS:
+            raise MetadataConfigError(f"{where} unknown profile '{row['min_profile']}'")
+        core[name] = {"min_profile": row["min_profile"], "stack": row["stack"]}
+    if not core:
+        raise MetadataConfigError(
+            f"{CAPABILITY_CORE_MANIFEST.as_posix()} declares no capability")
+    return core
+
+
+CAPABILITY_CORE = read_capability_core()
 CAPABILITY_MIN_PROFILE = {name: core["min_profile"] for name, core in CAPABILITY_CORE.items()}
 CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()
                              if core["stack"] != "-"}
-CAPABILITY_NAMES = {"jira-confluence", "1c", "transcribe"}
+CAPABILITY_NAMES = set(CAPABILITY_CORE)
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")

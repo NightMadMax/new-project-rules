@@ -72,6 +72,7 @@ jobs:
           python3 scripts/test-1c-yaxunit.py
           python3 scripts/test-transcribe.py
           python3 scripts/test-1c-readiness.py
+          python3 scripts/test-1c-release-guard.py
           python3 scripts/test-no-secrets.py
       - name: Validator report
         env:
@@ -138,6 +139,7 @@ jobs:
             "test-1c-yaxunit.py",
             "test-transcribe.py",
             "test-1c-readiness.py",
+            "test-1c-release-guard.py",
             "test-no-secrets.py"
           )) {
             python ".\scripts\$test"
