@@ -36,6 +36,15 @@ sh scripts/test-agent-setup.sh
 sh scripts/test-skills.sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-check-skills.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-standard-metrics.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/run-test-suites.py
+```
+
+Один вызов обнаруживает все наборы и запускает их; CI использует его же с
+`--shard N --of 3`. Список наборов нигде не ведётся руками — набором делает
+имя файла `scripts/test-*.py`. Отдельные наборы по-прежнему запускаются
+поимённо:
+
+```sh
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-validator.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-promotion-candidates.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test-agent-sync.py
