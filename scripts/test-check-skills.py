@@ -626,52 +626,55 @@ for candidate in sorted((repository / "scripts").glob("test-*.py")):
     if name not in index:
         failures.append(f"{name} is not listed in INDEX.md")
 
-# Documented is not the same as run. Defects 228 and 229 were both "a test
-# exists and one surface does not know about it": 229 closed the documentation
-# half above, 228 was the CI half — five tests missing from macos-smoke — and it
-# was closed by editing the list, not by asserting it. The regression list is
-# written out three times (ci.yml has one per job, macos-smoke.yml has its own),
-# so a new test reaches every platform only if someone remembers all three.
-# A test that runs somewhere else names that workflow here instead.
-CI_REGRESSION_LISTS = {
-    ".github/workflows/ci.yml::shell": None,
-    ".github/workflows/ci.yml::powershell": None,
-    ".github/workflows/macos-smoke.yml": None,
-}
-# Reason a test is absent from the three lists, and the workflow that does run
-# it. Anything not named here has to be in all three.
-CI_ELSEWHERE = {
-    "test-best-practices-e2e.py": (
-        "needs --best-practices-root; runs in the cross-repo-e2e job and in bp-pin-watch.yml",
-        (".github/workflows/ci.yml", ".github/workflows/bp-pin-watch.yml"),
-    ),
-}
-ci_text = (repository / ".github/workflows/ci.yml").read_text(encoding="utf-8")
-# The jobs are split textually because both lists live in one file and a test
-# present in only one of them is exactly the defect this check exists for.
-if "\n  powershell:" not in ci_text or "\n  cross-repo-e2e:" not in ci_text:
-    failures.append(".github/workflows/ci.yml no longer has the jobs this check splits on")
-else:
-    CI_REGRESSION_LISTS[".github/workflows/ci.yml::shell"] = ci_text.split("\n  powershell:")[0]
-    CI_REGRESSION_LISTS[".github/workflows/ci.yml::powershell"] = (
-        ci_text.split("\n  powershell:")[1].split("\n  cross-repo-e2e:")[0])
-    CI_REGRESSION_LISTS[".github/workflows/macos-smoke.yml"] = (
-        repository / ".github/workflows/macos-smoke.yml").read_text(encoding="utf-8")
+# Documented is not the same as run. Defects 228 and 259 were both "a test
+# exists and one surface does not know about it", and both were closed by
+# editing a list. The lists are gone: `run-test-suites.py` discovers every
+# `scripts/test-*.py`, so being a suite is what puts it in CI, and a shard
+# cannot forget one. What is left to assert is that the discovery covers the
+# whole set, that every exemption names where it runs instead, and that the
+# workflows call the runner rather than growing a list again.
+runner_spec = importlib.util.spec_from_file_location(
+    "run_test_suites", repository / "scripts" / "run-test-suites.py")
+assert runner_spec and runner_spec.loader
+runner = importlib.util.module_from_spec(runner_spec)
+runner_spec.loader.exec_module(runner)
 
-    for candidate in sorted((repository / "scripts").glob("test-*.py")):
-        name = candidate.name
-        if name in CI_ELSEWHERE:
-            reason, workflows = CI_ELSEWHERE[name]
-            for workflow in workflows:
-                body = (repository / workflow).read_text(encoding="utf-8")
-                if name not in body:
-                    failures.append(
-                        f"{name} is exempt from the regression lists ({reason}) "
-                        f"but {workflow} does not run it either")
-            continue
-        for where, body in CI_REGRESSION_LISTS.items():
-            if name not in body:
-                failures.append(f"{name} is not run by {where}")
+discovered = {path.name for path in runner.discover(repository / "scripts")}
+on_disk = {path.name for path in (repository / "scripts").glob("test-*.py")}
+missing = on_disk - discovered - set(runner.NEEDS_ARGUMENTS)
+if missing:
+    failures.append(f"suites neither discovered nor exempt: {', '.join(sorted(missing))}")
+
+# An exemption is a claim that the suite runs somewhere else. The claim is
+# checked: a suite that is exempt and named by no workflow runs nowhere at all.
+workflow_text = "".join(
+    path.read_text(encoding="utf-8")
+    for path in sorted((repository / ".github/workflows").glob("*.yml")))
+for name, reason in runner.NEEDS_ARGUMENTS.items():
+    if not (repository / "scripts" / name).is_file():
+        failures.append(f"{name} is exempt from discovery but does not exist")
+    elif name not in workflow_text:
+        failures.append(f"{name} is exempt from discovery ({reason}) but no workflow runs it")
+
+# Every shard together must be the whole set, whatever the weights say.
+for total in (1, 2, 3, 4):
+    shards = [runner.shard(sorted(runner.discover(repository / "scripts")), index, total)
+              for index in range(1, total + 1)]
+    names = [path.name for shard in shards for path in shard]
+    if sorted(names) != sorted(discovered):
+        failures.append(f"splitting into {total} shard(s) loses or duplicates suites")
+
+# And the workflows must call the runner instead of listing suites again.
+for workflow, expected in ((".github/workflows/ci.yml", "run-test-suites.py"),
+                           (".github/workflows/macos-smoke.yml", "run-test-suites.py")):
+    body = (repository / workflow).read_text(encoding="utf-8")
+    if expected not in body:
+        failures.append(f"{workflow} does not run the suites through {expected}")
+    listed = re.findall(r"scripts[/\\]test-[a-z0-9-]+\.py", body)
+    stray = sorted({item for item in listed
+                    if item.split("/")[-1].split("\\")[-1] in discovered})
+    if stray:
+        failures.append(f"{workflow} lists suites by hand again: {', '.join(stray)}")
 
 # A skill every session reaches for must not route the user into a gate that
 # refuses them. `reflect-and-record` fires on every mistake and correction, and

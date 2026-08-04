@@ -159,6 +159,7 @@
 | `scripts/test-preset-core.py` | Тесты раскрытия preset, инварианта ядра и parity обоих bootstrap |
 | `scripts/test-release-manifest.py` | Тесты паспорта release, ledger артефактов и сборки |
 | `scripts/test-one-c-scaffold.py` | Тесты каркаса 1С-проекта и схемы реестра баз |
+| `scripts/run-test-suites.py` | Обнаружение и запуск регрессионных наборов, включая разбиение на шарды для CI |
 | `scripts/test-1c-readiness.py` | Сверка матрицы готовности с планом и проверка её доказательств |
 | `scripts/test-1c-release-guard.py` | Runtime отказывается работать с проектом на другом release capability |
 | `scripts/test-no-secrets.py` | Сканер: секреты, машинные пути и имена рабочих баз |

@@ -26,6 +26,16 @@ STATUSES = ("тест", "частично", "Windows", "не выполнено"
 DECISION = re.compile(r"^решение [0-9S]\S*$")
 TESTING = ROOT / "docs/quality/TESTING.md"
 CI = ROOT / ".github/workflows/ci.yml"
+
+_runner_spec = importlib.util.spec_from_file_location(
+    "run_test_suites", ROOT / "scripts" / "run-test-suites.py")
+assert _runner_spec and _runner_spec.loader
+_runner = importlib.util.module_from_spec(_runner_spec)
+_runner_spec.loader.exec_module(_runner)
+# What CI actually executes: discovery plus the suites that run elsewhere for a
+# recorded reason. `test-check-skills.py` is what proves the workflows call the
+# runner at all, so this only has to ask which suites the runner covers.
+RUN_IN_CI = {path.name for path in _runner.discover()} | set(_runner.NEEDS_ARGUMENTS)
 CONDITIONAL = ("Node.js", "Pillow", "OpenSpec", "v8unpack", "YAxUnit", "BSL Language Server")
 OUT_OF_SCOPE = ("CI/CD", "хранилищ", "SonarQube", "АПК", "cfu")
 
@@ -137,12 +147,15 @@ def check_test(where: str, name: str) -> None:
         failures.append(f"{where}: names a test that does not exist: {name}")
         return
     # A proof that nobody runs is not a proof: the named test must be in the
-    # documented set and in the pipeline.
+    # documented set and in the pipeline. CI no longer lists suites — it
+    # discovers them — so the question "does this run" is put to the discovery
+    # itself rather than to a grep of the workflow, which would now answer no
+    # for every test that does run.
     base = Path(name).name
     if base not in read(TESTING):
         failures.append(f"{where}: {base} is not in TESTING.md")
-    if base not in read(CI):
-        failures.append(f"{where}: {base} does not run in ci.yml")
+    if base not in RUN_IN_CI:
+        failures.append(f"{where}: {base} is not among the suites CI discovers")
 
 
 # --- the matrix against the plan ---------------------------------------------

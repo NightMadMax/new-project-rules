@@ -42,38 +42,7 @@ jobs:
       - name: Validator regression test
         env:
           PYTHONDONTWRITEBYTECODE: "1"
-        run: |
-          python3 scripts/test-validator.py
-          python3 scripts/test-promotion-candidates.py
-          python3 scripts/test-agent-sync.py
-          python3 scripts/test-migration-planner.py
-          python3 scripts/test-supply-chain.py
-          python3 scripts/test-standardize-existing-project.py
-          python3 scripts/test-compress-project.py
-          python3 scripts/test-best-practices-contract.py
-          python3 scripts/test-github-governance.py
-          python3 scripts/test-best-practices-manifest.py
-          python3 scripts/test-standard-metrics.py
-          python3 scripts/test-check-skills.py
-          python3 scripts/test-artifacts-ledger.py
-          python3 scripts/test-payload-classes.py
-          python3 scripts/test-capability-artifacts.py
-          python3 scripts/test-preset-core.py
-          python3 scripts/test-release-manifest.py
-          python3 scripts/test-one-c-scaffold.py
-          python3 scripts/test-1c-clients.py
-          python3 scripts/test-1c-source.py
-          python3 scripts/test-cli-discovery.py
-          python3 scripts/test-1c-upstream-routing.py
-          python3 scripts/test-1c-session.py
-          python3 scripts/test-1c-doctor.py
-          python3 scripts/test-1c-setup.py
-          python3 scripts/test-1c-provider.py
-          python3 scripts/test-1c-yaxunit.py
-          python3 scripts/test-transcribe.py
-          python3 scripts/test-1c-readiness.py
-          python3 scripts/test-1c-release-guard.py
-          python3 scripts/test-no-secrets.py
+        run: python3 scripts/run-test-suites.py
       - name: Validator report
         env:
           PYTHONDONTWRITEBYTECODE: "1"
@@ -86,9 +55,33 @@ jobs:
       - name: Agent skill contract test
         run: sh scripts/test-skills.sh
 
-  powershell:
+  # The Python suites, split across runners. On Windows this set took eleven
+  # minutes as one queue while the same work on Ubuntu takes ninety seconds:
+  # every heavy suite runs a full bootstrap, and process creation is expensive
+  # there. Splitting attacks the wall clock, which no per-test change can.
+  windows-suite:
     runs-on: windows-latest
-    timeout-minutes: 30
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          persist-credentials: false
+      - name: Validator regression test on Windows
+        shell: powershell
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        # The runner returns a single exit code for the whole shard, so the
+        # trap the old hand-written loop worked around — PowerShell not stopping
+        # on a failing native command — cannot come back.
+        run: python .\scripts\run-test-suites.py --shard ${{ matrix.shard }} --of 3
+
+  windows-native:
+    runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
@@ -102,49 +95,6 @@ jobs:
       - name: Parse-check PowerShell scripts with PowerShell 7
         shell: pwsh
         run: .\scripts\test-powershell-syntax.ps1
-      - name: Validator regression test on Windows
-        shell: powershell
-        run: |
-          $env:PYTHONDONTWRITEBYTECODE = "1"
-          # PowerShell does not stop on a failing native command, and the runner
-          # only checks the exit code of the last line: without this loop every
-          # test but the last one could fail unnoticed.
-          foreach ($test in @(
-            "test-validator.py",
-            "test-promotion-candidates.py",
-            "test-agent-sync.py",
-            "test-migration-planner.py",
-            "test-supply-chain.py",
-            "test-standardize-existing-project.py",
-            "test-compress-project.py",
-            "test-best-practices-contract.py",
-            "test-github-governance.py",
-            "test-best-practices-manifest.py",
-            "test-standard-metrics.py",
-            "test-check-skills.py",
-            "test-artifacts-ledger.py",
-            "test-payload-classes.py",
-            "test-capability-artifacts.py",
-            "test-preset-core.py",
-            "test-release-manifest.py",
-            "test-one-c-scaffold.py",
-            "test-1c-clients.py",
-            "test-1c-source.py",
-            "test-cli-discovery.py",
-            "test-1c-upstream-routing.py",
-            "test-1c-session.py",
-            "test-1c-doctor.py",
-            "test-1c-setup.py",
-            "test-1c-provider.py",
-            "test-1c-yaxunit.py",
-            "test-transcribe.py",
-            "test-1c-readiness.py",
-            "test-1c-release-guard.py",
-            "test-no-secrets.py"
-          )) {
-            python ".\scripts\$test"
-            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          }
       - name: Validator report on Windows
         shell: powershell
         run: |
@@ -186,6 +136,24 @@ jobs:
         shell: pwsh
         run: .\scripts\test-powershell-wrappers.ps1
 
+  # `powershell` is a required status check, and a matrix would have renamed it
+  # to `powershell (1)`, `powershell (2)`... — branch protection would then rest
+  # on a context that no longer exists. The neighbouring repository broke its
+  # own protection exactly that way. So the name stays on a job that produces
+  # it, and that job is the verdict of the two above.
+  powershell:
+    if: always()
+    needs: [windows-suite, windows-native]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Preserve the required Windows check
+        run: |
+          echo "windows-suite: ${{ needs.windows-suite.result }}"
+          echo "windows-native: ${{ needs.windows-native.result }}"
+          test "${{ needs.windows-suite.result }}" = "success"
+          test "${{ needs.windows-native.result }}" = "success"
+
   cross-repo-e2e:
     strategy:
       fail-fast: false
@@ -207,8 +175,8 @@ jobs:
       # `pwsh -command`, which returns the code of the last line only. The
       # contract check could fail and the job stay green — and this job is a
       # required check, so branch protection would rest on a step that cannot
-      # go red. The same trap is worked around with an explicit $LASTEXITCODE
-      # loop in the powershell job above; here the shell itself fixes it.
+      # go red. The Windows suite avoids the same trap by running one command
+      # whose exit code is the whole shard's verdict; here the shell fixes it.
       - name: Verify pinned checkout and consumer E2E
         shell: bash
         env:

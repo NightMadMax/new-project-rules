@@ -57,35 +57,5 @@ jobs:
         env:
           PYTHONDONTWRITEBYTECODE: "1"
         run: |
-          python3 scripts/test-validator.py
-          python3 scripts/test-promotion-candidates.py
-          python3 scripts/test-agent-sync.py
-          python3 scripts/test-migration-planner.py
-          python3 scripts/test-supply-chain.py
-          python3 scripts/test-standardize-existing-project.py
-          python3 scripts/test-compress-project.py
-          python3 scripts/test-best-practices-contract.py
-          python3 scripts/test-best-practices-manifest.py
-          python3 scripts/test-standard-metrics.py
-          python3 scripts/test-check-skills.py
-          python3 scripts/test-artifacts-ledger.py
-          python3 scripts/test-payload-classes.py
-          python3 scripts/test-capability-artifacts.py
-          python3 scripts/test-preset-core.py
-          python3 scripts/test-release-manifest.py
-          python3 scripts/test-one-c-scaffold.py
-          python3 scripts/test-1c-clients.py
-          python3 scripts/test-1c-source.py
-          python3 scripts/test-1c-setup.py
-          python3 scripts/test-1c-provider.py
-          python3 scripts/test-1c-yaxunit.py
-          python3 scripts/test-transcribe.py
-          python3 scripts/test-1c-readiness.py
-          python3 scripts/test-1c-release-guard.py
-          python3 scripts/test-cli-discovery.py
-          python3 scripts/test-1c-session.py
-          python3 scripts/test-1c-doctor.py
-          python3 scripts/test-1c-upstream-routing.py
-          python3 scripts/test-github-governance.py
-          python3 scripts/test-no-secrets.py
+          python3 scripts/run-test-suites.py
           python3 scripts/validate-project.py --root . --kind rules --report-only
