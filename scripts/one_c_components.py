@@ -143,6 +143,14 @@ def options(component: Component, found: bool) -> list[str]:
     """
     if found:
         return list(FOUND_OPTIONS)
+    if component.scheme == "manual":
+        # There is no machine check for this one, so "not found" only means
+        # "not measured". Without this answer a required component like the
+        # platform itself could never leave the skipped set, and a fully
+        # configured machine would never reach `ready`.
+        return [f"{FOUND_OPTIONS[0]} — подтвердить, что установлено: "
+                "машинной проверки у этого компонента нет",
+                *MISSING_OPTIONS[1:]]
     if component.command.strip():
         automatic = f"{MISSING_OPTIONS[0]}: {component.command}"
     else:

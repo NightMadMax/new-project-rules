@@ -36,11 +36,10 @@ if ! "$python_command" "$script_dir/check_skills.py" --root "$root"; then
   fail=$((fail + 1))
 fi
 
+# Required literals live in config/policy-contract.tsv, so both platforms check
+# the same list: these two halves had drifted to different literals entirely.
+# A phrase that must be *absent* cannot be expressed there and stays here.
 reflect_skill="$root/.agents/skills/reflect-and-record/SKILL.md"
-check_required_literals "$reflect_skill" \
-  'файл можно изменить в текущей' \
-  'новым процессам/сессиям' \
-  'перебором нескольких неудачных вариантов'
 if grep -Fq 'не в середине' "$reflect_skill"; then
   echo "FAIL: reflect-and-record retains the retired mid-session edit prohibition" >&2
   fail=$((fail + 1))
@@ -59,11 +58,6 @@ do
 done
 
 agents_template="$root/templates/new-project/AGENTS.template.md"
-if ! grep -Fq 'new-project-rules:begin schema=<SCHEMA_VERSION>' "$agents_template"; then
-  echo "FAIL: AGENTS.template.md managed marker must use the <SCHEMA_VERSION> placeholder, not a hardcoded schema" >&2
-  fail=$((fail + 1))
-fi
-
 for file in "$root/AGENTS.md" "$agents_template"; do
   compact_count=$(grep -Fc 'project_doc_max_bytes' "$file" || true)
   process_count=$(grep -Fc 'codex --ask-for-approval never' "$file" || true)

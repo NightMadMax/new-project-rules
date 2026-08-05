@@ -32,14 +32,12 @@ import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 
-# The one place the result names are decided. The upstream script wrote Russian
-# names while its own documentation promised English ones — a contract nobody
-# could rely on, in either language.
-OUTPUTS = {
-    "transcript": "{name} - transcript.md",
-    "summary": "{name} - summary.md",
-    "detailed": "{name} - detailed.md",
-}
+# The one place the result names are decided, and only what this script writes.
+# The upstream version wrote Russian names while its documentation promised
+# English ones; then `summary` and `detailed` sat here produced by nobody — a
+# table declared as the single source of names promising two files that never
+# appeared. Both belong to the AI client, and the skill names them there.
+OUTPUTS = {"transcript": "{name} - transcript.{extension}"}
 OUTPUT_DIRECTORY = "Transcript"
 SCREENSHOTS = "screenshots"
 FORMATS = ("md", "txt", "json")
@@ -221,9 +219,13 @@ def write_atomically(files: dict[Path, str]) -> None:
                 staging.unlink()
 
 
-def output_paths(root: Path, name: str) -> dict[str, Path]:
+def output_paths(root: Path, name: str, fmt: str = "md") -> dict[str, Path]:
+    """Where the results go. The extension follows the format that was asked
+    for: writing JSON into a file called `.md` made the name a lie about the
+    content, and the name is the only thing the next reader has."""
     directory = root / OUTPUT_DIRECTORY / name
-    return {key: directory / pattern.format(name=name) for key, pattern in OUTPUTS.items()}
+    return {key: directory / pattern.format(name=name, extension=fmt)
+            for key, pattern in OUTPUTS.items()}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -246,20 +248,22 @@ def main(argv: list[str] | None = None) -> int:
     source = Path(arguments.source).expanduser()
     name = source.stem
     root = Path(arguments.output_dir).expanduser().resolve()
-    paths = output_paths(root, name)
+    paths = output_paths(root, name, arguments.format)
     frames_directory = paths["transcript"].parent / SCREENSHOTS
 
+    frames: list[Path] = []
     try:
         result = transcribe(source, model=arguments.model, compute=arguments.compute)
-        files = {paths["transcript"]: render(result, name, arguments.format)}
-        frames: list[Path] = []
+        rendered = render(result, name, arguments.format)
+        # Frames are extracted before the transcript lands, so a failure here
+        # would leave images beside a result that does not exist. They are
+        # removed on the way out — the run either produced everything it
+        # promised or nothing that looks like it did.
         if arguments.analyze_ui:
             frames = extract_frames(source, frames_directory)
-        write_atomically(files)
+        write_atomically({paths["transcript"]: rendered})
     except TranscribeError as error:
-        # Nothing has been written by this point: the outputs land in one step
-        # after everything that can fail has succeeded.
-        if frames_directory.is_dir() and not any(frames_directory.iterdir()):
+        if frames_directory.is_dir():
             shutil.rmtree(frames_directory, ignore_errors=True)
         print(f"[ERROR] {error}", file=sys.stderr)
         return 1

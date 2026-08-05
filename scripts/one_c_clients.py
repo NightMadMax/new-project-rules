@@ -21,8 +21,13 @@ from __future__ import annotations
 
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import project_metadata  # noqa: E402
 
 CATALOG = "config/1c-mcp-catalog.json"
 REGISTRY = "config/1c-projects.tsv"
@@ -35,7 +40,7 @@ END = "# new-project-rules:1c:end"
 CLASSES = ("allow", "ask", "deny")
 # The columns a projection reads; the registry may carry more.
 REGISTRY_COLUMNS = ("project_id", "environment_id", "server_port", "mcp_enabled")
-PORTS = range(6003, 6013)
+PORTS = project_metadata.ONE_C_TOOLKIT_PORTS
 # Which projection belongs to which client, so a late-installed client can be
 # activated without touching the one that already works (decision 1.11).
 CLIENTS = {"claude": (CLAUDE_SETTINGS, MCP_CONFIG), "codex": (CODEX_CONFIG,)}

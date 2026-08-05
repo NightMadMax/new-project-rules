@@ -85,8 +85,29 @@ with tempfile.TemporaryDirectory() as raw:
     note(any("EMPTY_SECRET" in line and "не задан" in line for line in lines),
          f"an empty secret must be reported as unset: {lines}")
     note(any(line == "VERIFICATION_DEPTH=full" for line in lines),
-         f"an ordinary setting must survive unchanged: {lines}")
+         f"a key named as plain must keep its value: {lines}")
     note(not any(line.startswith("#") for line in lines), "comments are not settings")
+
+    # The decision is made by the key, not by what the line happens to contain.
+    # A marker list can never be complete, and these three walked past it: the
+    # words "pwd", "credential" and "login" were simply not in it.
+    (root / ".dev.env").write_bytes(
+        "\n".join([
+            "DB_PWD=hunter2",  # noscan - фикстура: сканер обязан её видеть
+            "ONEC_CREDENTIAL=admin:swordfish",  # noscan - фикстура
+            "BASE_LOGIN=Admin",
+            "INFOBASE_PATH=C:/bases/erp-prod",
+            "VERIFICATION_DEPTH=full",
+        ]).encode("utf-8")
+    )
+    lines = doctor.settings(root)
+    joined = "\n".join(lines)
+    for value in ("hunter2", "swordfish", "Admin", "C:/bases/erp-prod"):
+        note(value not in joined, f"the value '{value}' must not reach the report: {joined}")
+    note(any(line.startswith("DB_PWD") and doctor.MASK in line for line in lines),
+         f"an unlisted key must be reported as set, not printed: {lines}")
+    note(any(line == "VERIFICATION_DEPTH=full" for line in lines),
+         f"a key named as plain must still keep its value: {lines}")
 
     # --- every row says what it means and what to do -------------------------
     rows = doctor.report(root, names=("docker",))
@@ -198,10 +219,15 @@ note(free[0].status == "OK", f"a free port must pass: {free}")
 # listens anywhere, and the question is whether this machine can serve the base.
 import socket  # noqa: E402
 
-with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as holder:
-    holder.bind(("127.0.0.1", 0))
-    holder.listen(1)
-    note(doctor.occupied(holder.getsockname()[1]), "a bound port must be seen as occupied")
+for interface in ("127.0.0.1", "0.0.0.0"):
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as holder:
+        holder.bind((interface, 0))
+        holder.listen(1)
+        # On Windows a bind to loopback does not conflict with a socket holding
+        # every interface, so a check that only asks about `127.0.0.1` reports
+        # the port free — and servers listen on `0.0.0.0` far more often.
+        note(doctor.occupied(holder.getsockname()[1]),
+             f"a port held on {interface} must be seen as occupied")
 
 # --- the provider is reported, never started ---------------------------------
 

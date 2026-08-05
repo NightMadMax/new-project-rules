@@ -60,11 +60,19 @@ def read_routing(contract_root: Path) -> list[dict[str, str]]:
 def tracked_files(staging: Path) -> list[str]:
     result = subprocess.run(
         ["git", "-C", str(staging), "-c", "core.quotePath=false", "ls-files", "-z"],
-        capture_output=True, text=True,
+        capture_output=True,
     )
     if result.returncode != 0:
-        raise release.ReleaseError(f"cannot list staging: {result.stderr.strip()}")
-    return sorted(name for name in result.stdout.split("\0") if name)
+        raise release.ReleaseError(
+            f"cannot list staging: {result.stderr.decode('utf-8', 'replace').strip()}"
+        )
+    # Bytes, decoded as UTF-8 by us. `text=True` would decode with the locale
+    # encoding — cp1251 on a Russian Windows — which is exactly what
+    # `core.quotePath=false` was set to avoid: a non-ASCII file name would come
+    # back mangled, and the blob lookup that follows would fail on a name the
+    # error message could not explain.
+    listing = result.stdout.decode("utf-8")
+    return sorted(name for name in listing.split("\0") if name)
 
 
 def blob(staging: Path, path: str) -> bytes:

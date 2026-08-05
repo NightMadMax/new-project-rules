@@ -273,6 +273,17 @@ def load_capability_artifacts(contract_root: Path) -> list[CapabilityArtifact]:
                 f"A managed document a project is expected to edit: {row.destination}. "
                 "Either declare it seed, or add it to STANDARD_OWNED_PROSE with a reason."
             )
+    # The manifest catches a row naming a capability the code does not know. The
+    # opposite direction had nothing: `transcribe` was a known name delivering
+    # nothing for a while, and a capability that delivers nothing is a promise
+    # with no artifacts behind it.
+    declared = {row.capability for row in rows}
+    missing = sorted(project_metadata.CAPABILITY_NAMES - declared)
+    if missing:
+        raise ContractError(
+            f"Capability with no artifacts in the manifest: {', '.join(missing)}. "
+            "Either deliver something or remove it from CAPABILITY_NAMES."
+        )
     return rows
 
 
@@ -411,7 +422,7 @@ ONE_C_ENUMS = {
     "is_production": {"true", "false"},
     "mcp_enabled": {"true", "false"},
 }
-ONE_C_PORTS = range(6003, 6013)
+ONE_C_PORTS = project_metadata.ONE_C_TOOLKIT_PORTS
 ONE_C_REQUIRED = ("project_id", "environment_id", "folder", "configuration")
 ONE_C_ID_RE = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 DRIVE_PATH_RE = re.compile(r"^[A-Za-z]:[\\/]")

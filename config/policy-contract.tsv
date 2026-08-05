@@ -6,3 +6,8 @@ templates/new-project/AGENTS.template.md	## Knowledge Promotion
 templates/new-project/AGENTS.template.md	small portable safety subset of global instructions
 docs/architecture/ARCHITECTURE.md	Инструкции агента имеют три разные области ответственности
 CLAUDE.md	@AGENTS.md
+.agents/skills/reflect-and-record/SKILL.md	файл можно изменить в текущей
+.agents/skills/reflect-and-record/SKILL.md	новым процессам/сессиям
+.agents/skills/reflect-and-record/SKILL.md	instruction changes apply to new processes/sessions
+.agents/skills/reflect-and-record/SKILL.md	перебором нескольких неудачных вариантов
+templates/new-project/AGENTS.template.md	new-project-rules:begin schema=<SCHEMA_VERSION>

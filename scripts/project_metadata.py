@@ -26,6 +26,10 @@ CAPABILITY_MIN_PROFILE = {name: core["min_profile"] for name, core in CAPABILITY
 CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()
                              if core["stack"] != "-"}
 CAPABILITY_NAMES = {"jira-confluence", "1c", "transcribe"}
+# The ports capability `1c` reserves for the per-base Toolkit (decision 1.8).
+# Declared once: the validator accepted a base the renderer then dropped without
+# a word, because widening the range in one module never reached the other.
+ONE_C_TOOLKIT_PORTS = range(6003, 6013)
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")

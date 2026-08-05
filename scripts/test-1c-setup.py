@@ -406,6 +406,20 @@ with tempfile.TemporaryDirectory() as raw:
     note(summary["status"] == "ready" and steps[0].result == "already",
          f"a human saying 'использовать' is the only evidence there can be: {steps}, {summary}")
 
+    # And that answer has to be offered. It was not: `options()` gave a missing
+    # component the three "install" answers, so the only path to `ready` for a
+    # component nobody can detect was an answer the prompt never showed.
+    platform = [item for item in components.load(human)][0]
+    offered = components.options(platform, found=False)
+    note(any(option.startswith(components.FOUND_OPTIONS[0]) for option in offered),
+         f"a component with no machine check must offer confirmation: {offered}")
+    note(len(offered) == 3, f"three answers, always: {offered}")
+    for component in shipped:
+        if component.scheme == "manual":
+            note(any(option.startswith(components.FOUND_OPTIONS[0])
+                     for option in components.options(component, found=False)),
+                 f"{component.name}: no answer leads to a configured machine")
+
     # A component that belongs to another platform is not counted against this
     # one: on macOS the Windows-only tools are not missing, they are irrelevant.
     other = "windows" if os.name != "nt" else "any"

@@ -23,9 +23,13 @@ description: Создаёт новый проект внутри общего Ob
    `new-project-rules` внутри общего родительского vault.
 2. Если профиль не указан, использовать `software`. Допустимые профили:
    `minimal`, `software`, `operated`, `all`.
-   Capability `jira-confluence` независима от профиля: при её выборе добавить
-   `-Capability jira-confluence` в PowerShell bootstrap или четвёртым аргументом
-   в shell bootstrap. Одновременно выбрать стек Best Practices `jira-confluence`.
+   Список capability брать из `config/capabilities.tsv` (колонка `capability`),
+   а не из этого текста: перечисление здесь устаревало молча, и capability
+   `transcribe` существовала, не попадая ни в один вопрос. Выбранную добавить
+   `-Capability <имя>` в PowerShell bootstrap или четвёртым аргументом в shell
+   bootstrap; несколько — через запятую. Профиль поднимается автоматически до
+   минимума из `config/capability-core.tsv`. Для `jira-confluence` одновременно
+   выбрать одноимённый стек Best Practices.
 3. Если GitHub visibility не указана, использовать `private`. Создать отдельный
    repository, если пользователь явно не запросил local-only или monorepo.
 4. Получить или безопасно вывести GitHub slug: lowercase Latin letters, digits

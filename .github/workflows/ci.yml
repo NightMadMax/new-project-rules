@@ -91,6 +91,12 @@ jobs:
       - name: Parse-check PowerShell scripts with PowerShell 7
         shell: pwsh
         run: .\scripts\test-powershell-syntax.ps1
+      # The payload delivered into every 1C project: byte-exact upstream, so this
+      # reports and never fails — but a parse error in it used to reach a user's
+      # machine instead of this job. 60 files nothing parsed until now.
+      - name: Parse-check the delivered PowerShell payload
+        shell: pwsh
+        run: .\scripts\test-powershell-syntax.ps1 -Delivered
       - name: Validator regression test on Windows
         shell: powershell
         run: |

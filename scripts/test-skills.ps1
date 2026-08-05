@@ -31,10 +31,13 @@ if ($null -eq $Python) {
 & $Python.Source (Join-Path $PSScriptRoot "check_skills.py") --root $Root
 if ($LASTEXITCODE -ne 0) { $Failures++ }
 
+# Required literals live in config/policy-contract.tsv and are checked on every
+# platform; only a phrase that must be *absent* belongs here.
 $reflectSkill = Join-Path $Root ".agents/skills/reflect-and-record/SKILL.md"
-Test-RequiredLiterals -File $reflectSkill -Literals @(
-    'instruction changes apply to new processes/sessions'
-)
+if ((Get-Content -LiteralPath $reflectSkill -Raw) -like "*не в середине*") {
+    Write-Host "FAIL: reflect-and-record retains the retired mid-session edit prohibition"
+    $Failures++
+}
 
 $requiredHeadings = @("## Knowledge Promotion", "## Defect Tracking")
 $sharedRuleLiterals = @(

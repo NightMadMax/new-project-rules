@@ -189,6 +189,7 @@
 | `scripts/test-skills.sh` | Контракт skills и правил: делегирует `check_skills.py` (macOS/Linux) |
 | `scripts/test-skills.ps1` | Контракт skills и правил: делегирует `check_skills.py` (Windows) |
 | `scripts/test-check-skills.py` | Юнит-тесты `check_skills.py` на временных фикстурах |
+| `scripts/test-standard-metrics.py` | Тесты сборщика метрик стандарта |
 | `scripts/test-powershell-syntax.ps1` | Проверка синтаксиса PowerShell с корректным кодом возврата |
 | `scripts/test-powershell-environment.ps1` | Regression test изоляции HOME/Git environment между PowerShell suites |
 | `scripts/check-action-pins.py` | Запрет mutable external Action references |

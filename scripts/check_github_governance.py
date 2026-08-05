@@ -42,6 +42,10 @@ def validate_state(repository, metadata, ruleset, collaborators, strict_actor_id
         problems.append("Protect main ruleset must be active")
     bypass = ruleset.get("bypass_actors")
     expected_ids = {5} if strict_actor_id else {5, None}
+    # GITHUB_TOKEN returns this list empty whatever it actually holds, so with
+    # that scope the check is not "the bypass is the reviewed one" but "we
+    # cannot see it". Saying so is the whole fix: the audit used to report a
+    # reviewed bypass while a second bypass actor would have gone unnoticed.
     bypass_redacted = not strict_actor_id and not bypass
     bypass_ok = bypass_redacted or (
         isinstance(bypass, list) and len(bypass) == 1 and isinstance(bypass[0], dict)
@@ -107,7 +111,9 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             for problem in problems:
                 print(f"ERROR [{repository}]: {problem}")
         else:
-            print(f"OK [{repository}]: active ruleset, reviewed bypass, sole owner-admin")
+            bypass = ("bypass не проверен (GITHUB_TOKEN его скрывает)"
+                      if args.github_token_scope else "reviewed bypass")
+            print(f"OK [{repository}]: active ruleset, {bypass}, sole owner-admin")
     return 1 if failed else 0
 
 

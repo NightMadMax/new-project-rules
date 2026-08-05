@@ -64,17 +64,27 @@ SPOKEN = [Piece(0.0, 4.0, " Первая фраза "), Piece(4.0, 9.5, "Вто�
 with tempfile.TemporaryDirectory() as raw:
     root = Path(raw)
     paths = transcribe.output_paths(root, "Встреча")
-    note(set(paths) == {"transcript", "summary", "detailed"}, f"unexpected outputs: {list(paths)}")
+    # Only what this script writes. `summary` and `detailed` used to be listed
+    # as results and produced by nobody — the table that calls itself the single
+    # source of names promised two files that never appeared.
+    note(set(paths) == {"transcript"}, f"unexpected outputs: {list(paths)}")
     note(paths["transcript"].name == "Встреча - transcript.md", f"unexpected name: {paths['transcript'].name}")
     note(paths["transcript"].parent == root / "Transcript" / "Встреча",
          f"unexpected directory: {paths['transcript'].parent}")
-    # The documentation of the skill promises exactly these names, and the
-    # upstream script wrote different ones — so the promise is checked against
-    # the code rather than against a second copy of the promise.
+
+    # The extension follows the format: JSON in a file called `.md` makes the
+    # name lie about the content, and the name is all the next reader has.
+    for fmt in transcribe.FORMATS:
+        written = transcribe.output_paths(root, "Встреча", fmt)["transcript"]
+        note(written.suffix == f".{fmt}", f"{fmt}: unexpected extension {written.name}")
+
+    # The skill documents exactly the name the code writes, checked against the
+    # code rather than against a second copy of the promise.
     skill = (SKILL / "SKILL.md").read_bytes().decode("utf-8")
-    for pattern in transcribe.OUTPUTS.values():
-        note(pattern.replace("{name}", "<имя>") in skill,
-             f"the skill does not document the name it writes: {pattern}")
+    note("<имя> - transcript.md" in skill, "the skill must document the name it writes")
+    for absent in ("- summary.md", "- detailed.md"):
+        note(f"<имя> {absent}" not in skill,
+             f"the skill must not draw a result nobody writes: {absent}")
 
 # --- an empty transcription is a failure, not an empty file (№104) -----------
 

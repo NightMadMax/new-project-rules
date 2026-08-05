@@ -49,7 +49,17 @@ ALLOWLIST = (
 ALLOWED_GLOBS = ("configurations/launch/*.launch",)
 # What an `ordinary` launch profile must carry (decision 1.16).
 CLIENT_TYPE_ATTRIBUTE = "ATTR_CLIENT_TYPE"
-SECRET_MARKERS = ("password", "passwd", "token", "secret", "key", "srvr=", "ref=")
+# Inverted on purpose: a value is hidden unless its key is named here. The list
+# of things that look like a secret can never be complete — `DB_PWD`,
+# `ONEC_CREDENTIAL` and `BASE_LOGIN` all slipped past a marker list — and the
+# old rule searched the whole line, so whether a key was masked depended on
+# words that happened to appear in its value.
+PLAIN_KEYS = (
+    "ORCHESTRATION", "VERIFICATION_DEPTH", "UI_TESTING", "CAVEMAN",
+    "PLATFORM_VERSION", "V8_VERSION", "EDT_MCP_VERSION", "EDT_ORDINARY_PLUGIN",
+    "EDT_RUN_WITHOUT_UPDATE", "YAXUNIT_EXTENSION", "INFOBASE_KIND",
+    "EXTENSION_NAME", "PREFIX", "COMPANY",
+)
 MASK = "задан"
 
 
@@ -83,21 +93,27 @@ def read(root: Path, relative: str) -> str:
 
 
 def mask(line: str) -> str:
-    """A key and whether it is set — never the value.
+    """A key and whether it is set — the value only for keys named as plain.
 
     Masking happens on the way in. Cleaning a finished report means the value
     existed in memory next to the code that prints it, and one forgotten branch
     is enough.
+
+    The decision is made by the key, not by the look of the line: a path, a base
+    name and a login are not secrets and still have no business in a shared
+    report, and a list of secret-looking words never covers the next `DB_PWD`.
     """
-    lowered = line.lower()
-    if not any(marker in lowered for marker in SECRET_MARKERS):
-        return line
     name, separator, value = line.partition("=")
     if not separator:
         name, separator, value = line.partition(":")
-    if not separator or not value.strip():
-        return f"{name.strip()}: не задан"
-    return f"{name.strip()}: {MASK}"
+    if not separator:
+        return line
+    name = name.strip()
+    if not value.strip():
+        return f"{name}: не задан"
+    if name.upper() in PLAIN_KEYS:
+        return f"{name}={value.strip()}"
+    return f"{name}: {MASK}"
 
 
 def settings(root: Path, relative: str = ".dev.env") -> list[str]:
@@ -271,15 +287,23 @@ def occupied(port: int) -> bool:
     Connecting would answer about whoever is listening, including a service on
     another machine; binding answers the only question that matters — whether
     this base can start its server here.
+
+    Both addresses are tried, and this is the whole point on Windows: binding
+    `127.0.0.1` does not conflict with a socket already holding `0.0.0.0`, and
+    servers — the 1C platform among them — usually listen on every interface.
+    Asking only about loopback reported the port free while the platform sat on
+    it, which is exactly the case milestone W found by hand.
     """
     import socket
 
-    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
-        probe.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        try:
-            probe.bind(("127.0.0.1", port))
-        except OSError:
-            return True
+    for host in ("0.0.0.0", "127.0.0.1"):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+            # No SO_REUSEADDR: it makes a bind succeed next to a socket in
+            # TIME_WAIT, and "free in a moment" is not the question here.
+            try:
+                probe.bind((host, port))
+            except OSError:
+                return True
     return False
 
 

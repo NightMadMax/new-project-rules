@@ -13,9 +13,16 @@
   `standardize-existing-project.*` (контракт и миграции),
   `best_practices_manifest.py` (schema 2 consumer preferences),
   `promotion_candidates.py` (promotion backlog), `test-*` (тесты).
-- Каждый инструмент имеет парные `.sh` и `.ps1` entry points для чистых
-  машин без Python. Исключение: `test-powershell-environment.ps1` и
-  `test-powershell-syntax.ps1` PowerShell-специфичны и sh-пары не имеют.
+- Пару `.sh` и `.ps1` имеет то, что запускают на чистой машине без Python:
+  bootstrap, проверки окружения, контрактные тесты, обёртки скриптов.
+- Пары нет и не нужно в двух случаях. PowerShell-специфичное:
+  `test-powershell-environment.ps1`, `test-powershell-syntax.ps1`,
+  `test-powershell-wrappers.ps1`. Maintainer-инструменты, которые и так
+  требуют Python: `build-capability-release.py`, `import_1c_upstream.py`,
+  `check-1c-component-links.py`, `standard-metrics.py`, `check_skills.py`,
+  `check-upstream-sources.py`, `check-action-pins.py`,
+  `check_github_governance.py` — обёртка для них добавила бы второй способ
+  вызвать то же самое, ничего не упростив.
 
 ## Python development dependencies
 
