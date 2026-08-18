@@ -25,7 +25,7 @@ CATALOG_TEMPLATE = ROOT / "templates/new-project/capabilities/1c/1c-mcp-catalog.
 REGISTRY_FIELDS = (
     "project_id", "environment_id", "folder", "configuration", "platform_version",
     "compatibility_mode", "application_kind", "support_mode", "source_format",
-    "edt_workspace", "edt_profile", "server_port", "is_production", "mcp_enabled", "owner",
+    "edt_workspace", "edt_profile", "toolkit_channel", "is_production", "mcp_enabled", "owner",
 )
 failures: list[str] = []
 
@@ -34,14 +34,16 @@ failures: list[str] = []
 # validator accepted and the renderer silently dropped.
 import validate_project_support  # noqa: E402
 
-if clients.PORTS is not validate_project_support.ONE_C_PORTS:
+if clients.CHANNEL_RE is not validate_project_support.ONE_C_TOOLKIT_CHANNEL_RE:
     failures.append(
-        "the port range must come from validate_project_support, not be repeated: "
-        f"{clients.PORTS} vs {validate_project_support.ONE_C_PORTS}"
+        "the channel rule must come from validate_project_support, not be repeated: "
+        f"{clients.CHANNEL_RE} vs {validate_project_support.ONE_C_TOOLKIT_CHANNEL_RE}"
     )
-validator_source = (ROOT / "scripts/validate-project.py").read_text(encoding="utf-8")
-if "ONE_C_PORTS = range(" in validator_source:
-    failures.append("validate-project.py must read the port range, not restate it")
+if clients.PROXY_PORT is not validate_project_support.ONE_C_TOOLKIT_PROXY_PORT:
+    failures.append("the proxy port must come from validate_project_support, not be repeated")
+validation_source = (ROOT / "scripts/one_c_validation.py").read_text(encoding="utf-8")
+if "CHANNEL_RE = re.compile(" in validation_source:
+    failures.append("one_c_validation.py must read the channel rule, not restate it")
 
 
 def note(condition: bool, message: str) -> None:
@@ -54,7 +56,7 @@ def base_row(**overrides: str) -> str:
         "project_id": "erp", "environment_id": "dev", "folder": "configurations/erp",
         "configuration": "ERP 2", "platform_version": "8.3.27.2025", "compatibility_mode": "8.3.27",
         "application_kind": "managed", "support_mode": "on-support", "source_format": "edt",
-        "edt_workspace": "erp-ws", "edt_profile": "-", "server_port": "6003",
+        "edt_workspace": "erp-ws", "edt_profile": "-", "toolkit_channel": "erp-dev",
         "is_production": "false", "mcp_enabled": "true", "owner": "team",
     }
     values.update(overrides)
@@ -104,8 +106,8 @@ with tempfile.TemporaryDirectory() as raw:
     # Only an endpoint that is actually known may be installed.
     note(list(mcp["mcpServers"]) == ["onec-toolkit-erp-dev"],
          f"only a resolvable endpoint may be installed: {list(mcp['mcpServers'])}")
-    note("http://127.0.0.1:6003/mcp" == mcp["mcpServers"]["onec-toolkit-erp-dev"]["url"],
-         "the toolkit URL must come from the registry port")
+    note("http://127.0.0.1:6003/mcp?channel=erp-dev" == mcp["mcpServers"]["onec-toolkit-erp-dev"]["url"],
+         "the toolkit URL must carry the channel from the registry")
 
     before = rendered(project)
     changes = clients.apply(project)
@@ -148,7 +150,7 @@ with tempfile.TemporaryDirectory() as raw:
 # --- registry drives what exists --------------------------------------------
 
 with tempfile.TemporaryDirectory() as raw:
-    project = make_project(Path(raw), (base_row(), base_row(project_id="zup", server_port="6004")))
+    project = make_project(Path(raw), (base_row(), base_row(project_id="zup", toolkit_channel="zup-dev")))
     clients.apply(project)
     _, mcp, _ = rendered(project)
     note(sorted(mcp["mcpServers"]) == ["onec-toolkit-erp-dev", "onec-toolkit-zup-dev"],
@@ -156,7 +158,7 @@ with tempfile.TemporaryDirectory() as raw:
 
 with tempfile.TemporaryDirectory() as raw:
     # A base that does not expose MCP has nothing to project.
-    project = make_project(Path(raw), (base_row(mcp_enabled="false", server_port=""),))
+    project = make_project(Path(raw), (base_row(mcp_enabled="false", toolkit_channel=""),))
     clients.apply(project)
     settings, mcp, _ = rendered(project)
     note(not mcp["mcpServers"], f"a base without MCP must install nothing: {mcp['mcpServers']}")
@@ -189,7 +191,7 @@ with tempfile.TemporaryDirectory() as raw:
     # would carry the other base's port.
     project = make_project(Path(raw), (
         base_row(project_id="erp-a", environment_id="dev"),
-        base_row(project_id="erp", environment_id="a-dev", server_port="6004"),
+        base_row(project_id="erp", environment_id="a-dev", toolkit_channel="erp-a-dev"),
     ))
     try:
         clients.plan(project)
@@ -230,7 +232,7 @@ for phase, target in (("staging", "mkstemp"), ("rename", "replace")):
         clients.apply(project)
         before = rendered(project)
         (project / clients.REGISTRY).write_bytes(
-            ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="6005")]) + "\n").encode("utf-8"))
+            ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(toolkit_channel="erp-dev-alt")]) + "\n").encode("utf-8"))
 
         pending = [change for change in clients.plan(project) if change["action"] in ("create", "update")]
         note(len(pending) > 1, "the failure case needs more than one file to change")
@@ -357,8 +359,8 @@ for name, content in (
      + base_row(owner="комaнда").encode("cp1251")),
     ("missing column", b"project_id\tmcp_enabled\nerp\ttrue\n"),
     ("row longer than the header", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row() + "\textra"]) + "\n").encode("utf-8")),
-    ("exposed without a port", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="")]) + "\n").encode("utf-8")),
-    ("port outside the range", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(server_port="9000")]) + "\n").encode("utf-8")),
+    ("exposed without a channel", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(toolkit_channel="")]) + "\n").encode("utf-8")),
+    ("channel with forbidden characters", ("\n".join(["\t".join(REGISTRY_FIELDS), base_row(toolkit_channel="erp dev")]) + "\n").encode("utf-8")),
     # The identity becomes an MCP server name and a TOML table header. A quote
     # or a dot there produced a config.toml no client can parse — including the
     # user's own text outside our markers — and the renderer wrote it anyway,

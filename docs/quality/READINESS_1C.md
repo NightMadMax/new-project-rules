@@ -45,7 +45,7 @@ related:
 | 1 | Проект создаётся с `1c` отдельно и вместе с `jira-confluence` | тест | `scripts/test-preset-core.py` |
 | 2 | Ядро preset защищено машинно | тест | `scripts/test-preset-core.py` |
 | 3 | Снятие ядра capability невозможно | тест | `scripts/test-preset-core.py`, `scripts/test-migration-planner.py` |
-| 4 | Базы не ограничены портами; до десяти на `6003`–`6012` | тест | `scripts/test-one-c-scaffold.py` |
+| 4 | Число экспонируемых баз не ограничено; каналы уникальны | тест | `scripts/test-one-c-scaffold.py` |
 | 5 | Каждый tracked-файл upstream имеет строку ledger | тест | `scripts/test-1c-upstream-routing.py` |
 | 6 | Release и миграция доставляют managed, сохраняют seed, ловят drift | тест | `scripts/test-capability-artifacts.py` |
 | 7 | Режим `analysis`: read-only сборка на `ordinary`, подтверждённый переключатель записи на `managed` | частично | `scripts/test-one-c-scaffold.py`, `scripts/test-1c-session.py`, №252 |

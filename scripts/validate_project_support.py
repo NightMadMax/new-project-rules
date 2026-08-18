@@ -12,10 +12,14 @@ import re
 import sys
 from pathlib import Path, PurePosixPath, PureWindowsPath
 
-# The Toolkit port range, defined once. It was written out in both the
-# validator and the client renderer, so widening it in one place produced a
-# base the validator accepted and the renderer silently dropped.
-ONE_C_PORTS = range(6003, 6013)
+# One Toolkit proxy serves every base and separates them by channel (decision
+# 1.8, revised 2026-08-18). Both constants are defined once: the port range they
+# replace was written out in the validator and in the client renderer, so
+# widening it in one place produced a base the validator accepted and the
+# renderer silently dropped.
+ONE_C_TOOLKIT_PROXY_PORT = 6003
+# Channel id charset is fixed by the proxy: a-z, A-Z, 0-9, underscore, hyphen.
+ONE_C_TOOLKIT_CHANNEL_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 # What a base identity may be spelled with, defined once for the same reason.
 # These two columns become an MCP server name and a TOML table header, so a
 # quote, a dot or a space in them produces a configuration file the client

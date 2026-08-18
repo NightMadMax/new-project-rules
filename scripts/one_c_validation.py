@@ -2,7 +2,7 @@
 """Validation the `1c` capability owns, kept out of the core validator.
 
 The core answers "does this project match its profile". Which columns an
-infobase registry has, which values its enums allow and which ports the Toolkit
+infobase registry has, which values its enums allow and which channels the Toolkit
 may use are facts about one capability, and they lived in `validate-project.py`
 — so a second capability with a registry of its own would have added a second
 such block to a file that is supposed to know nothing about either.
@@ -31,7 +31,7 @@ ONE_C_REGISTRY = "config/1c-projects.tsv"
 ONE_C_REGISTRY_FIELDS = (
     "project_id", "environment_id", "folder", "configuration", "platform_version",
     "compatibility_mode", "application_kind", "support_mode", "source_format",
-    "edt_workspace", "edt_profile", "server_port", "is_production", "mcp_enabled", "owner",
+    "edt_workspace", "edt_profile", "toolkit_channel", "is_production", "mcp_enabled", "owner",
 )
 ONE_C_ENUMS = {
     "application_kind": {"ordinary", "managed"},
@@ -40,13 +40,13 @@ ONE_C_ENUMS = {
     "is_production": {"true", "false"},
     "mcp_enabled": {"true", "false"},
 }
-ONE_C_PORTS = validate_project_support.ONE_C_PORTS
+ONE_C_CHANNEL_RE = validate_project_support.ONE_C_TOOLKIT_CHANNEL_RE
 ONE_C_REQUIRED = ("project_id", "environment_id", "folder", "configuration")
 ONE_C_ID_RE = validate_project_support.ONE_C_ID_RE
 
 
 def check_registry(root: Path) -> list[tuple[str, str, str, str]]:
-    """The registry of infobases: identity, ports and no credentials.
+    """The registry of infobases: identity, Toolkit channels and no credentials.
 
     Every rule here exists because getting it wrong is expensive at runtime: a
     duplicate identity makes "which base" ambiguous, a shared port sends an
@@ -78,8 +78,7 @@ def check_registry(root: Path) -> list[tuple[str, str, str, str]]:
 
     findings: list[tuple[str, str, str, str]] = []
     identities: set[tuple[str, str]] = set()
-    ports: dict[int, str] = {}
-    exposed = 0
+    channels: dict[str, str] = {}
     for row in reader:
         where = f"{ONE_C_REGISTRY}:{reader.line_num}"
         if None in row or any(value is None for value in row.values()):
@@ -116,26 +115,27 @@ def check_registry(root: Path) -> list[tuple[str, str, str, str]]:
                 ))
 
         if row["mcp_enabled"] == "true":
-            exposed += 1
-            port = row["server_port"]
-            if not (port.isascii() and port.isdigit()) or int(port) not in ONE_C_PORTS:
+            channel = row["toolkit_channel"]
+            if not ONE_C_CHANNEL_RE.match(channel):
                 findings.append((
-                    "ERROR", "registry.port",
-                    f"{where} exposes MCP and needs a port in {ONE_C_PORTS.start}-{ONE_C_PORTS.stop - 1}.",
+                    "ERROR", "registry.channel",
+                    f"{where} exposes MCP and needs a Toolkit channel of 1-64 characters "
+                    "from a-z, A-Z, 0-9, '_' or '-'.",
                     ONE_C_REGISTRY,
                 ))
-            elif int(port) in ports:
+            elif channel in channels:
                 findings.append((
-                    "ERROR", "registry.port",
-                    f"{where} shares port {port} with {ports[int(port)]}; an operation would reach the wrong infobase.",
+                    "ERROR", "registry.channel",
+                    f"{where} shares channel {channel} with {channels[channel]}; "
+                    "an operation would reach the wrong infobase.",
                     ONE_C_REGISTRY,
                 ))
             else:
-                ports[int(port)] = f"{row['project_id']}/{row['environment_id']}"
-        elif row["server_port"]:
+                channels[channel] = f"{row['project_id']}/{row['environment_id']}"
+        elif row["toolkit_channel"]:
             findings.append((
-                "ERROR", "registry.port",
-                f"{where} does not expose MCP, so its port must stay empty.", ONE_C_REGISTRY,
+                "ERROR", "registry.channel",
+                f"{where} does not expose MCP, so its Toolkit channel must stay empty.", ONE_C_REGISTRY,
             ))
 
         for column in ("edt_workspace", "edt_profile", "folder"):
@@ -145,17 +145,11 @@ def check_registry(root: Path) -> list[tuple[str, str, str, str]]:
                     f"{where} column '{column}' must not hold a machine path.", ONE_C_REGISTRY,
                 ))
 
-    # The ceiling stated where it is reached. Uniqueness inside the range already
-    # makes an eleventh exposed base impossible, but it fails as "shares a port"
-    # or "needs a port in range" — messages about one row, when the fact is about
-    # the whole registry. Registering bases is not limited; exposing them is.
-    if exposed > len(ONE_C_PORTS):
-        findings.append((
-            "ERROR", "registry.exposed",
-            f"{exposed} bases expose MCP, but the range {ONE_C_PORTS.start}-{ONE_C_PORTS.stop - 1} "
-            f"holds {len(ONE_C_PORTS)}. Registering a base is not limited; exposing it is.",
-            ONE_C_REGISTRY,
-        ))
+    # The ten-base ceiling went away with the port range (decision 1.8, revised
+    # 2026-08-18): one proxy serves every channel, so the number of exposed bases
+    # is no longer bounded by the topology and there is nothing left to count.
+    # Uniqueness of the channel is checked per row above and remains the thing
+    # that keeps an operation from reaching the wrong infobase.
     return findings
 
 

@@ -3,5 +3,5 @@
     <stringAttribute key="ATTR_PROJECT_NAME" value="&lt;EDT_PROJECT&gt;"/>
     <stringAttribute key="ATTR_RUNTIME_INSTALLATION" value="&lt;RUNTIME_INSTALLATION&gt;"/>
     <stringAttribute key="ATTR_CLIENT_TYPE" value="ru.biatech.edt.ordinaryapp.OrdinaryClient"/>
-    <stringAttribute key="ATTR_STARTUP_OPTION" value="/Execute &quot;&lt;PROJECT_ROOT&gt;/configurations/toolkit/MCP_Toolkit_Ordinary.epf&quot;"/>
+    <stringAttribute key="ATTR_STARTUP_OPTION" value="/Execute &quot;&lt;TOOLKIT_EPF&gt;&quot; /C &quot;startup;mode=proxy;url=&lt;TOOLKIT_PROXY_URL&gt;;channel=&lt;TOOLKIT_CHANNEL&gt;;write=1;privileged=0&quot;"/>
 </launchConfiguration>

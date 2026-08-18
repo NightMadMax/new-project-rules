@@ -101,7 +101,7 @@ with tempfile.TemporaryDirectory() as raw:
     session_project = project(base / "p5", DIGEST_A)
     (session_project / "config").mkdir(parents=True, exist_ok=True)
     (session_project / "config/1c-projects.tsv").write_text(
-        "project_id\tenvironment_id\tserver_port\tapplication_kind\tis_production\n"
+        "project_id\tenvironment_id\ttoolkit_channel\tapplication_kind\tis_production\n"
         "erp\tdev\t6003\tordinary\tfalse\n", encoding="utf-8")
     def session(*command: str):
         return subprocess.run(

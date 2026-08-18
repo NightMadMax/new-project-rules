@@ -570,7 +570,7 @@ with tempfile.TemporaryDirectory() as raw:
 CLI = SCRIPTS / "export-1c-source.py"
 REGISTRY_HEADER = (
     "project_id\tenvironment_id\tfolder\tconfiguration\tplatform_version\tcompatibility_mode\t"
-    "application_kind\tsupport_mode\tsource_format\tedt_workspace\tedt_profile\tserver_port\t"
+    "application_kind\tsupport_mode\tsource_format\tedt_workspace\tedt_profile\ttoolkit_channel\t"
     "is_production\tmcp_enabled\towner"
 )
 
