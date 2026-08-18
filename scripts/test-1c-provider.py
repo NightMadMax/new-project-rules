@@ -47,7 +47,7 @@ CATALOG = [
      "endpoint": "from-provider-manifest"},
     {"role": "help", "provider_id": "1C-docs-mcp", "scope": "provider-shared",
      "endpoint": "from-provider-manifest"},
-    {"role": "toolkit", "provider_id": "onec-toolkit", "scope": "per-base", "endpoint": "local-port"},
+    {"role": "toolkit", "provider_id": "onec-toolkit", "scope": "per-base", "endpoint": "proxy-channel"},
 ]
 
 

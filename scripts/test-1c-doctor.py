@@ -255,22 +255,35 @@ with tempfile.TemporaryDirectory() as raw:
     note(absolute["профиль запуска erp/dev"].status == "SKIP",
          f"an absolute path belongs to one machine and must not pass: {absolute}")
 
-# --- a port that is taken on this machine ------------------------------------
-# Milestone W found 6003 — the port the rule hands to the first base — already
-# listened on by the platform, and nothing reported it.
+# --- the shared proxy and channel collisions ---------------------------------
+# Milestone W found 6003 already listened on by the platform and nothing
+# reported it. Decision 1.8 was revised on 2026-08-18: one proxy serves every
+# base on 6003, so an occupied port is now the working state and a free one is
+# the finding. What the port range used to prevent - two bases answering the
+# same commands - is now prevented by unique channels.
 
 registry = [
-    {"project_id": "erp", "environment_id": "dev", "server_port": "6003", "mcp_enabled": "true"},
-    {"project_id": "erp", "environment_id": "prod", "server_port": "", "mcp_enabled": "false"},
+    {"project_id": "erp", "environment_id": "dev", "toolkit_channel": "erp-dev", "mcp_enabled": "true"},
+    {"project_id": "erp", "environment_id": "prod", "toolkit_channel": "", "mcp_enabled": "false"},
 ]
-taken = {row.component: row for row in doctor.port_rows(registry, probe=lambda port: port == 6003)}
-note(len(taken) == 1, f"a base that exposes no MCP reserves no port: {taken}")
-occupied_row = taken["порт 6003 (erp/dev)"]
-note(occupied_row.status == "FAIL", f"an occupied port must be a finding: {occupied_row}")
-note("переназнач" in occupied_row.action,
-     f"the report must say that nothing is reassigned automatically: {occupied_row}")
-free = doctor.port_rows(registry, probe=lambda port: False)
-note(free[0].status == "OK", f"a free port must pass: {free}")
+running = {row.component: row for row in doctor.channel_rows(registry, probe=lambda port: port == 6003)}
+note(len(running) == 2, f"one proxy row and one channel row, and no row for a base without MCP: {running}")
+note(running["прокси Toolkit :6003"].status == "OK",
+     f"an occupied 6003 means the proxy is up: {running}")
+note(running["канал erp-dev (erp/dev)"].status == "OK",
+     f"a unique channel must pass: {running}")
+
+stopped = doctor.channel_rows(registry, probe=lambda port: False)
+note(stopped[0].status == "FAIL", f"a free 6003 means nothing will answer: {stopped}")
+
+collided = doctor.channel_rows([
+    {"project_id": "erp", "environment_id": "dev", "toolkit_channel": "shared", "mcp_enabled": "true"},
+    {"project_id": "zup", "environment_id": "dev", "toolkit_channel": "shared", "mcp_enabled": "true"},
+], probe=lambda port: True)
+clash = [row for row in collided if row.status == "FAIL"]
+note(len(clash) == 1, f"a repeated channel must be a finding: {collided}")
+note("не в ту базу" in clash[0].action,
+     f"the report must name the consequence: {clash[0]}")
 
 # The probe binds rather than connects: a connection would answer about whoever
 # listens anywhere, and the question is whether this machine can serve the base.

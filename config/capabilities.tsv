@@ -19,9 +19,7 @@ jira-confluence	capabilities/jira-confluence/.agents/skills/work-with-jira-confl
 1c	capabilities/1c/configurations/AGENTS.template.md	configurations/AGENTS.md	-	-	-	template	managed
 1c	capabilities/1c/configurations/CLAUDE.template.md	configurations/CLAUDE.md	-	-	-	template	managed
 1c	capabilities/1c/1c-mcp-catalog.template.json	config/1c-mcp-catalog.json	-	-	-	template	managed
-1c	capabilities/1c/toolkit/MCP_Toolkit_Ordinary_ReadOnly.epf	configurations/toolkit/MCP_Toolkit_Ordinary_ReadOnly.epf	-	-	-	binary	managed
 1c	capabilities/1c/toolkit/MCP_Toolkit_Ordinary.epf	configurations/toolkit/MCP_Toolkit_Ordinary.epf	-	-	-	binary	managed
-1c	capabilities/1c/toolkit/MCP_Toolkit_Ordinary_Privileged.epf	configurations/toolkit/MCP_Toolkit_Ordinary_Privileged.epf	-	-	-	binary	managed
 1c	capabilities/1c/launch/toolkit.template.launch	configurations/launch/toolkit.launch	-	-	-	template	seed
 1c	capabilities/1c/launch/toolkit-write.template.launch	configurations/launch/toolkit-write.launch	-	-	-	template	seed
 1c	capabilities/1c/launch/toolkit-privileged.template.launch	configurations/launch/toolkit-privileged.launch	-	-	-	template	seed
