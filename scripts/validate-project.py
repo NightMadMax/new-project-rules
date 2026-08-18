@@ -478,7 +478,6 @@ def check_one_c_registry(root: Path) -> list[Finding]:
     findings: list[Finding] = []
     identities: set[tuple[str, str]] = set()
     channels: dict[str, str] = {}
-    exposed = 0
     for row in reader:
         where = f"{ONE_C_REGISTRY}:{reader.line_num}"
         if None in row or any(value is None for value in row.values()):
@@ -515,7 +514,6 @@ def check_one_c_registry(root: Path) -> list[Finding]:
                 ))
 
         if row["mcp_enabled"] == "true":
-            exposed += 1
             channel = row["toolkit_channel"]
             if not ONE_C_CHANNEL_RE.match(channel):
                 findings.append(Finding(
@@ -548,10 +546,9 @@ def check_one_c_registry(root: Path) -> list[Finding]:
 
     # The ten-base ceiling went away with the port range (decision 1.8, revised
     # 2026-08-18): one proxy serves every channel, so the number of exposed bases
-    # is no longer bounded by the topology. Uniqueness of the channel is checked
-    # per row above and remains the thing that keeps an operation from reaching
-    # the wrong infobase.
-    del exposed
+    # is no longer bounded by the topology, and there is nothing left to count.
+    # Uniqueness of the channel is checked per row above and remains the thing
+    # that keeps an operation from reaching the wrong infobase.
     return findings
 
 
