@@ -26,10 +26,13 @@ CAPABILITY_MIN_PROFILE = {name: core["min_profile"] for name, core in CAPABILITY
 CAPABILITY_REQUIRED_STACK = {name: core["stack"] for name, core in CAPABILITY_CORE.items()
                              if core["stack"] != "-"}
 CAPABILITY_NAMES = {"jira-confluence", "1c", "transcribe"}
-# The ports capability `1c` reserves for the per-base Toolkit (decision 1.8).
-# Declared once: the validator accepted a base the renderer then dropped without
-# a word, because widening the range in one module never reached the other.
-ONE_C_TOOLKIT_PORTS = range(6003, 6013)
+# Capability `1c` reaches every base through one Toolkit proxy and separates
+# them by channel, not by port (decision 1.8, revised 2026-08-18). Declared once:
+# the validator accepted a base the renderer then dropped without a word, because
+# widening the rule in one module never reached the other.
+ONE_C_TOOLKIT_PROXY_PORT = 6003
+# Channel id charset is fixed by the proxy: a-z, A-Z, 0-9, underscore, hyphen.
+ONE_C_TOOLKIT_CHANNEL_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 SOURCE_RE = re.compile(r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
 COMMIT_RE = re.compile(r"^[0-9a-f]{40}$")
 SEMVER_RE = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")

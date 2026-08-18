@@ -27,7 +27,7 @@ LOCK_NAME = "session-lock.json"
 # A working session, not a working day: a lock older than this describes a
 # runtime nobody has spoken to since, and re-confirming costs one call.
 LOCK_TTL_SECONDS = 12 * 60 * 60
-REQUIRED_FIELDS = ("project_id", "environment_id", "server_port", "application_kind",
+REQUIRED_FIELDS = ("project_id", "environment_id", "toolkit_channel", "application_kind",
                    "is_production", "confirmed_by", "write_mode", "created_at")
 WRITE_MODES = ("analysis", "approved-write")
 
@@ -99,7 +99,7 @@ def acquire(root: Path, row: dict, *, confirmed_by: str, write_mode: str = "anal
     lock = {
         "project_id": row["project_id"],
         "environment_id": row["environment_id"],
-        "server_port": row.get("server_port", ""),
+        "toolkit_channel": row.get("toolkit_channel", ""),
         "application_kind": row.get("application_kind", ""),
         "is_production": row.get("is_production", "false"),
         "confirmed_by": confirmed_by,
@@ -155,10 +155,10 @@ def require(root: Path, rows: list[dict], *, identity: str | None = None,
     row = next((item for item in rows if identity_of(item) == locked), None)
     if row is None:
         raise SessionError(f"{locked} is no longer in the registry; the lock cannot be honoured")
-    if row.get("server_port", "") != lock.get("server_port", ""):
+    if row.get("toolkit_channel", "") != lock.get("toolkit_channel", ""):
         raise SessionError(
-            f"{locked} changed its port since it was confirmed "
-            f"({lock.get('server_port') or 'none'} → {row.get('server_port') or 'none'}); confirm it again"
+            f"{locked} changed its Toolkit channel since it was confirmed "
+            f"({lock.get('toolkit_channel') or 'none'} → {row.get('toolkit_channel') or 'none'}); confirm it again"
         )
 
     if write:

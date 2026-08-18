@@ -1,1 +1,1 @@
-project_id	environment_id	folder	configuration	platform_version	compatibility_mode	application_kind	support_mode	source_format	edt_workspace	edt_profile	server_port	is_production	mcp_enabled	owner
+project_id	environment_id	folder	configuration	platform_version	compatibility_mode	application_kind	support_mode	source_format	edt_workspace	edt_profile	toolkit_channel	is_production	mcp_enabled	owner

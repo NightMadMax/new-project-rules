@@ -45,7 +45,7 @@ def refuses(action, expected: str, message: str) -> None:
 
 def base(**overrides) -> dict:
     row = {
-        "project_id": "erp", "environment_id": "dev", "server_port": "6003",
+        "project_id": "erp", "environment_id": "dev", "toolkit_channel": "erp-dev",
         "application_kind": "managed", "is_production": "false",
     }
     row.update(overrides)
@@ -53,7 +53,7 @@ def base(**overrides) -> dict:
 
 
 DEV = base()
-PROD = base(environment_id="prod", server_port="6004", is_production="true")
+PROD = base(environment_id="prod", toolkit_channel="erp-prod", is_production="true")
 REGISTRY = [DEV, PROD]
 
 with tempfile.TemporaryDirectory() as raw:
@@ -89,10 +89,10 @@ with tempfile.TemporaryDirectory() as raw:
     refuses(lambda: session.require(root, REGISTRY, system="nt", write=True), "analysis mode",
             "a write under an analysis lock must be refused")
 
-    # --- the port moved under the lock --------------------------------------
-    moved = [base(server_port="6007"), PROD]
-    refuses(lambda: session.require(root, moved, system="nt"), "changed its port",
-            "a base re-registered on another port must invalidate the confirmation")
+    # --- the channel moved under the lock --------------------------------------
+    moved = [base(toolkit_channel="erp-dev-2"), PROD]
+    refuses(lambda: session.require(root, moved, system="nt"), "changed its Toolkit channel",
+            "a base re-registered on another channel must invalidate the confirmation")
 
     # --- the base left the registry -----------------------------------------
     refuses(lambda: session.require(root, [PROD], system="nt"), "no longer in the registry",

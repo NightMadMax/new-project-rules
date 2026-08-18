@@ -570,7 +570,7 @@ with tempfile.TemporaryDirectory() as raw:
 CLI = SCRIPTS / "export-1c-source.py"
 REGISTRY_HEADER = (
     "project_id\tenvironment_id\tfolder\tconfiguration\tplatform_version\tcompatibility_mode\t"
-    "application_kind\tsupport_mode\tsource_format\tedt_workspace\tedt_profile\tserver_port\t"
+    "application_kind\tsupport_mode\tsource_format\tedt_workspace\tedt_profile\ttoolkit_channel\t"
     "is_production\tmcp_enabled\towner"
 )
 
@@ -579,7 +579,7 @@ def cli_project(directory: Path, source_format: str = "edt") -> tuple[Path, Path
     root, tree = canon_project(directory)
     (root / "config").mkdir(parents=True, exist_ok=True)
     row = ("erp\tdev\tconfigurations/erp\tERP 2\t8.3.27.2025\t8.3.27\tmanaged\ton-support\t"
-           f"{source_format}\terp-ws\t-\t6003\tfalse\ttrue\tteam")
+           f"{source_format}\terp-ws\t-\terp-dev\tfalse\ttrue\tteam")
     (root / "config/1c-projects.tsv").write_bytes((REGISTRY_HEADER + "\n" + row + "\n").encode("utf-8"))
     helper = directory / "converter.py"
     helper.write_bytes(

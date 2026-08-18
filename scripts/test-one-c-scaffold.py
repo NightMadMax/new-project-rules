@@ -100,7 +100,7 @@ def base_row(**overrides: str) -> str:
         "project_id": "erp", "environment_id": "dev", "folder": "configurations/erp",
         "configuration": "ERP 2", "platform_version": "8.3.27.2025", "compatibility_mode": "8.3.27",
         "application_kind": "managed", "support_mode": "on-support", "source_format": "edt",
-        "edt_workspace": "erp-workspace", "edt_profile": "-", "server_port": "6003",
+        "edt_workspace": "erp-workspace", "edt_profile": "-", "toolkit_channel": "erp-dev",
         "is_production": "false", "mcp_enabled": "true", "owner": "team",
     }
     values.update(overrides)
@@ -199,12 +199,12 @@ with tempfile.TemporaryDirectory() as raw:
         # The registry must be checked by the validator itself, not only by a
         # function a test can call directly.
         (project / "config/1c-projects.tsv").write_bytes(
-            registry_rows(base_row(server_port="9000")).encode("utf-8"))
+            registry_rows(base_row(toolkit_channel="erp dev")).encode("utf-8"))
         report = subprocess.run(
             [sys.executable, str(SCRIPTS / "validate-project.py"), "--root", str(project), "--report-only"],
             capture_output=True, text=True,
         )
-        note("registry.port" in report.stdout, f"the validator must check the registry: {report.stdout[-300:]}")
+        note("registry.channel" in report.stdout, f"the validator must check the registry: {report.stdout[-300:]}")
 
         # What git must not track and must not normalise. The template promises
         # .dev.env is ignored, and a normalised EPF is a corrupted EPF.
@@ -286,24 +286,24 @@ registry_case("empty registry", registry_rows(), None)
 registry_case("wrong header", "project_id\tenvironment_id\n", "registry.header")
 registry_case(
     "duplicate identity",
-    registry_rows(base_row(), base_row(server_port="6004")),
+    registry_rows(base_row(), base_row(toolkit_channel="erp-dev-2")),
     "registry.duplicate",
 )
 registry_case("unknown application kind", registry_rows(base_row(application_kind="both")), "registry.value")
 registry_case("unknown support mode", registry_rows(base_row(support_mode="maybe")), "registry.value")
 registry_case("unknown source format", registry_rows(base_row(source_format="xml")), "registry.value")
 registry_case("production flag is not a boolean", registry_rows(base_row(is_production="yes")), "registry.value")
-registry_case("port outside the range", registry_rows(base_row(server_port="9000")), "registry.port")
-registry_case("exposed base without a port", registry_rows(base_row(server_port="")), "registry.port")
+registry_case("channel with forbidden characters", registry_rows(base_row(toolkit_channel="erp dev")), "registry.channel")
+registry_case("exposed base without a channel", registry_rows(base_row(toolkit_channel="")), "registry.channel")
 registry_case(
-    "port on a base that does not expose MCP",
+    "channel on a base that does not expose MCP",
     registry_rows(base_row(mcp_enabled="false")),
-    "registry.port",
+    "registry.channel",
 )
 registry_case(
-    "two bases on one port",
+    "two bases on one channel",
     registry_rows(base_row(), base_row(project_id="zup")),
-    "registry.port",
+    "registry.channel",
 )
 # A path check that depends on the host would let each platform through the
 # other's mistake: the repository is prepared on macOS and used on Windows.
@@ -327,25 +327,20 @@ registry_case(
 )
 registry_case("empty identity", registry_rows(base_row(project_id="", environment_id="")), "registry.value")
 registry_case("identifier with a separator", registry_rows(base_row(project_id="erp/main")), "registry.value")
-# The ceiling belongs to the registry, not to one row: an eleventh exposed base
-# used to fail as a port collision, which describes the wrong thing.
+# The ten-base ceiling went away with the port range (decision 1.8, revised
+# 2026-08-18): one proxy serves every channel, so exposing an eleventh base is
+# ordinary. What still has to hold is that each channel is claimed once.
 eleven = registry_rows(*[
-    base_row(project_id=f"base{number}", server_port=str(6003 + number), mcp_enabled="true")
+    base_row(project_id=f"base{number}", toolkit_channel=f"base{number}-dev", mcp_enabled="true")
     for number in range(11)
 ])
-registry_case("eleven exposed bases", eleven, "registry.exposed")
+registry_case("eleven exposed bases", eleven, None)
 
-# Registering is not limited: the same eleven are fine while they stay unexposed.
-registry_case("eleven registered bases, ten exposed", registry_rows(*[
-    base_row(project_id=f"base{number}", server_port=str(6003 + number), mcp_enabled="true")
-    for number in range(10)
-] + [base_row(project_id="base10", server_port="", mcp_enabled="false")]), None)
-
-registry_case("port with a leading zero collides", registry_rows(base_row(), base_row(project_id="zup", server_port="06003")), "registry.port")
+registry_case("channel differing only by case is distinct", registry_rows(base_row(), base_row(project_id="zup", toolkit_channel="ERP-DEV")), None)
 registry_case("row that does not match the header", registry_rows("erp\tdev"), "registry.row")
 
-# A base that does not expose MCP is legitimate and needs no port.
-registry_case("registered but not exposed", registry_rows(base_row(mcp_enabled="false", server_port="")), None)
+# A base that does not expose MCP is legitimate and needs no channel.
+registry_case("registered but not exposed", registry_rows(base_row(mcp_enabled="false", toolkit_channel="")), None)
 
 if failures:
     for failure in failures:

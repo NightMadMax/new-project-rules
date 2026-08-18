@@ -61,7 +61,7 @@
       "scope": "per-base",
       "tier": "initial",
       "mode": "write-capable",
-      "endpoint": "local-port",
+      "endpoint": "proxy-channel",
       "purpose": "live infobase data, metadata and operations"
     },
     {

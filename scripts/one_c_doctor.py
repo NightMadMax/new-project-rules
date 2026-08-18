@@ -24,6 +24,7 @@ SCRIPTS = Path(__file__).resolve().parent
 sys.path.insert(0, str(SCRIPTS))
 
 import cli_discovery  # noqa: E402
+import project_metadata  # noqa: E402
 
 # Exactly what may be opened. Anything else is refused, so widening the diagnosis
 # is a review of this list rather than an accident — and state, backups, sessions
@@ -255,29 +256,47 @@ def ordinary_rows(root: Path, rows: list[dict[str, str]]) -> list[Row]:
 
 
 def port_rows(rows: list[dict[str, str]], probe=None) -> list[Row]:
-    """Whether the port a base was assigned is free on this machine.
+    """Whether the shared Toolkit proxy listens, and whether channels collide.
 
-    The runtime smoke of milestone W found `6003` — the port the allocation rule
-    hands to the first base — already listened on by the platform itself. The
-    rule does not change and the diagnosis never reassigns anything: a shared
-    topology is not rewritten because one machine is busy. It says which port is
-    taken, and the choice is the user's.
+    Revised 2026-08-18 together with decision 1.8. Under the port-per-base rule
+    an occupied `6003` was a finding; the runtime smoke of milestone W hit
+    exactly that. Now one proxy serves every base and separates them by channel,
+    so an occupied `6003` is the working state and a free one means the proxy is
+    down. The diagnosis still never reassigns anything: it reports, the choice
+    is the user's.
+
+    Two bases sharing a channel is the failure the port range used to prevent —
+    commands reach whichever client answers first, which is the "operation
+    reached the wrong infobase" case.
     """
     probe = occupied if probe is None else probe
     result: list[Row] = []
-    for row in rows:
-        if row.get("mcp_enabled") != "true":
-            continue
-        port = row.get("server_port", "").strip()
+    enabled = [row for row in rows if row.get("mcp_enabled") == "true"]
+    if not enabled:
+        return result
+
+    port = project_metadata.ONE_C_TOOLKIT_PROXY_PORT
+    if probe(port):
+        result.append(Row(f"прокси Toolkit :{port}", "OK", "порт занят — прокси слушает",
+                          "ничего не требуется"))
+    else:
+        result.append(Row(f"прокси Toolkit :{port}", "FAIL", "порт свободен — прокси не запущен",
+                          "поднять прокси Toolkit; без него каналы не отвечают"))
+
+    seen: dict[str, str] = {}
+    for row in enabled:
         identity = f"{row.get('project_id', '?')}/{row.get('environment_id', '?')}"
-        if not port.isdigit():
+        channel = row.get("toolkit_channel", "").strip()
+        if not channel:
             continue
-        if probe(int(port)):
-            result.append(Row(f"порт {port} ({identity})", "FAIL", "порт уже занят на этой машине",
-                              "освободить порт или изменить topology явно — "
-                              "диагностика не переназначает порты"))
+        if channel in seen:
+            result.append(Row(f"канал {channel} ({identity})", "FAIL",
+                              f"канал уже занят базой {seen[channel]}",
+                              "развести каналы в реестре — команды уйдут не в ту базу"))
         else:
-            result.append(Row(f"порт {port} ({identity})", "OK", "свободен", "ничего не требуется"))
+            seen[channel] = identity
+            result.append(Row(f"канал {channel} ({identity})", "OK", "уникален",
+                              "ничего не требуется"))
     return result
 
 

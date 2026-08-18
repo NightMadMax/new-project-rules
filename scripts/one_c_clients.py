@@ -39,8 +39,9 @@ BEGIN = "# new-project-rules:1c:begin"
 END = "# new-project-rules:1c:end"
 CLASSES = ("allow", "ask", "deny")
 # The columns a projection reads; the registry may carry more.
-REGISTRY_COLUMNS = ("project_id", "environment_id", "server_port", "mcp_enabled")
-PORTS = project_metadata.ONE_C_TOOLKIT_PORTS
+REGISTRY_COLUMNS = ("project_id", "environment_id", "toolkit_channel", "mcp_enabled")
+PROXY_PORT = project_metadata.ONE_C_TOOLKIT_PROXY_PORT
+CHANNEL_RE = project_metadata.ONE_C_TOOLKIT_CHANNEL_RE
 # Which projection belongs to which client, so a late-installed client can be
 # activated without touching the one that already works (decision 1.11).
 CLIENTS = {"claude": (CLAUDE_SETTINGS, MCP_CONFIG), "codex": (CODEX_CONFIG,)}
@@ -144,13 +145,14 @@ def read_registry(root: Path) -> list[dict[str, str]]:
             raise ClientError(f"{REGISTRY}:{number} has {len(values)} fields against {len(header)} in the header")
         row = dict(zip(header, values))
         if row["mcp_enabled"] == "true":
-            port = row["server_port"]
-            # A base that says it exposes MCP but names no usable port would
-            # produce an endpoint that looks installed and fails on first call.
-            if not (port.isascii() and port.isdigit()) or int(port) not in PORTS:
+            channel = row["toolkit_channel"]
+            # A base that says it exposes MCP but names no usable channel would
+            # produce an endpoint that looks installed and times out on first
+            # call: the proxy answers, nothing sits behind the channel.
+            if not CHANNEL_RE.match(channel):
                 raise ClientError(
-                    f"{REGISTRY}:{number} exposes MCP with port '{port}'; "
-                    f"expected {PORTS.start}-{PORTS.stop - 1}."
+                    f"{REGISTRY}:{number} exposes MCP with channel '{channel}'; "
+                    "expected 1-64 characters of a-z, A-Z, 0-9, '_' or '-'."
                 )
             rows.append(row)
     return rows
@@ -194,8 +196,11 @@ def projected_servers(catalog: list[dict], registry: list[dict[str, str]],
             if server["role"] == "data":
                 # Denied by policy: it must not be installed by a render.
                 entry["unresolved"] = f"роль отключена решением 1.17 — {ROLE_REASONS['data']}"
-            elif server.get("endpoint") == "local-port" and base:
-                entry["url"] = f"http://127.0.0.1:{base['server_port']}/mcp"
+            elif server.get("endpoint") == "proxy-channel" and base:
+                entry["url"] = (
+                    f"http://127.0.0.1:{PROXY_PORT}/mcp"
+                    f"?channel={base['toolkit_channel']}"
+                )
             elif resolved.get(server["provider_id"]):
                 entry["url"] = resolved[server["provider_id"]]
             else:
