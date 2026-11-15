@@ -417,6 +417,44 @@ class ValidatorTests(unittest.TestCase):
         )
         self.assertEqual(findings, [], "a note and an attachment sharing a stem must not read as ambiguous")
 
+    def test_relative_wikilinks_resolve_with_duplicate_basenames(self):
+        findings = self.wikilink_findings(
+            "[[../media/report.html#section|Report]] [[./GUIDE]] [[dictionary.txt]]",
+            extra_files=("media/report.html", "archive/report.html", "docs/dictionary.txt"),
+            extra_notes=("archive/GUIDE.md",),
+        )
+        self.assertEqual(findings, [])
+
+    def test_explicit_wikilink_path_cannot_resolve_to_a_different_directory(self):
+        findings = self.wikilink_findings(
+            "[[old/GUIDE]] [[./missing/report.html]] [[../../../GUIDE]]",
+            extra_files=("media/report.html",),
+        )
+        self.assertEqual(len(findings), 3)
+        self.assertEqual(finding_codes(findings), {"wikilink.missing"})
+
+    def test_short_path_must_match_the_whole_suffix(self):
+        findings = self.wikilink_findings(
+            "[[analysis/report.html]] [[old/report.html]]",
+            extra_files=("subproject/analysis/report.html", "archive/report.html"),
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("'old/report.html'", findings[0].message)
+
+    def test_attachment_basename_with_extension_resolves_outside_source_dir(self):
+        findings = self.wikilink_findings(
+            "[[report.html]]",
+            extra_files=("media/report.html", "archive/report.pdf"),
+        )
+        self.assertEqual(findings, [])
+
+    def test_wikilink_examples_in_code_are_ignored(self):
+        findings = self.wikilink_findings(
+            "`[[inline example]]`\n\n```text\n[[fenced example]]\n```\n\n#[[file:kiro.md]] [[ABSENT]]"
+        )
+        self.assertEqual(len(findings), 1)
+        self.assertIn("'ABSENT'", findings[0].message)
+
     def test_missing_wikilink_target_still_reported(self):
         findings = self.wikilink_findings("# Docs\n\n[[docs/ABSENT\\|ABSENT.md]]\n")
         self.assertEqual(finding_codes(findings), {"wikilink.missing"})
